@@ -1,0 +1,182 @@
+<?php
+
+namespace App\Livewire\Components;
+
+use App\Models\User;
+use Exception;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
+use Livewire\Component;
+
+class Header extends Component
+{
+    public bool $showProfileModal = false;
+    public string $activeTab = 'profile';
+
+    public string $first_name = '';
+    public string $middle_name = '';
+    public string $last_name = '';
+    public ?string $prefix = '';
+    public ?string $address = '';
+    public ?string $contact_number = '';
+    public string $email = '';
+    public string $username = '';
+    public string $current_password_for_profile = '';
+
+    public string $current_password = '';
+    public string $new_password = '';
+    public string $new_password_confirmation = '';
+
+    public function mount(): void
+    {
+        $this->loadUserData();
+    }
+
+    public function loadUserData(): void
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        $this->first_name = $user->first_name ?? '';
+        $this->middle_name = $user->middle_name ?? '';
+        $this->last_name = $user->last_name ?? '';
+        $this->prefix = $user->prefix;
+        $this->address = $user->address;
+        $this->contact_number = $user->contact_number;
+        $this->email = $user->email ?? '';
+        $this->username = $user->username ?? '';
+    }
+
+    public function openProfileModal(string $tab = 'profile'): void
+    {
+        $this->resetValidation();
+        $this->loadUserData();
+
+        $this->current_password_for_profile = '';
+        $this->current_password = '';
+        $this->new_password = '';
+        $this->new_password_confirmation = '';
+
+        $this->activeTab = $tab;
+        $this->showProfileModal = true;
+    }
+
+    public function closeProfileModal(): void
+    {
+        $this->showProfileModal = false;
+        $this->resetValidation();
+    }
+
+    public function updateProfile()
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        try {
+            $this->validate([
+                'first_name' => 'required|string|max:255',
+                'middle_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+                'prefix' => 'nullable|string|max:50',
+                'address' => 'required|string|max:255',
+                'contact_number' => 'required|string|max:20',
+                'email' => "required|email|max:255|unique:users,email,{$user->id}",
+                'username' => "required|string|min:3|max:50|unique:users,username,{$user->id}",
+                'current_password_for_profile' => [
+                    'required',
+                    'string',
+                    function ($attribute, $value, $fail) use ($user) {
+                        if (! Hash::check($value, $user->password)) {
+                            $fail('The password you entered is incorrect.');
+                        }
+                    },
+                ],
+            ]);
+        } catch (ValidationException $e) {
+            $this->dispatch('toast', message: 'Failed to update profile. Please check the form errors.', type: 'error');
+            throw $e;
+        }
+
+        $emailChanged = $user->email !== $this->email;
+
+        $user->forceFill([
+            'first_name' => $this->first_name,
+            'middle_name' => $this->middle_name,
+            'last_name' => $this->last_name,
+            'prefix' => $this->prefix,
+            'address' => $this->address,
+            'contact_number' => $this->contact_number,
+            'email' => $this->email,
+            'username' => $this->username,
+            'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
+        ])->save();
+
+        if ($emailChanged) {
+            try {
+                $user->sendEmailVerificationNotification();
+                session()->flash('status', 'Profile updated! Please verify your new email address.');
+            } catch (Exception $e) {
+                session()->flash('status', 'Profile updated, but sending email verification failed. Please check your connection and try again.');
+                Log::error('Header updateProfile email verification failed: ' . $e->getMessage());
+            }
+
+            return $this->redirectRoute('verification.notice', navigate: true);
+        }
+
+        $this->current_password_for_profile = '';
+        $this->closeProfileModal();
+        $this->dispatch('toast', message: 'Profile details updated successfully!', type: 'success');
+    }
+
+    public function updatePassword(): void
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        try {
+            $this->validate([
+                'current_password' => [
+                    'required',
+                    'string',
+                    function ($attribute, $value, $fail) use ($user) {
+                        if (! Hash::check($value, $user->password)) {
+                            $fail('Your current password is incorrect.');
+                        }
+                    },
+                ],
+                'new_password' => ['required', 'string', Password::defaults(), 'confirmed'],
+            ]);
+        } catch (ValidationException $e) {
+            $this->dispatch('toast', message: 'Failed to change password. Please check form inputs.', type: 'error');
+            throw $e;
+        }
+
+        $user->forceFill([
+            'password' => Hash::make($this->new_password),
+        ])->save();
+
+        $this->current_password = '';
+        $this->new_password = '';
+        $this->new_password_confirmation = '';
+
+        $this->closeProfileModal();
+        $this->dispatch('toast', message: 'Password updated successfully!', type: 'success');
+    }
+
+    public function logout()
+    {
+        Auth::logout();
+        session()->invalidate();
+        session()->regenerateToken();
+
+        return $this->redirectRoute('login', navigate: true);
+    }
+
+    public function render()
+    {
+        return view('livewire.components.header');
+    }
+}
