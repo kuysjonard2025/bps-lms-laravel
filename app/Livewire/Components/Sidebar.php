@@ -82,16 +82,21 @@ class Sidebar extends Component
                     'icon' => 'trash',
                 ],
             ],
-            'System Reports' => [
+            'System Log & Backup' => [
                 [
-                    'name' => 'System Logs',
-                    'route' => 'system-logs',
+                    'name' => 'User Logs',
+                    'route' => 'user-logs',
                     'icon' => 'chart-bar',
                 ],
                 [
-                    'name' => 'System User Activity',
-                    'route' => 'system-user-activity',
+                    'name' => 'User Activity Logs',
+                    'route' => 'user-activity-logs',
                     'icon' => 'queue-list',
+                ],
+                [
+                    'name' => 'Database backups',
+                    'route' => 'database-backups',
+                    'icon' => 'server',
                 ]
             ],
         ];

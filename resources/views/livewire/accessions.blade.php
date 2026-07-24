@@ -1,6 +1,6 @@
 <div class="p-4 sm:p-6 space-y-4 max-w-full">
-    {{-- Header --}}
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    {{-- Header wrapped in white card container --}}
+    <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
             <h2 class="text-base sm:text-lg font-bold text-gray-900">Accessions Management</h2>
             <p class="text-xs text-gray-500">Manage individual copies, batch generation, and circulation status.</p>
@@ -43,7 +43,7 @@
     </div>
 
     {{-- Data Table --}}
-    <div class="overflow-x-auto border border-gray-200 rounded-lg shadow-xs">
+    <div class="overflow-x-auto border border-gray-200 rounded-lg shadow-xs bg-white">
         <table class="w-full text-left text-xs text-gray-700">
             <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[11px] border-b border-gray-200">
                 <tr>
@@ -68,7 +68,7 @@
                         <td class="px-3 sm:px-4 py-3 max-w-[200px] sm:max-w-none truncate sm:whitespace-normal">
                             <div class="font-semibold text-gray-900 truncate">{{ $item->catalog->title ?? '—' }}</div>
                             <div class="text-[10px] sm:text-[11px] text-gray-500 truncate">
-                                ACQ: <span class="font-mono text-blue-600 font-semibold">{{ $item->acquisition->acquisition_number ?? 'N/A' }}</span>
+                                <span class="font-mono text-blue-600 font-semibold">{{ $item->acquisition->acquisition_number ?? 'N/A' }}</span>
                                 <span class="hidden sm:inline"> | Author: <span class="text-gray-700">{{ $item->catalog->author->name ?? 'N/A' }}</span></span>
                             </div>
                         </td>
@@ -96,8 +96,29 @@
                             </span>
                         </td>
                         <td class="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
-                            <button wire:click="openEditModal({{ $item->id }})" class="text-blue-600 hover:text-blue-800 font-semibold px-1.5 py-1 rounded hover:bg-blue-50 transition cursor-pointer">Edit</button>
-                            <button wire:click="confirmDelete({{ $item->id }})" class="text-red-600 hover:text-red-800 font-semibold px-1.5 py-1 rounded hover:bg-red-50 transition cursor-pointer">Delete</button>
+                            @if($item->status === 'On Loan')
+                                <button
+                                    type="button"
+                                    disabled
+                                    title="Item is on loan and cannot be modified"
+                                    class="text-gray-300 cursor-not-allowed font-semibold px-1.5 py-1"
+                                >Edit</button>
+                                <button
+                                    type="button"
+                                    disabled
+                                    title="Item is on loan and cannot be deleted"
+                                    class="text-gray-300 cursor-not-allowed font-semibold px-1.5 py-1"
+                                >Delete</button>
+                            @else
+                                <button
+                                    wire:click="openEditModal({{ $item->id }})"
+                                    class="text-blue-600 hover:text-blue-800 font-semibold px-1.5 py-1 rounded hover:bg-blue-50 transition cursor-pointer"
+                                >Edit</button>
+                                <button
+                                    wire:click="confirmDelete({{ $item->id }})"
+                                    class="text-red-600 hover:text-red-800 font-semibold px-1.5 py-1 rounded hover:bg-red-50 transition cursor-pointer"
+                                >Delete</button>
+                            @endif
                         </td>
                     </tr>
                 @empty
@@ -125,7 +146,11 @@
                     {{-- Acquisition Selection --}}
                     <div>
                         <label class="block text-xs font-medium text-gray-700">Acquisition Source *</label>
-                        <select wire:model.live="acquisition_id" class="mt-1 w-full text-xs sm:text-sm rounded-md border-gray-300 border p-2 shadow-xs bg-white">
+                        <select
+                            wire:model.live="acquisition_id"
+                            @disabled((bool)$accessionIdBeingEdited)
+                            class="mt-1 w-full text-xs sm:text-sm rounded-md border-gray-300 border p-2 shadow-xs bg-white disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                        >
                             <option value="">Select Acquisition Log</option>
                             @foreach($acquisitions as $acq)
                                 <option value="{{ $acq->id }}">
@@ -136,11 +161,12 @@
                         @error('acquisition_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                     </div>
 
-                    {{-- Comprehensive Detailed Information Card --}}
+                    {{-- Acquisition Metadata & Quantity Summary Preview --}}
                     @if ($this->selectedAcquisition)
                         @php
+                            $totalQty = $this->selectedAcquisition->quantity;
                             $remainingCount = $this->getRemainingQty();
-                            $existingCount = $this->selectedAcquisition->quantity - $remainingCount;
+                            $accessionedCount = max(0, $totalQty - $remainingCount);
                             $cat = $this->selectedAcquisition->catalog;
                         @endphp
                         <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-3">
@@ -154,7 +180,6 @@
                                 </span>
                             </div>
 
-                            {{-- Full Metadata Grid --}}
                             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-[11px] text-slate-600">
                                 <div>
                                     <span class="block text-slate-400 text-[10px]">Author</span>
@@ -182,19 +207,19 @@
                                 </div>
                             </div>
 
-                            {{-- Accession Breakdown Banner --}}
-                            <div class="pt-2 border-t border-slate-200/80 grid grid-cols-3 gap-2 text-center text-[11px]">
-                                <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
-                                    <span class="block text-[10px] text-slate-400 uppercase font-semibold">Total Acquired</span>
-                                    <span class="font-bold text-slate-900">{{ $this->selectedAcquisition->quantity }}</span>
+                            {{-- Quantity Summary Metrics --}}
+                            <div class="pt-2.5 border-t border-slate-200 grid grid-cols-3 gap-2 text-center">
+                                <div class="bg-white p-2 rounded-lg border border-slate-200">
+                                    <span class="block text-[10px] text-slate-400 uppercase font-bold">Total Acquired</span>
+                                    <span class="text-xs sm:text-sm font-bold text-slate-800 font-mono">{{ $totalQty }}</span>
                                 </div>
-                                <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
-                                    <span class="block text-[10px] text-slate-400 uppercase font-semibold">Accessioned</span>
-                                    <span class="font-bold text-blue-600">{{ $existingCount }}</span>
+                                <div class="bg-emerald-50/60 p-2 rounded-lg border border-emerald-100">
+                                    <span class="block text-[10px] text-emerald-600 uppercase font-bold">Accessioned</span>
+                                    <span class="text-xs sm:text-sm font-bold text-emerald-700 font-mono">{{ $accessionedCount }}</span>
                                 </div>
-                                <div class="bg-white p-1.5 rounded-lg border border-slate-200 shadow-2xs">
-                                    <span class="block text-[10px] text-slate-400 uppercase font-semibold">Remaining</span>
-                                    <span class="font-bold {{ $remainingCount > 0 ? 'text-emerald-600' : 'text-rose-600' }}">{{ $remainingCount }}</span>
+                                <div class="bg-blue-50/60 p-2 rounded-lg border border-blue-100">
+                                    <span class="block text-[10px] text-blue-600 uppercase font-bold">Remaining</span>
+                                    <span class="text-xs sm:text-sm font-bold text-blue-700 font-mono">{{ $remainingCount }}</span>
                                 </div>
                             </div>
                         </div>
@@ -202,7 +227,6 @@
 
                     @if (!$accessionIdBeingEdited)
                         @php $remainingQty = $this->getRemainingQty(); @endphp
-                        {{-- Batch Quantity & Auto-Disabled Batch Ref --}}
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 bg-blue-50/40 border border-blue-100 rounded-lg">
                             <div>
                                 <label class="block text-xs font-bold text-blue-900">Batch Quantity to Create *</label>
@@ -232,8 +256,15 @@
                     @else
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <div>
-                                <label class="block text-xs font-medium text-gray-700">Accession Number *</label>
-                                <input type="text" wire:model="accession_number" maxlength="50" class="mt-1 w-full text-xs sm:text-sm font-mono rounded-md border-gray-300 border p-2 shadow-xs">
+                                <label class="block text-xs font-medium text-gray-500">Accession Number (Auto-Generated)</label>
+                                <input
+                                    type="text"
+                                    wire:model="accession_number"
+                                    disabled
+                                    readonly
+                                    class="mt-1 w-full text-xs sm:text-sm font-mono rounded-md border-gray-200 border p-2 bg-gray-100 text-gray-500 cursor-not-allowed select-none"
+                                >
+                                <span class="text-[10px] text-gray-400">System identifier cannot be modified.</span>
                                 @error('accession_number') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                             </div>
                             <div>
@@ -244,10 +275,25 @@
                         </div>
                     @endif
 
+                    {{-- Call Number with Batch Update Toggle --}}
                     <div>
                         <label class="block text-xs font-medium text-gray-700">Call Number *</label>
                         <input type="text" wire:model="call_number" maxlength="50" placeholder="e.g. 823.912 R59" class="mt-1 w-full text-xs sm:text-sm font-mono rounded-md border-gray-300 border p-2 shadow-xs">
-                        @error('call_number') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                        @error('call_number') <span class="text-xs text-red-500 block">{{ $message }}</span> @enderror
+
+                        @if ($accessionIdBeingEdited)
+                            <div class="mt-2.5 p-2 bg-blue-50/60 border border-blue-100 rounded-md flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="updateBatchCallNumber"
+                                    wire:model="updateBatchCallNumber"
+                                    class="rounded border-blue-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
+                                >
+                                <label for="updateBatchCallNumber" class="text-xs font-medium text-blue-900 cursor-pointer select-none">
+                                    Apply this Call Number to all items in batch (<span class="font-mono font-bold text-blue-700">{{ $batch_number }}</span>)
+                                </label>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
@@ -266,7 +312,7 @@
                             <label class="block text-xs font-medium text-gray-700">Circulation Status *</label>
                             <select wire:model="status" class="mt-1 w-full text-xs sm:text-sm rounded-md border-gray-300 border p-2 shadow-xs bg-white">
                                 <option value="Available">Available</option>
-                                <option value="On Loan">On Loan</option>
+                                <option value="On Loan" disabled class="bg-gray-100 text-gray-400">On Loan (Auto-set via Circulation)</option>
                                 <option value="Reserved">Reserved</option>
                                 <option value="Under Maintenance">Under Maintenance</option>
                                 <option value="Lost">Lost</option>
@@ -307,17 +353,17 @@
     @if ($showDeleteModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div wire:click="$set('showDeleteModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
-            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-sm z-10 p-5 text-center space-y-4">
-                <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md z-10 p-6 space-y-4 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 text-red-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 </div>
                 <div>
-                    <h3 class="text-sm font-bold text-gray-900">Delete Accession</h3>
-                    <p class="text-xs text-gray-500 mt-1">Are you sure you want to delete this accession record?</p>
+                    <h3 class="text-sm font-bold text-gray-900">Delete Accession Record?</h3>
+                    <p class="text-xs text-gray-500 mt-1">Are you sure you want to delete this accession item? This action cannot be undone.</p>
                 </div>
-                <div class="flex justify-center gap-2.5 pt-1">
-                    <button wire:click="$set('showDeleteModal', false)" type="button" class="px-3.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 cursor-pointer">Cancel</button>
-                    <button wire:click="deleteAccession" type="button" class="px-3.5 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 cursor-pointer">Delete</button>
+                <div class="flex justify-center gap-3 pt-2">
+                    <button wire:click="$set('showDeleteModal', false)" type="button" class="px-4 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 cursor-pointer">Cancel</button>
+                    <button wire:click="deleteAccession" type="button" class="px-4 py-2 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 cursor-pointer shadow-xs">Delete Record</button>
                 </div>
             </div>
         </div>

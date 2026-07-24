@@ -4,7 +4,6 @@ namespace App\Livewire;
 
 use App\Models\Accession;
 use App\Models\Acquisition;
-use App\Models\Catalog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -32,6 +31,7 @@ class Accessions extends Component
     public string $batch_number = '';
     public int $batch_qty = 1;
     public string $call_number = '';
+    public bool $updateBatchCallNumber = false; // Toggle for batch updating call number
     public string $condition = 'New';
     public string $status = 'Available';
     public string $acquired_date = '';
@@ -39,13 +39,19 @@ class Accessions extends Component
 
     protected function rules(): array
     {
+        // Ensure catalog_id is always in sync with acquisition before validation
+        if ($this->acquisition_id && ! $this->catalog_id) {
+            $this->catalog_id = Acquisition::where('id', $this->acquisition_id)->value('catalog_id');
+        }
+
         $rules = [
             'acquisition_id' => 'required|exists:acquisitions,id',
             'catalog_id'     => 'required|exists:catalogs,id',
             'batch_number'   => 'required|string|max:50',
             'call_number'    => 'required|string|max:50',
             'condition'      => 'required|string|in:New,Good,Fair,Damaged',
-            'status'         => 'required|string|in:Available,On Loan,Reserved,Under Maintenance,Lost,Withdrawn',
+            // Fixed: Status defined as array so closures can be pushed cleanly
+            'status'         => ['required', 'string', 'in:Available,On Loan,Reserved,Under Maintenance,Lost,Withdrawn'],
             'acquired_date'  => 'required|date',
             'remarks'        => 'nullable|string|max:1000',
         ];
@@ -57,10 +63,16 @@ class Accessions extends Component
                 'max:50',
                 Rule::unique('accessions', 'accession_number')->ignore($this->accessionIdBeingEdited),
             ];
+
+            // Prevent changing status manually if record is currently locked in an active state
+            $rules['status'][] = function ($attribute, $value, $fail) {
+                $accession = Accession::find($this->accessionIdBeingEdited);
+                if ($accession && in_array($accession->status, ['On Loan', 'Reserved']) && $value !== $accession->status) {
+                    $fail("Cannot change status directly while item state is '{$accession->status}'.");
+                }
+            };
         } else {
             $remainingQty = $this->getRemainingQty();
-
-            // Set min and max strictly to 0 if no items remain to prevent batch insertions
             $minAllowed = $remainingQty > 0 ? 1 : 0;
             $maxAllowed = $remainingQty;
 
@@ -87,12 +99,12 @@ class Accessions extends Component
     public function getRemainingQty(): int
     {
         if (! $this->acquisition_id) {
-            return 500;
+            return 0;
         }
 
         $acquisition = Acquisition::find($this->acquisition_id);
         if (! $acquisition) {
-            return 500;
+            return 0;
         }
 
         $existingCount = Accession::where('acquisition_id', $this->acquisition_id)->count();
@@ -111,7 +123,7 @@ class Accessions extends Component
             'catalog.author',
             'catalog.assetType',
             'catalog.publisher',
-            'vendor'
+            'vendor',
         ])->find($this->acquisition_id);
     }
 
@@ -125,7 +137,7 @@ class Accessions extends Component
                 if (! $this->accessionIdBeingEdited) {
                     $remainingQty = $this->getRemainingQty();
 
-                    $this->batch_qty = $remainingQty;
+                    $this->batch_qty = $remainingQty > 0 ? $remainingQty : 1;
                     $this->batch_number = 'B-' . date('Ymd-Hi');
                     $this->accession_number = $this->generateAccessionNumber();
                     $this->acquired_date = $acquisition->received_date ? $acquisition->received_date->format('Y-m-d') : now()->format('Y-m-d');
@@ -152,7 +164,7 @@ class Accessions extends Component
         $this->reset([
             'acquisition_id', 'catalog_id', 'accession_number', 'batch_number',
             'call_number', 'condition', 'status', 'acquired_date',
-            'remarks', 'accessionIdBeingEdited',
+            'remarks', 'accessionIdBeingEdited', 'updateBatchCallNumber',
         ]);
 
         $this->batch_qty = 1;
@@ -168,7 +180,12 @@ class Accessions extends Component
     {
         $year = date('Y');
         $latest = Accession::whereYear('created_at', $year)->latest('id')->first();
-        $baseNum = $latest ? ((int) substr($latest->accession_number, -5)) : 0;
+
+        $baseNum = 0;
+        if ($latest && preg_match('/-(\d+)$/', $latest->accession_number, $matches)) {
+            $baseNum = (int) $matches[1];
+        }
+
         $nextNum = str_pad($baseNum + 1 + $offset, 5, '0', STR_PAD_LEFT);
 
         return "ACC-{$year}-{$nextNum}";
@@ -176,6 +193,12 @@ class Accessions extends Component
 
     public function openEditModal(Accession $accession): void
     {
+        if (in_array($accession->status, ['On Loan', 'Reserved'])) {
+            $actionWord = $accession->status === 'On Loan' ? 'on loan' : 'reserved';
+            $this->dispatch('toast', message: "Items currently {$actionWord} cannot be modified.", type: 'error');
+            return;
+        }
+
         $this->resetValidation();
         $this->accessionIdBeingEdited = $accession->id;
         $this->acquisition_id = $accession->acquisition_id;
@@ -187,6 +210,7 @@ class Accessions extends Component
         $this->status = $accession->status;
         $this->acquired_date = $accession->acquired_date ? $accession->acquired_date->format('Y-m-d') : '';
         $this->remarks = $accession->remarks ?? '';
+        $this->updateBatchCallNumber = false; // Default toggle off
         $this->showModal = true;
     }
 
@@ -195,21 +219,44 @@ class Accessions extends Component
         $this->validate();
 
         if ($this->accessionIdBeingEdited) {
-            Accession::where('id', $this->accessionIdBeingEdited)->update([
-                'acquisition_id'   => $this->acquisition_id,
-                'catalog_id'       => $this->catalog_id,
-                'accession_number' => trim($this->accession_number),
-                'batch_number'     => trim($this->batch_number),
-                'call_number'      => trim($this->call_number),
-                'condition'        => $this->condition,
-                'status'           => $this->status,
-                'acquired_date'    => $this->acquired_date,
-                'remarks'          => trim($this->remarks) ?: null,
-            ]);
+            $accession = Accession::findOrFail($this->accessionIdBeingEdited);
 
-            $message = 'Accession record updated successfully.';
+            if (in_array($accession->status, ['On Loan', 'Reserved'])) {
+                $actionWord = $accession->status === 'On Loan' ? 'on loan' : 'reserved';
+                $this->dispatch('toast', message: "Cannot edit an accession while it is currently {$actionWord}.", type: 'error');
+                $this->showModal = false;
+                return;
+            }
+
+            DB::transaction(function () use ($accession) {
+                $callNumber = trim($this->call_number);
+
+                // 1. Update individual item
+                $accession->update([
+                    'acquisition_id'   => $this->acquisition_id,
+                    'catalog_id'       => $this->catalog_id,
+                    'accession_number' => trim($this->accession_number),
+                    'batch_number'     => trim($this->batch_number),
+                    'call_number'      => $callNumber,
+                    'condition'        => $this->condition,
+                    'status'           => $this->status,
+                    'acquired_date'    => $this->acquired_date,
+                    'remarks'          => trim($this->remarks) ?: null,
+                ]);
+
+                // 2. Cascade call_number update to rest of the batch if toggled
+                if ($this->updateBatchCallNumber && $this->batch_number) {
+                    Accession::where('batch_number', $this->batch_number)
+                        ->where('id', '!=', $accession->id)
+                        ->whereNotIn('status', ['On Loan', 'Reserved'])
+                        ->update(['call_number' => $callNumber]);
+                }
+            });
+
+            $message = $this->updateBatchCallNumber
+                ? "Accession record and related items in batch ({$this->batch_number}) updated successfully."
+                : 'Accession record updated successfully.';
         } else {
-            // Hard check backend remaining quantity
             $remainingQty = $this->getRemainingQty();
             if ($remainingQty <= 0) {
                 $this->addError('batch_qty', 'All assets for this acquisition have already been accessioned.');
@@ -248,6 +295,14 @@ class Accessions extends Component
 
     public function confirmDelete(int $id): void
     {
+        $accession = Accession::find($id);
+
+        if ($accession && in_array($accession->status, ['On Loan', 'Reserved'])) {
+            $actionWord = $accession->status === 'On Loan' ? 'on loan' : 'reserved';
+            $this->dispatch('toast', message: "Cannot delete an item that is currently {$actionWord}.", type: 'error');
+            return;
+        }
+
         $this->accessionIdBeingDeleted = $id;
         $this->showDeleteModal = true;
     }
@@ -255,8 +310,20 @@ class Accessions extends Component
     public function deleteAccession(): void
     {
         if ($this->accessionIdBeingDeleted) {
-            Accession::destroy($this->accessionIdBeingDeleted);
-            $this->dispatch('toast', message: 'Accession item deleted successfully.', type: 'success');
+            $accession = Accession::find($this->accessionIdBeingDeleted);
+
+            if ($accession) {
+                if (in_array($accession->status, ['On Loan', 'Reserved'])) {
+                    $actionWord = $accession->status === 'On Loan' ? 'checked out' : 'reserved';
+                    $this->dispatch('toast', message: "Deletion blocked: Item is currently {$actionWord}.", type: 'error');
+                    $this->showDeleteModal = false;
+                    $this->accessionIdBeingDeleted = null;
+                    return;
+                }
+
+                $accession->delete();
+                $this->dispatch('toast', message: 'Accession item deleted successfully.', type: 'success');
+            }
         }
 
         $this->showDeleteModal = false;
@@ -269,10 +336,12 @@ class Accessions extends Component
     {
         $accessions = Accession::with(['catalog.author', 'catalog.assetType', 'acquisition'])
             ->when($this->search, function ($query) {
-                $query->where('accession_number', 'like', "%{$this->search}%")
-                    ->orWhere('batch_number', 'like', "%{$this->search}%")
-                    ->orWhere('call_number', 'like', "%{$this->search}%")
-                    ->orWhereHas('catalog', fn ($q) => $q->where('title', 'like', "%{$this->search}%"));
+                $query->where(function ($q) {
+                    $q->where('accession_number', 'like', "%{$this->search}%")
+                      ->orWhere('batch_number', 'like', "%{$this->search}%")
+                      ->orWhere('call_number', 'like', "%{$this->search}%")
+                      ->orWhereHas('catalog', fn ($sub) => $sub->where('title', 'like', "%{$this->search}%"));
+                });
             })
             ->when($this->statusFilter, fn ($q) => $q->where('status', $this->statusFilter))
             ->latest()
