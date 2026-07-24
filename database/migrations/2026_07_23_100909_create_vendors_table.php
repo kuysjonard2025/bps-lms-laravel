@@ -10,11 +10,12 @@ return new class extends Migration
     {
         Schema::create('vendors', function (Blueprint $table) {
             $table->id();
-            $table->string('company_name', 100);
-            $table->string('contact_person', 100)->nullable();
-            $table->string('address', 150)->nullable();
-            $table->string('contact_number', 30)->nullable();
-            $table->string('email', 100)->nullable();
+            $table->string('company_name', 50);
+            $table->string('contact_person', 100)->nullable()->unique();
+            $table->string('address', 100);
+            $table->string('contact_number', 20)->nullable()->unique();
+            $table->string('email', 50)->nullable()->unique();
+            $table->unique(['company_name', 'address']);
             $table->timestamps();
         });
     }

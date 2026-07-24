@@ -29,8 +29,8 @@ class Sidebar extends Component
                     'icon' => 'list-bullet',
                 ],
                 [
-                    'name' => 'Suppliers',
-                    'route' => 'suppliers',
+                    'name' => 'Vendors',
+                    'route' => 'vendors',
                     'icon' => 'truck',
                 ],
                 [
@@ -58,7 +58,7 @@ class Sidebar extends Component
             'Process' => [
                 [
                     'name' => 'Acquisitions',
-                    'route' => 'acquisition',
+                    'route' => 'acquisitions',
                     'icon' => 'shopping-cart',
                 ],
                 [

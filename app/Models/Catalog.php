@@ -47,4 +47,14 @@ class Catalog extends Model
     {
         return $this->hasMany(Acquisition::class);
     }
+
+    public function accessions(): HasMany
+    {
+        return $this->hasMany(Accession::class);
+    }
+
+    public function availableAccessions(): HasMany
+    {
+        return $this->hasMany(Accession::class)->where('status', 'Available');
+    }
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Acquisition extends Model
 {
@@ -14,6 +15,7 @@ class Acquisition extends Model
         'catalog_id',
         'vendor_id',
         'acquisition_number',
+        'transaction_number',
         'quantity',
         'unit_cost',
         'received_date',
@@ -34,5 +36,10 @@ class Acquisition extends Model
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class);
+    }
+
+    public function accessions(): HasMany
+    {
+        return $this->hasMany(Accession::class);
     }
 }
