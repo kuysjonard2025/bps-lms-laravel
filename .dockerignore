@@ -1,5 +1,7 @@
-/vendor
 /node_modules
+/vendor
+/public/storage
 /public/build
-/.env
+.env
 .git
+.github
