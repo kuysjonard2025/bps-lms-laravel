@@ -19,9 +19,10 @@ RUN apk add --no-cache \
     zip \
     unzip \
     oniguruma-dev \
+    postgresql-dev \
     mariadb-connector-c-dev
 
-RUN docker-php-ext-install pdo pdo_mysql bcmath opcache
+RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql bcmath opcache
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
