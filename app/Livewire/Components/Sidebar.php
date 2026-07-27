@@ -76,6 +76,7 @@ class Sidebar extends Component
                     'route' => 'patron-records',
                     'icon' => 'identification',
                 ],
+
             ],
             'System Log & Backup' => [
                 [
