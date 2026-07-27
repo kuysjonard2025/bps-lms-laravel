@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->redirectGuestsTo('/');
         $middleware->redirectUsersTo('/dashboard');
+
+        // Trust Render's proxy headers
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
