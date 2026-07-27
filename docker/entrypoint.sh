@@ -10,7 +10,7 @@ php artisan route:cache
 php artisan view:cache
 
 # Run migrations and seeders safely
-php artisan migrate --force
+php artisan migrate:fresh --force
 php artisan db:seed --force
 
 # Start application services
