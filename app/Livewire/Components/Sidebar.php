@@ -76,11 +76,6 @@ class Sidebar extends Component
                     'route' => 'patron-records',
                     'icon' => 'identification',
                 ],
-                [
-                    'name' => 'Accession Disposal',
-                    'route' => 'accession-disposal',
-                    'icon' => 'trash',
-                ],
             ],
             'System Log & Backup' => [
                 [
