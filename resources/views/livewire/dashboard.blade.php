@@ -136,7 +136,7 @@
                             <th class="p-3">Book</th>
                             <th class="p-3">Status</th>
                             <th class="p-3">Condition</th>
-                            <th class="p-3">Date</th>
+                            <th class="p-3">Due Date</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -163,7 +163,7 @@
                                     @endif
                                 </td>
                                 <td class="p-3 text-gray-500">
-                                    {{ $transaction->updated_at ? \Carbon\Carbon::parse($transaction->updated_at)->format('M d, Y') : 'N/A' }}
+                                    {{ $transaction->due_date ? \Carbon\Carbon::parse($transaction->due_date)->format('M d, Y') : 'N/A' }}
                                 </td>
                             </tr>
                         @empty
