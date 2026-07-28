@@ -2,7 +2,7 @@
     {{-- Header & Timeframe Filter --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-            <h2 class="text-base font-bold text-gray-900">Accession Acquisition Trend</h2>
+            <h2 class="text-base font-bold text-gray-900">Accession Trend</h2>
             <p class="text-xs text-gray-500">Total physical/digital holdings added over time</p>
         </div>
 

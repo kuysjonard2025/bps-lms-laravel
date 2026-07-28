@@ -29,7 +29,7 @@
         {{-- Total Books --}}
         <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Books</p>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Assets</p>
                 <p class="text-2xl font-bold text-gray-900 mt-1">{{ number_format($totalBooks) }}</p>
             </div>
             <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
@@ -51,7 +51,7 @@
         {{-- Overdue Books --}}
         <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Overdue Items</p>
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Overdue Assets</p>
                 <p class="text-2xl font-bold text-red-600 mt-1">{{ number_format($overdueBooks) }}</p>
             </div>
             <div class="p-3 bg-red-50 text-red-600 rounded-lg">
@@ -135,6 +135,7 @@
                             <th class="p-3">Patron</th>
                             <th class="p-3">Book</th>
                             <th class="p-3">Status</th>
+                            <th class="p-3">Condition</th>
                             <th class="p-3">Date</th>
                         </tr>
                     </thead>
@@ -150,10 +151,15 @@
                                 <td class="p-3">
                                     @if ($transaction->status === 'returned')
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">Returned</span>
-                                    @elseif ($transaction->due_date && \Carbon\Carbon::parse($transaction->due_date)->isPast())
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-800">Overdue</span>
                                     @else
                                         <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800">Borrowed</span>
+                                    @endif
+                                </td>
+                                <td class="p-3">
+                                    @if ($transaction->due_date && \Carbon\Carbon::parse($transaction->due_date)->isPast())
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-800">Overdue</span>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-800">Good</span>
                                     @endif
                                 </td>
                                 <td class="p-3 text-gray-500">
