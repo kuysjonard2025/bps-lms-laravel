@@ -24,6 +24,9 @@ RUN apk add --no-cache \
 
 RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql bcmath opcache
 
+# Disable PHP-FPM access logging
+RUN sed -i 's/^access.log = .*/access.log = \/dev\/null/' /usr/local/etc/php-fpm.d/www.conf
+
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -48,4 +51,3 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 EXPOSE 80
 
 ENTRYPOINT ["entrypoint.sh"]
-
