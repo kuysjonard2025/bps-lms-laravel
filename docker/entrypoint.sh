@@ -1,22 +1,27 @@
 #!/bin/sh
 
-# Ensure storage permissions
+# Stop script immediately if any command fails
+set -e
+
+echo "===> Ensuring storage permissions..."
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Clear stale caches FIRST
+echo "===> Clearing old config cache..."
 php artisan config:clear
 php artisan cache:clear
 
-# Run fresh migrations and seeders
-php artisan migrate:fresh --force
-php artisan db:seed --force
+echo "===> Running migrations..."
+php artisan migrate:fresh --force --verbose
 
-# Recache for production performance
+echo "===> Running seeders..."
+php artisan db:seed --force --verbose
+
+echo "===> Caching route and view configurations..."
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# Start application services
+echo "===> Starting application services..."
 php-fpm -D
 nginx -g "daemon off;"
