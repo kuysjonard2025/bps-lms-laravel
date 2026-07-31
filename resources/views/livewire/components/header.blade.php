@@ -46,7 +46,7 @@
                     {{ auth()->user()->initials() }}
                 </span>
                 <span class="hidden sm:inline whitespace-nowrap">
-                    {{ auth()->user()->first_name }} {{ auth()->user()->last_name }} -
+                    - {{ auth()->user()->first_name }} {{ auth()->user()->last_name }} -
                     <span class="capitalize bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
                         {{ str(auth()->user()->role)->replace('_', ' ') }}
                     </span>
