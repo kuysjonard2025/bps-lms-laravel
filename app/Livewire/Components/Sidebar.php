@@ -62,8 +62,8 @@ class Sidebar extends Component
                     'icon' => 'shopping-cart',
                 ],
                 [
-                    'name' => 'Time Logs',
-                    'route' => 'time-logs',
+                    'name' => 'Patron Logs',
+                    'route' => 'patron-logs',
                     'icon' => 'clock',
                 ],
                 [
