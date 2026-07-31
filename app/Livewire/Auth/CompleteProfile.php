@@ -18,7 +18,7 @@ class CompleteProfile extends Component
     public string $first_name = '';
     public string $middle_name = '';
     public string $last_name = '';
-    public ?string $prefix = '';
+    public ?string $suffix = '';
     public ?string $address = '';
     public ?string $contact_number = '';
     public string $email = '';
@@ -34,9 +34,9 @@ class CompleteProfile extends Component
         $this->first_name = $user->first_name ?? '';
         $this->middle_name = $user->middle_name ?? '';
         $this->last_name = $user->last_name ?? '';
-        $this->prefix = $user->prefix;
-        $this->address = $user->address;
-        $this->contact_number = $user->contact_number;
+        $this->suffix = $user->suffix ?? '';
+        $this->address = $user->address ?? '';
+        $this->contact_number = $user->contact_number ?? '';
         $this->email = $user->email ?? '';
         $this->username = $user->username ?? '';
     }
@@ -46,44 +46,49 @@ class CompleteProfile extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        // Safely construct composite name uniqueness rule handling NULL prefixes
-        $fullNameRule = Rule::unique('users', 'first_name')
-            ->where(function ($query) {
-                $query->where('middle_name', $this->middle_name)
-                    ->where('last_name', $this->last_name);
+        $firstName = trim($this->first_name) ?: null;
+        $middleName = trim($this->middle_name) ?: null;
+        $lastName = trim($this->last_name) ?: null;
+        $suffix = trim($this->suffix) ?: null;
 
-                if (filled($this->prefix)) {
-                    $query->where('prefix', strtoupper($this->prefix));
-                } else {
-                    $query->whereNull('prefix');
-                }
-            })
+        // Compound unique rule for [first_name, middle_name, last_name, suffix]
+        $fullNameRule = Rule::unique('users', 'first_name')
+            ->where('middle_name', $middleName)
+            ->where('last_name', $lastName)
+            ->where('suffix', $suffix)
             ->ignore($user->id);
 
         $this->validate([
-            'first_name'     => ['required', 'string', 'min:2', 'max:50', $fullNameRule],
-            'middle_name'    => 'required|string|min:2|max:50',
-            'last_name'      => 'required|string|min:2|max:50',
-            'prefix'         => 'nullable|string|min:2|max:10',
-            'address'        => 'required|string|min:10|max:100',
-            'contact_number' => 'required|string|min:11|max:20',
-            'email'          => "required|email|max:255|unique:users,email,{$user->id}",
-            'username'       => "required|string|min:4|max:20|unique:users,username,{$user->id}",
-            'password'       => 'nullable|string|min:4|max:20|confirmed',
+            'first_name'     => ['nullable', 'string', 'max:50', $fullNameRule],
+            'middle_name'    => 'nullable|string|max:50',
+            'last_name'      => 'nullable|string|max:50',
+            'suffix'         => 'nullable|string|max:10',
+            'address'        => 'nullable|string|max:255',
+            'contact_number' => 'nullable|string|max:20',
+            'email'          => [
+                'nullable', 'email', 'max:100',
+                Rule::unique('users', 'email')->ignore($user->id)
+            ],
+            'username'       => [
+                'required', 'string', 'max:20',
+                Rule::unique('users', 'username')->ignore($user->id)
+            ],
+            'password'       => 'nullable|string|min:6|confirmed',
+        ], [
+            'first_name.unique' => 'An account with this full name and suffix already exists.'
         ]);
 
-        $emailChanged = strtolower($user->email) !== strtolower($this->email);
-        $formattedPrefix = filled($this->prefix) ? strtoupper(trim($this->prefix)) : null;
+        $emailChanged = strtolower((string)$user->email) !== strtolower(trim($this->email));
 
         $updateData = [
-            'first_name'        => Str::title(trim($this->first_name)),
-            'middle_name'       => Str::title(trim($this->middle_name)),
-            'last_name'         => Str::title(trim($this->last_name)),
-            'prefix'            => $formattedPrefix,
-            'address'           => ucfirst(trim($this->address)),
-            'contact_number'    => trim($this->contact_number),
-            'email'             => strtolower(trim($this->email)),
-            'username'          => strtolower(trim($this->username)),
+            'first_name'        => $firstName ? Str::title($firstName) : null,
+            'middle_name'       => $middleName ? Str::title($middleName) : null,
+            'last_name'         => $lastName ? Str::title($lastName) : null,
+            'suffix'            => $suffix,
+            'address'           => trim($this->address) ?: null,
+            'contact_number'    => trim($this->contact_number) ?: null,
+            'email'             => trim($this->email) ? strtolower(trim($this->email)) : null,
+            'username'          => trim($this->username),
             'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
         ];
 
@@ -95,15 +100,17 @@ class CompleteProfile extends Component
 
         // Send Email Verification if updated or missing
         if ($emailChanged || is_null($user->email_verified_at)) {
-            try {
-                $user->sendEmailVerificationNotification();
-                session()->flash('status', 'Profile updated successfully! Please check your email to verify your account.');
-            } catch (Exception $e) {
-                session()->flash('status', 'Profile updated, but sending verification email failed. Please try again from the verification page.');
-                Log::error('CompleteProfile sendEmailVerificationNotification failed: ' . $e->getMessage());
-            }
+            if ($user->email) {
+                try {
+                    $user->sendEmailVerificationNotification();
+                    session()->flash('status', 'Profile updated successfully! Please check your email to verify your account.');
+                } catch (Exception $e) {
+                    session()->flash('status', 'Profile updated, but sending verification email failed. Please try again from the verification page.');
+                    Log::error('CompleteProfile sendEmailVerificationNotification failed: ' . $e->getMessage());
+                }
 
-            return $this->redirectRoute('verification.notice', navigate: true);
+                return $this->redirectRoute('verification.notice', navigate: true);
+            }
         }
 
         return $this->redirectRoute('dashboard', navigate: true);

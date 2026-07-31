@@ -12,14 +12,16 @@
 
     <header class="bg-white border-b border-gray-200 px-4 lg:px-6 py-4 flex items-center justify-between shadow-xs sticky top-0 z-30">
         <div class="flex items-center gap-3">
-            {{-- Mobile/Tablet Sidebar Toggle Button (Shows on < lg screens) --}}
+            {{-- Mobile/Tablet Sidebar Toggle Button --}}
             <button
                 @click="sidebarOpen = !sidebarOpen"
                 type="button"
                 class="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 focus:outline-none cursor-pointer"
                 aria-label="Toggle Navigation"
             >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
             </button>
 
             {{-- Brand & Logo Link --}}
@@ -43,7 +45,12 @@
                 <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
                     {{ auth()->user()->initials() }}
                 </span>
-                <span class="hidden sm:inline whitespace-nowrap">{{ auth()->user()->first_name }} {{ auth()->user()->last_name }} - <span class="capitalize bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">{{ str(auth()->user()->role)->replace('_', ' ') }}</span></span>
+                <span class="hidden sm:inline whitespace-nowrap">
+                    {{ auth()->user()->first_name }} {{ auth()->user()->last_name }} -
+                    <span class="capitalize bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
+                        {{ str(auth()->user()->role)->replace('_', ' ') }}
+                    </span>
+                </span>
             </button>
 
             <button
@@ -51,7 +58,7 @@
                 wire:loading.attr="disabled"
                 wire:target="logout"
                 type="button"
-                class="text-xs text-red-600 hover:text-red-800 font-semibold px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors cursor-pointer whitespace-nowrap"
+                class="text-xs text-red-600 hover:text-red-800 font-semibold px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50"
             >
                 <span wire:loading.remove wire:target="logout">Log Out</span>
                 <span wire:loading wire:target="logout">Logging out...</span>
@@ -74,14 +81,17 @@
                 :class="toast.type === 'error' ? 'bg-red-600' : 'bg-emerald-600'"
             >
                 <span x-text="toast.message"></span>
-                <button @click="remove(toast.id)" class="text-white/80 hover:text-white text-lg font-bold">&times;</button>
+                <button @click="remove(toast.id)" class="text-white/80 hover:text-white text-lg font-bold cursor-pointer">&times;</button>
             </div>
         </template>
     </div>
 
     {{-- Profile Modal Container --}}
     @if ($showProfileModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div
+            @keydown.escape.window="$wire.closeProfileModal()"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+        >
             <div
                 wire:click="closeProfileModal"
                 class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs transition-opacity"
@@ -114,9 +124,9 @@
                     <form wire:submit="updateProfile" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
                         <div class="grid grid-cols-3 gap-3">
                             <div>
-                                <label class="block text-xs font-medium text-gray-700">Prefix</label>
-                                <input type="text" wire:model="prefix" class="mt-1 w-full text-sm rounded-md border-gray-300 shadow-xs border p-2">
-                                @error('prefix') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                                <label class="block text-xs font-medium text-gray-700">Suffix</label>
+                                <input type="text" wire:model="suffix" placeholder="e.g. Jr., III" class="mt-1 w-full text-sm rounded-md border-gray-300 shadow-xs border p-2">
+                                @error('suffix') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                             </div>
                             <div class="col-span-2">
                                 <label class="block text-xs font-medium text-gray-700">First Name *</label>
@@ -138,11 +148,15 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-3 gap-3">
                             <div>
                                 <label class="block text-xs font-medium text-gray-700">Username *</label>
                                 <input type="text" wire:model="username" class="mt-1 w-full text-sm rounded-md border-gray-300 shadow-xs border p-2">
                                 @error('username') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700">User Role</label>
+                                <input type="text" wire:model="role" disabled class="mt-1 w-full text-sm rounded-md border-gray-200 bg-gray-100 text-gray-500 shadow-xs border p-2 cursor-not-allowed">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-700">Contact Number *</label>
@@ -173,7 +187,15 @@
 
                         <div class="mt-5 flex justify-end gap-3">
                             <button wire:click="closeProfileModal" type="button" class="px-4 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 cursor-pointer">Cancel</button>
-                            <button type="submit" class="px-4 py-2 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 cursor-pointer">Save Changes</button>
+                            <button
+                                type="submit"
+                                wire:loading.attr="disabled"
+                                wire:target="updateProfile"
+                                class="px-4 py-2 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 cursor-pointer disabled:opacity-50"
+                            >
+                                <span wire:loading.remove wire:target="updateProfile">Save Changes</span>
+                                <span wire:loading wire:target="updateProfile">Saving...</span>
+                            </button>
                         </div>
                     </form>
                 @endif
@@ -200,7 +222,15 @@
 
                         <div class="mt-5 flex justify-end gap-3">
                             <button wire:click="closeProfileModal" type="button" class="px-4 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 cursor-pointer">Cancel</button>
-                            <button type="submit" class="px-4 py-2 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 cursor-pointer">Update Password</button>
+                            <button
+                                type="submit"
+                                wire:loading.attr="disabled"
+                                wire:target="updatePassword"
+                                class="px-4 py-2 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 cursor-pointer disabled:opacity-50"
+                            >
+                                <span wire:loading.remove wire:target="updatePassword">Update Password</span>
+                                <span wire:loading wire:target="updatePassword">Updating...</span>
+                            </button>
                         </div>
                     </form>
                 @endif

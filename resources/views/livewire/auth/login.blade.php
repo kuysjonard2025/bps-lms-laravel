@@ -103,18 +103,8 @@
                 wire:loading.attr="disabled"
                 class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold py-2.5 px-4 rounded-lg shadow-sm shadow-blue-500/30 transition duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer mt-2"
             >
-                <span wire:loading.remove class="flex items-center gap-1.5">
-                    <span>Sign In</span>
-                    <x-heroicon-m-arrow-right-end-on-rectangle class="w-4 h-4" />
-                </span>
-
-                <span wire:loading class="flex items-center gap-2">
-                    <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Signing in...</span>
-                </span>
+                <span wire:loading.remove>Sign In</span>
+                <span wire:loading class="inline-block">Signing in...</span>
             </button>
         </form>
     </div>

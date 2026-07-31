@@ -1,4 +1,4 @@
-<div class="p-4 lg:p-6 space-y-6 max-w-7xl mx-auto">
+<div class="p-4 lg:p-6 space-y-6 mx-auto">
     {{-- Header --}}
     <div>
         <h1 class="text-xl lg:text-2xl font-bold text-gray-900 whitespace-nowrap">Asset Details & References</h1>

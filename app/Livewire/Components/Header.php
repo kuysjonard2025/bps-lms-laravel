@@ -19,11 +19,12 @@ class Header extends Component
     public string $first_name = '';
     public string $middle_name = '';
     public string $last_name = '';
-    public ?string $prefix = '';
+    public ?string $suffix = '';
     public ?string $address = '';
     public ?string $contact_number = '';
     public string $email = '';
     public string $username = '';
+    public string $role = '';
     public string $current_password_for_profile = '';
 
     public string $current_password = '';
@@ -43,11 +44,12 @@ class Header extends Component
         $this->first_name = $user->first_name ?? '';
         $this->middle_name = $user->middle_name ?? '';
         $this->last_name = $user->last_name ?? '';
-        $this->prefix = $user->prefix;
-        $this->address = $user->address;
-        $this->contact_number = $user->contact_number;
+        $this->suffix = $user->suffix ?? '';
+        $this->address = $user->address ?? '';
+        $this->contact_number = $user->contact_number ?? '';
         $this->email = $user->email ?? '';
         $this->username = $user->username ?? '';
+        $this->role = str($user->role ?? '')->replace('_', ' ')->title();
     }
 
     public function openProfileModal(string $tab = 'profile'): void
@@ -77,14 +79,14 @@ class Header extends Component
 
         try {
             $this->validate([
-                'first_name' => 'required|string|max:255',
-                'middle_name' => 'required|string|max:255',
-                'last_name' => 'required|string|max:255',
-                'prefix' => 'nullable|string|max:50',
+                'first_name' => 'required|string|max:50',
+                'middle_name' => 'required|string|max:50',
+                'last_name' => 'required|string|max:50',
+                'suffix' => 'nullable|string|max:10',
                 'address' => 'required|string|max:255',
                 'contact_number' => 'required|string|max:20',
-                'email' => "required|email|max:255|unique:users,email,{$user->id}",
-                'username' => "required|string|min:3|max:50|unique:users,username,{$user->id}",
+                'email' => "required|email|max:100|unique:users,email,{$user->id}",
+                'username' => "required|string|min:3|max:20|unique:users,username,{$user->id}",
                 'current_password_for_profile' => [
                     'required',
                     'string',
@@ -100,13 +102,13 @@ class Header extends Component
             throw $e;
         }
 
-        $emailChanged = $user->email !== $this->email;
+        $emailChanged = strtolower($user->email) !== strtolower($this->email);
 
         $user->forceFill([
             'first_name' => $this->first_name,
             'middle_name' => $this->middle_name,
             'last_name' => $this->last_name,
-            'prefix' => $this->prefix,
+            'suffix' => $this->suffix ?: null,
             'address' => $this->address,
             'contact_number' => $this->contact_number,
             'email' => $this->email,

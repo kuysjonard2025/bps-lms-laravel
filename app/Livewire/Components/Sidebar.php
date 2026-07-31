@@ -39,8 +39,8 @@ class Sidebar extends Component
                     'icon' => 'square-3-stack-3d',
                 ],
                 [
-                    'name' => 'Academics',
-                    'route' => 'academics',
+                    'name' => 'Academics Info',
+                    'route' => 'academic-info',
                     'icon' => 'academic-cap',
                 ],
                 [

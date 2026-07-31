@@ -1,26 +1,10 @@
-<div class="p-6 space-y-6 max-w-7xl mx-auto">
+<div class="p-6 space-y-6">
 
     {{-- Header & Quick Actions --}}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
             <p class="text-sm text-gray-500">Overview of library activity and management actions.</p>
-        </div>
-
-        {{-- Quick Actions --}}
-        <div class="flex items-center gap-3">
-            <a wire:navigate href="{{ \Illuminate\Support\Facades\Route::has('books.index') ? route('books.index') : '#' }}" class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg shadow-xs hover:bg-gray-50 transition cursor-pointer">
-                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                Search Books
-            </a>
-            <a wire:navigate href="{{ \Illuminate\Support\Facades\Route::has('borrows.create') ? route('borrows.create') : '#' }}" class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg shadow-xs hover:bg-blue-700 transition cursor-pointer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                Quick Issue / Borrow
-            </a>
-            <a wire:navigate href="{{ \Illuminate\Support\Facades\Route::has('borrows.return') ? route('borrows.return') : '#' }}" class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg shadow-xs hover:bg-emerald-100 transition cursor-pointer">
-                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                Quick Return
-            </a>
         </div>
     </div>
 

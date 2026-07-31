@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
                 'first_name'        => null,
                 'middle_name'       => null,
                 'last_name'         => null,
-                'prefix'            => null,
+                'suffix'            => null,
                 'address'           => null,
                 'contact_number'    => null,
                 'email'             => null,
