@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('last_name', 50)->nullable();
             $table->string('suffix', 10)->nullable();
             $table->string('address', 255)->nullable();
-            $table->string('contact_number', 20)->nullable();
+            $table->string('contact_number', 20)->nullable()->unique();
             $table->string('email', 100)->nullable()->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('username', 20)->unique();
@@ -27,7 +27,7 @@ return new class extends Migration
 
             // Unique composite constraint
             $table->unique(['first_name', 'middle_name', 'last_name', 'suffix'], 'users_full_name_unique');
-            $table->rememberToken();
+            $table->rememberToken(); // For remember me functionality
             $table->timestamps();
         });
 

@@ -49,8 +49,8 @@ class Sidebar extends Component
                     'icon' => 'user-group',
                 ],
                 [
-                    'name' => 'Circulations Policy',
-                    'route' => 'circulations-policy',
+                    'name' => 'Circulation Policy',
+                    'route' => 'circulation-policy',
                     'icon' => 'adjustments-horizontal',
                 ],
             ],

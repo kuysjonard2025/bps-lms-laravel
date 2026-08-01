@@ -15,18 +15,20 @@ return new class extends Migration
             $table->id();
             $table->string('patron_id')->unique();
             $table->string('first_name', 50);
-            $table->string('middle_name', 50)->nullable();
+            $table->string('middle_name', 50);
             $table->string('last_name', 50);
             $table->string('suffix', 10)->nullable();
             $table->string('address', 255);
             $table->string('contact_number', 20)->unique();
             $table->string('email', 100)->unique();
-            $table->string('type'); // student, staff
+
+            // Foreign Key to patron_types table
+            $table->foreignId('patron_type_id')->constrained('patron_types')->cascadeOnDelete();
+
             $table->foreignId('grade_level_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('section_id')->nullable()->constrained()->nullOnDelete();
             $table->string('status')->default('active');
 
-            // Unique composite constraint
             $table->unique(['first_name', 'middle_name', 'last_name', 'suffix'], 'patrons_full_name_unique');
             $table->timestamps();
         });
