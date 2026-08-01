@@ -3,6 +3,7 @@
 namespace App\Livewire\AssetDetails;
 
 use App\Models\GeneralReference;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -22,7 +23,12 @@ class GeneralReferencesTab extends Component
     protected function rules(): array
     {
         return [
-            'name' => "required|string|max:255|unique:general_references,name,{$this->referenceIdBeingEdited}",
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('general_references', 'name')->ignore($this->referenceIdBeingEdited),
+            ],
         ];
     }
 
@@ -80,9 +86,11 @@ class GeneralReferencesTab extends Component
 
     public function render()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+
         $references = GeneralReference::query()
-            ->when($this->search, function ($query) {
-                $query->where('name', 'like', "%{$this->search}%");
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where('name', $likeOperator, "%{$this->search}%");
             })
             ->latest()
             ->paginate(10);

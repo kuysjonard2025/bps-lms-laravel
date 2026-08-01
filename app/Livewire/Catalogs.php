@@ -49,6 +49,27 @@ class Catalogs extends Component
         ];
     }
 
+    // Convert empty string selections from select elements to null
+    public function updatedAuthorId($value): void
+    {
+        if ($value === '') $this->author_id = null;
+    }
+
+    public function updatedAssetTypeId($value): void
+    {
+        if ($value === '') $this->asset_type_id = null;
+    }
+
+    public function updatedPublisherId($value): void
+    {
+        if ($value === '') $this->publisher_id = null;
+    }
+
+    public function updatedGeneralReferenceId($value): void
+    {
+        if ($value === '') $this->general_reference_id = null;
+    }
+
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -57,11 +78,8 @@ class Catalogs extends Component
     public function openCreateModal(): void
     {
         $this->resetValidation();
-        $this->reset([
-            'author_id', 'asset_type_id', 'publisher_id', 'general_reference_id',
-            'title', 'isbn_issn', 'edition', 'publication_year', 'description',
-            'catalogIdBeingEdited'
-        ]);
+        $this->resetForm();
+
         $this->publication_year = (int) date('Y');
         $this->showModal = true;
     }
@@ -104,6 +122,7 @@ class Catalogs extends Component
         $message = $this->catalogIdBeingEdited ? 'Catalog updated successfully.' : 'Catalog created successfully.';
 
         $this->showModal = false;
+        $this->resetForm();
         $this->dispatch('toast', message: $message, type: 'success');
     }
 
@@ -124,16 +143,36 @@ class Catalogs extends Component
         $this->catalogIdBeingDeleted = null;
     }
 
+    private function resetForm(): void
+    {
+        $this->reset([
+            'author_id',
+            'asset_type_id',
+            'publisher_id',
+            'general_reference_id',
+            'title',
+            'isbn_issn',
+            'edition',
+            'publication_year',
+            'description',
+            'catalogIdBeingEdited',
+        ]);
+    }
+
     #[Layout('components.layouts.app')]
     #[Title('Catalogs')]
     public function render()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+
         $catalogs = Catalog::with(['author', 'assetType', 'publisher', 'generalReference'])
-            ->when($this->search, function ($query) {
-                $query->where('title', 'like', "%{$this->search}%")
-                    ->orWhere('isbn_issn', 'like', "%{$this->search}%")
-                    ->orWhereHas('author', fn($q) => $q->where('name', 'like', "%{$this->search}%"))
-                    ->orWhereHas('publisher', fn($q) => $q->where('name', 'like', "%{$this->search}%"));
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where(function ($q) use ($likeOperator) {
+                    $q->where('title', $likeOperator, "%{$this->search}%")
+                      ->orWhere('isbn_issn', $likeOperator, "%{$this->search}%")
+                      ->orWhereHas('author', fn ($sub) => $sub->where('name', $likeOperator, "%{$this->search}%"))
+                      ->orWhereHas('publisher', fn ($sub) => $sub->where('name', $likeOperator, "%{$this->search}%"));
+                });
             })
             ->latest()
             ->paginate(10);

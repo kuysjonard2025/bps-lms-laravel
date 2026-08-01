@@ -7,6 +7,7 @@ use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -85,8 +86,19 @@ class Header extends Component
                 'suffix' => 'nullable|string|max:10',
                 'address' => 'required|string|max:255',
                 'contact_number' => 'required|string|max:20',
-                'email' => "required|email|max:100|unique:users,email,{$user->id}",
-                'username' => "required|string|min:3|max:20|unique:users,username,{$user->id}",
+                'email' => [
+                    'required',
+                    'email',
+                    'max:100',
+                    Rule::unique('users', 'email')->ignore($user->id),
+                ],
+                'username' => [
+                    'required',
+                    'string',
+                    'min:3',
+                    'max:20',
+                    Rule::unique('users', 'username')->ignore($user->id),
+                ],
                 'current_password_for_profile' => [
                     'required',
                     'string',

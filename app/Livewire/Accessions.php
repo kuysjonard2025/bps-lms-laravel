@@ -179,7 +179,7 @@ class Accessions extends Component
     private function generateAccessionNumber(?int $offset = 0): string
     {
         $year = date('Y');
-        $latest = Accession::whereYear('created_at', $year)->latest('id')->first();
+        $latest = Accession::whereYear('created_at', $year)->orderByDesc('id')->first();
 
         $baseNum = 0;
         if ($latest && preg_match('/-(\d+)$/', $latest->accession_number, $matches)) {
@@ -334,13 +334,15 @@ class Accessions extends Component
     #[Title('Accessions')]
     public function render()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+
         $accessions = Accession::with(['catalog.author', 'catalog.assetType', 'acquisition'])
-            ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('accession_number', 'like', "%{$this->search}%")
-                      ->orWhere('batch_number', 'like', "%{$this->search}%")
-                      ->orWhere('call_number', 'like', "%{$this->search}%")
-                      ->orWhereHas('catalog', fn ($sub) => $sub->where('title', 'like', "%{$this->search}%"));
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where(function ($q) use ($likeOperator) {
+                    $q->where('accession_number', $likeOperator, "%{$this->search}%")
+                      ->orWhere('batch_number', $likeOperator, "%{$this->search}%")
+                      ->orWhere('call_number', $likeOperator, "%{$this->search}%")
+                      ->orWhereHas('catalog', fn ($sub) => $sub->where('title', $likeOperator, "%{$this->search}%"));
                 });
             })
             ->when($this->statusFilter, fn ($q) => $q->where('status', $this->statusFilter))

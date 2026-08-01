@@ -94,7 +94,7 @@ class PublishersTab extends Component
 
     public function deletePublisher(): void
     {
-        if ($this->publisherIdBeingDeleted) {
+        if ($this->authorIdBeingDeleted ?? $this->publisherIdBeingDeleted) {
             Publisher::destroy($this->publisherIdBeingDeleted);
             $this->dispatch('toast', message: 'Publisher deleted successfully.', type: 'success');
         }
@@ -105,10 +105,13 @@ class PublishersTab extends Component
 
     public function render()
     {
+        // Use ilike for PostgreSQL (case-insensitive) or fallback to like for MySQL
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+
         $publishers = Publisher::query()
-            ->when($this->search, function ($query) {
-                $query->where('name', 'like', "%{$this->search}%")
-                      ->orWhere('address', 'like', "%{$this->search}%");
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where('name', $likeOperator, "%{$this->search}%")
+                      ->orWhere('address', $likeOperator, "%{$this->search}%");
             })
             ->latest()
             ->paginate(10);

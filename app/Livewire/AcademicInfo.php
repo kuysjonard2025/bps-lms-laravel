@@ -201,19 +201,21 @@ class AcademicInfo extends Component
     #[Title('Academic Info')]
     public function render()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+
         $gradeLevels = GradeLevel::withCount('sections')
-            ->when($this->search && $this->activeTab === 'grade_levels', function ($query) {
-                $query->where(function ($q) {
-                    $q->where('name', 'like', "%{$this->search}%")
-                      ->orWhere('code', 'like', "%{$this->search}%");
+            ->when($this->search && $this->activeTab === 'grade_levels', function ($query) use ($likeOperator) {
+                $query->where(function ($q) use ($likeOperator) {
+                    $q->where('name', $likeOperator, "%{$this->search}%")
+                      ->orWhere('code', $likeOperator, "%{$this->search}%");
                 });
             })
             ->orderBy('name')
             ->paginate(10, ['*'], 'gl_page');
 
         $sections = Section::with('gradeLevel')
-            ->when($this->search && $this->activeTab === 'sections', function ($query) {
-                $query->where('name', 'like', "%{$this->search}%");
+            ->when($this->search && $this->activeTab === 'sections', function ($query) use ($likeOperator) {
+                $query->where('name', $likeOperator, "%{$this->search}%");
             })
             ->when($this->sectionGradeFilter, fn ($q) => $q->where('grade_level_id', $this->sectionGradeFilter))
             ->latest()

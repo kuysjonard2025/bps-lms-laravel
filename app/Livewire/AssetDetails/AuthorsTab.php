@@ -3,6 +3,7 @@
 namespace App\Livewire\AssetDetails;
 
 use App\Models\Author;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -23,7 +24,12 @@ class AuthorsTab extends Component
     protected function rules(): array
     {
         return [
-            'name' => "required|string|max:255|unique:authors,name,{$this->authorIdBeingEdited}",
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('authors', 'name')->ignore($this->authorIdBeingEdited),
+            ],
         ];
     }
 

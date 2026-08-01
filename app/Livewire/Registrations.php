@@ -66,6 +66,29 @@ class Registrations extends Component
     public string $p_address = '';
     public string $p_status = 'active';
 
+    // Empty String Normalizers for FK Dropdowns
+    public function updatedPPatronTypeId($value): void
+    {
+        if ($value === '') {
+            $this->p_patron_type_id = null;
+        }
+    }
+
+    public function updatedPGradeLevelId($value): void
+    {
+        if ($value === '') {
+            $this->p_grade_level_id = null;
+        }
+        $this->p_section_id = null;
+    }
+
+    public function updatedPSectionId($value): void
+    {
+        if ($value === '') {
+            $this->p_section_id = null;
+        }
+    }
+
     // Reset pagination when searching or switching tabs
     public function updatedSearch(): void
     {
@@ -76,12 +99,6 @@ class Registrations extends Component
     {
         $this->resetPage();
         $this->search = '';
-    }
-
-    // Reset section when grade level changes
-    public function updatedPGradeLevelId(): void
-    {
-        $this->p_section_id = null;
     }
 
     // ------------------------------------------------------------------
@@ -131,7 +148,9 @@ class Registrations extends Component
                 'nullable',
                 'email',
                 'max:100',
-                Rule::unique('users', 'email')->ignore($this->userIdBeingEdited),
+                Rule::unique('users', 'email')
+                    ->ignore($this->userIdBeingEdited)
+                    ->when(!trim($this->u_email), fn ($rule) => $rule->whereNull('email')),
             ],
             'u_contact_number' => 'required|string|max:20',
             'u_address' => 'required|string|max:255',
@@ -141,15 +160,15 @@ class Registrations extends Component
         $validated = $this->validate($rules);
 
         $data = [
-            'first_name' => $validated['u_first_name'],
-            'middle_name' => $validated['u_middle_name'],
-            'last_name' => $validated['u_last_name'],
-            'suffix' => $validated['u_suffix'],
-            'username' => $validated['u_username'],
+            'first_name' => trim($validated['u_first_name']),
+            'middle_name' => trim($validated['u_middle_name']),
+            'last_name' => trim($validated['u_last_name']),
+            'suffix' => trim($validated['u_suffix']) ?: null,
+            'username' => trim($validated['u_username']),
             'role' => $this->isEditingAdmin ? 'admin' : $validated['u_role'],
-            'email' => $validated['u_email'],
-            'contact_number' => $validated['u_contact_number'],
-            'address' => $validated['u_address'],
+            'email' => trim($validated['u_email']) ?: null,
+            'contact_number' => trim($validated['u_contact_number']),
+            'address' => trim($validated['u_address']),
         ];
 
         if (!empty($validated['u_password'])) {
@@ -158,8 +177,11 @@ class Registrations extends Component
 
         User::updateOrCreate(['id' => $this->userIdBeingEdited], $data);
 
+        $message = $this->userIdBeingEdited ? 'User updated successfully.' : 'User created successfully.';
+
         $this->showUserModal = false;
         $this->resetUserForm();
+        $this->dispatch('toast', message: $message, type: 'success');
     }
 
     private function resetUserForm(): void
@@ -211,9 +233,9 @@ class Registrations extends Component
         $this->p_patron_type_id = $patron->patron_type_id;
         $this->p_grade_level_id = $patron->grade_level_id;
         $this->p_section_id = $patron->section_id;
-        $this->p_email = $patron->email;
-        $this->p_contact_number = $patron->contact_number;
-        $this->p_address = $patron->address;
+        $this->p_email = $patron->email ?? '';
+        $this->p_contact_number = $patron->contact_number ?? '';
+        $this->p_address = $patron->address ?? '';
         $this->p_status = $patron->status;
 
         $this->showPatronModal = true;
@@ -223,10 +245,10 @@ class Registrations extends Component
     {
         // Composite unique rule for full name
         $fullNameUniqueRule = Rule::unique('patrons')
-            ->where('first_name', $this->p_first_name)
-            ->where('middle_name', $this->p_middle_name)
-            ->where('last_name', $this->p_last_name)
-            ->where('suffix', $this->p_suffix ?: null)
+            ->where('first_name', trim($this->p_first_name))
+            ->where('middle_name', trim($this->p_middle_name))
+            ->where('last_name', trim($this->p_last_name))
+            ->where('suffix', trim($this->p_suffix) ?: null)
             ->ignore($this->patronIdBeingEdited);
 
         $rules = [
@@ -270,23 +292,26 @@ class Registrations extends Component
         Patron::updateOrCreate(
             ['id' => $this->patronIdBeingEdited],
             [
-                'patron_id' => $this->p_patron_id,
-                'first_name' => $this->p_first_name,
-                'middle_name' => $this->p_middle_name,
-                'last_name' => $this->p_last_name,
-                'suffix' => $this->p_suffix ?: null,
+                'patron_id' => trim($this->p_patron_id),
+                'first_name' => trim($this->p_first_name),
+                'middle_name' => trim($this->p_middle_name),
+                'last_name' => trim($this->p_last_name),
+                'suffix' => trim($this->p_suffix) ?: null,
                 'patron_type_id' => $this->p_patron_type_id,
                 'grade_level_id' => $isStudent ? $this->p_grade_level_id : null,
                 'section_id' => $isStudent ? $this->p_section_id : null,
-                'email' => $this->p_email,
-                'contact_number' => $this->p_contact_number,
-                'address' => $this->p_address,
+                'email' => trim($this->p_email),
+                'contact_number' => trim($this->p_contact_number),
+                'address' => trim($this->p_address),
                 'status' => $this->p_status,
             ]
         );
 
+        $message = $this->patronIdBeingEdited ? 'Patron record updated successfully.' : 'Patron record created successfully.';
+
         $this->showPatronModal = false;
         $this->resetPatronForm();
+        $this->dispatch('toast', message: $message, type: 'success');
     }
 
     private function resetPatronForm(): void
@@ -325,9 +350,13 @@ class Registrations extends Component
             $user = User::findOrFail($this->idBeingDeleted);
             if ($user->role !== 'admin') {
                 $user->delete();
+                $this->dispatch('toast', message: 'User account deleted successfully.', type: 'success');
+            } else {
+                $this->dispatch('toast', message: 'Admin accounts cannot be deleted.', type: 'error');
             }
         } elseif ($this->deleteType === 'patron') {
             Patron::findOrFail($this->idBeingDeleted)->delete();
+            $this->dispatch('toast', message: 'Patron record deleted successfully.', type: 'success');
         }
 
         $this->showDeleteModal = false;
@@ -341,15 +370,17 @@ class Registrations extends Component
     #[Title('Registrations')]
     public function render()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+
         // 1. Fetch Users Data
         $users = User::query()
-            ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('username', 'like', "%{$this->search}%")
-                      ->orWhere('first_name', 'like', "%{$this->search}%")
-                      ->orWhere('middle_name', 'like', "%{$this->search}%")
-                      ->orWhere('last_name', 'like', "%{$this->search}%")
-                      ->orWhere('email', 'like', "%{$this->search}%");
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where(function ($q) use ($likeOperator) {
+                    $q->where('username', $likeOperator, "%{$this->search}%")
+                      ->orWhere('first_name', $likeOperator, "%{$this->search}%")
+                      ->orWhere('middle_name', $likeOperator, "%{$this->search}%")
+                      ->orWhere('last_name', $likeOperator, "%{$this->search}%")
+                      ->orWhere('email', $likeOperator, "%{$this->search}%");
                 });
             })
             ->latest()
@@ -357,13 +388,13 @@ class Registrations extends Component
 
         // 2. Fetch Patrons Data
         $patrons = Patron::with(['patronType', 'gradeLevel', 'section'])
-            ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('patron_id', 'like', "%{$this->search}%")
-                      ->orWhere('first_name', 'like', "%{$this->search}%")
-                      ->orWhere('middle_name', 'like', "%{$this->search}%")
-                      ->orWhere('last_name', 'like', "%{$this->search}%")
-                      ->orWhere('email', 'like', "%{$this->search}%");
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where(function ($q) use ($likeOperator) {
+                    $q->where('patron_id', $likeOperator, "%{$this->search}%")
+                      ->orWhere('first_name', $likeOperator, "%{$this->search}%")
+                      ->orWhere('middle_name', $likeOperator, "%{$this->search}%")
+                      ->orWhere('last_name', $likeOperator, "%{$this->search}%")
+                      ->orWhere('email', $likeOperator, "%{$this->search}%");
                 });
             })
             ->latest()

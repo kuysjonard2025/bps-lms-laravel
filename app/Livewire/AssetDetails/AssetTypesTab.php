@@ -3,6 +3,7 @@
 namespace App\Livewire\AssetDetails;
 
 use App\Models\AssetType;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -22,7 +23,12 @@ class AssetTypesTab extends Component
     protected function rules(): array
     {
         return [
-            'name' => "required|string|max:255|unique:asset_types,name,{$this->assetTypeIdBeingEdited}",
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('asset_types', 'name')->ignore($this->assetTypeIdBeingEdited),
+            ],
         ];
     }
 
@@ -80,9 +86,11 @@ class AssetTypesTab extends Component
 
     public function render()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+
         $assetTypes = AssetType::query()
-            ->when($this->search, function ($query) {
-                $query->where('name', 'like', "%{$this->search}%");
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where('name', $likeOperator, "%{$this->search}%");
             })
             ->latest()
             ->paginate(10);

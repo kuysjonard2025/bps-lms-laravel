@@ -31,6 +31,21 @@ class CirculationPolicy extends Component
     public bool $isEditing = false;
     public string $search = '';
 
+    // Empty String Normalizers for FK Dropdowns
+    public function updatedPatronTypeId($value): void
+    {
+        if ($value === '') {
+            $this->patron_type_id = null;
+        }
+    }
+
+    public function updatedAssetTypeId($value): void
+    {
+        if ($value === '') {
+            $this->asset_type_id = null;
+        }
+    }
+
     protected function rules(): array
     {
         return [
@@ -43,6 +58,14 @@ class CirculationPolicy extends Component
             'fine_per_day' => 'required|numeric|min:0|max:9999.99',
             'max_fine_amount' => 'required|numeric|min:0|max:99999.99',
             'is_active' => 'boolean',
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'patron_type_id.required' => 'The patron type is required.',
+            'asset_type_id.required' => 'The asset type is required.',
         ];
     }
 
@@ -107,21 +130,25 @@ class CirculationPolicy extends Component
             ]
         );
 
-        session()->flash('message', $this->isEditing ? 'Policy updated successfully.' : 'Policy rule created successfully.');
+        $message = $this->isEditing ? 'Policy updated successfully.' : 'Policy rule created successfully.';
+
         $this->closeModal();
+        $this->dispatch('toast', message: $message, type: 'success');
     }
 
     public function toggleStatus(int $id): void
     {
         $policy = PolicyModel::findOrFail($id);
         $policy->update(['is_active' => !$policy->is_active]);
-        session()->flash('message', 'Policy status updated.');
+
+        $this->dispatch('toast', message: 'Policy status updated.', type: 'success');
     }
 
     public function deletePolicy(int $id): void
     {
         PolicyModel::findOrFail($id)->delete();
-        session()->flash('message', 'Policy rule deleted.');
+
+        $this->dispatch('toast', message: 'Policy rule deleted.', type: 'success');
     }
 
     public function closeModal(): void
@@ -147,10 +174,12 @@ class CirculationPolicy extends Component
     #[Title('Circulation Policy')]
     public function render()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+
         $policies = PolicyModel::with(['patronType', 'assetType'])
-            ->when($this->search, function ($query) {
-                $query->whereHas('patronType', fn ($q) => $q->where('name', 'like', "%{$this->search}%"))
-                      ->orWhereHas('assetType', fn ($q) => $q->where('name', 'like', "%{$this->search}%"));
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->whereHas('patronType', fn ($q) => $q->where('name', $likeOperator, "%{$this->search}%"))
+                      ->orWhereHas('assetType', fn ($q) => $q->where('name', $likeOperator, "%{$this->search}%"));
             })
             ->latest()
             ->paginate(10);

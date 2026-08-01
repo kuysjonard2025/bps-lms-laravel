@@ -41,7 +41,9 @@ class Vendors extends Component
                 'nullable',
                 'string',
                 'max:100',
-                Rule::unique('vendors', 'contact_person')->ignore($this->vendorIdBeingEdited),
+                Rule::unique('vendors', 'contact_person')
+                    ->ignore($this->vendorIdBeingEdited)
+                    ->when(!trim($this->contact_person), fn ($rule) => $rule->whereNull('contact_person')),
             ],
             'address' => [
                 'required',
@@ -52,13 +54,17 @@ class Vendors extends Component
                 'nullable',
                 'string',
                 'max:20',
-                Rule::unique('vendors', 'contact_number')->ignore($this->vendorIdBeingEdited),
+                Rule::unique('vendors', 'contact_number')
+                    ->ignore($this->vendorIdBeingEdited)
+                    ->when(!trim($this->contact_number), fn ($rule) => $rule->whereNull('contact_number')),
             ],
             'email' => [
                 'nullable',
                 'email',
                 'max:50',
-                Rule::unique('vendors', 'email')->ignore($this->vendorIdBeingEdited),
+                Rule::unique('vendors', 'email')
+                    ->ignore($this->vendorIdBeingEdited)
+                    ->when(!trim($this->email), fn ($rule) => $rule->whereNull('email')),
             ],
         ];
     }
@@ -81,7 +87,7 @@ class Vendors extends Component
     public function openCreateModal(): void
     {
         $this->resetValidation();
-        $this->reset(['company_name', 'contact_person', 'address', 'contact_number', 'email', 'vendorIdBeingEdited']);
+        $this->resetForm();
         $this->showModal = true;
     }
 
@@ -115,6 +121,7 @@ class Vendors extends Component
         $message = $this->vendorIdBeingEdited ? 'Vendor updated successfully.' : 'Vendor created successfully.';
 
         $this->showModal = false;
+        $this->resetForm();
         $this->dispatch('toast', message: $message, type: 'success');
     }
 
@@ -135,17 +142,33 @@ class Vendors extends Component
         $this->vendorIdBeingDeleted = null;
     }
 
+    private function resetForm(): void
+    {
+        $this->reset([
+            'company_name',
+            'contact_person',
+            'address',
+            'contact_number',
+            'email',
+            'vendorIdBeingEdited',
+        ]);
+    }
+
     #[Layout('components.layouts.app')]
     #[Title('Vendors')]
     public function render()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+
         $vendors = Vendor::query()
-            ->when($this->search, function ($query) {
-                $query->where('company_name', 'like', "%{$this->search}%")
-                      ->orWhere('contact_person', 'like', "%{$this->search}%")
-                      ->orWhere('address', 'like', "%{$this->search}%")
-                      ->orWhere('contact_number', 'like', "%{$this->search}%")
-                      ->orWhere('email', 'like', "%{$this->search}%");
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where(function ($q) use ($likeOperator) {
+                    $q->where('company_name', $likeOperator, "%{$this->search}%")
+                      ->orWhere('contact_person', $likeOperator, "%{$this->search}%")
+                      ->orWhere('address', $likeOperator, "%{$this->search}%")
+                      ->orWhere('contact_number', $likeOperator, "%{$this->search}%")
+                      ->orWhere('email', $likeOperator, "%{$this->search}%");
+                });
             })
             ->latest()
             ->paginate(10);

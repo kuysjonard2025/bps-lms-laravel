@@ -35,5 +35,9 @@ class DatabaseSeeder extends Seeder
 
         // Optional: Generate 10 random fake users using the updated UserFactory
         // User::factory(10)->create();
+
+        $this->call([
+            PatronTypeSeeder::class,
+        ]);
     }
 }

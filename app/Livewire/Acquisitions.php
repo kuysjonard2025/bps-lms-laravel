@@ -15,24 +15,24 @@ class Acquisitions extends Component
 {
     use WithPagination;
 
-    // Form Properties (Includes missing $unit_cost)
-    public $acquisition_number;
-    public $transaction_number;
-    public $vendor_id = '';
-    public $catalog_id = '';
-    public $quantity = 1;
-    public $unit_cost; // <--- Previously missing
-    public $received_date;
-    public $remarks;
+    // Form Properties
+    public ?string $acquisition_number = null;
+    public string $transaction_number = '';
+    public ?int $vendor_id = null;
+    public ?int $catalog_id = null;
+    public int $quantity = 1;
+    public $unit_cost = null;
+    public ?string $received_date = null;
+    public ?string $remarks = null;
 
     // Component Control Properties
-    public $search = '';
-    public $showModal = false;
-    public $showDeleteModal = false;
-    public $acquisitionIdBeingEdited = null;
-    public $acquisitionIdBeingDeleted = null;
+    public string $search = '';
+    public bool $showModal = false;
+    public bool $showDeleteModal = false;
+    public ?int $acquisitionIdBeingEdited = null;
+    public ?int $acquisitionIdBeingDeleted = null;
 
-    protected function rules()
+    protected function rules(): array
     {
         return [
             'transaction_number' => 'required|string|max:255',
@@ -45,26 +45,40 @@ class Acquisitions extends Component
         ];
     }
 
-    public function updatedSearch()
+    public function updatedVendorId($value): void
+    {
+        if ($value === '') {
+            $this->vendor_id = null;
+        }
+    }
+
+    public function updatedCatalogId($value): void
+    {
+        if ($value === '') {
+            $this->catalog_id = null;
+        }
+    }
+
+    public function updatedSearch(): void
     {
         $this->resetPage();
     }
 
     // Dynamic Computations
     #[Computed]
-    public function selectedVendor()
+    public function selectedVendor(): ?Vendor
     {
         return $this->vendor_id ? Vendor::find($this->vendor_id) : null;
     }
 
     #[Computed]
-    public function selectedCatalog()
+    public function selectedCatalog(): ?Catalog
     {
         return $this->catalog_id ? Catalog::with(['author', 'assetType', 'publisher'])->find($this->catalog_id) : null;
     }
 
     #[Computed]
-    public function calculatedTotalCost()
+    public function calculatedTotalCost(): float
     {
         $qty = (int) ($this->quantity ?? 0);
         $cost = (float) ($this->unit_cost ?? 0);
@@ -73,17 +87,32 @@ class Acquisitions extends Component
     }
 
     // Modal Actions
-    public function openCreateModal()
+    public function openCreateModal(): void
     {
         $this->resetValidation();
         $this->resetForm();
 
-        $this->acquisition_number = 'ACQ-' . date('Y') . '-' . str_pad(Acquisition::count() + 1, 4, '0', STR_PAD_LEFT);
+        $this->acquisition_number = $this->generateAcquisitionNumber();
         $this->received_date = now()->format('Y-m-d');
         $this->showModal = true;
     }
 
-    public function openEditModal($id)
+    private function generateAcquisitionNumber(): string
+    {
+        $year = date('Y');
+        $latest = Acquisition::whereYear('created_at', $year)->orderByDesc('id')->first();
+
+        $baseNum = 0;
+        if ($latest && preg_match('/-(\d+)$/', $latest->acquisition_number, $matches)) {
+            $baseNum = (int) $matches[1];
+        }
+
+        $nextNum = str_pad($baseNum + 1, 4, '0', STR_PAD_LEFT);
+
+        return "ACQ-{$year}-{$nextNum}";
+    }
+
+    public function openEditModal(int $id): void
     {
         $this->resetValidation();
         $this->acquisitionIdBeingEdited = $id;
@@ -102,39 +131,43 @@ class Acquisitions extends Component
         $this->showModal = true;
     }
 
-    public function saveAcquisition()
+    public function saveAcquisition(): void
     {
         $validated = $this->validate();
 
         if ($this->acquisitionIdBeingEdited) {
             $acq = Acquisition::findOrFail($this->acquisitionIdBeingEdited);
             $acq->update($validated);
+            $message = 'Acquisition record updated successfully.';
         } else {
             $validated['acquisition_number'] = $this->acquisition_number;
             Acquisition::create($validated);
+            $message = 'Acquisition record created successfully.';
         }
 
         $this->showModal = false;
         $this->resetForm();
+        $this->dispatch('toast', message: $message, type: 'success');
     }
 
-    public function confirmDelete($id)
+    public function confirmDelete(int $id): void
     {
         $this->acquisitionIdBeingDeleted = $id;
         $this->showDeleteModal = true;
     }
 
-    public function deleteAcquisition()
+    public function deleteAcquisition(): void
     {
         if ($this->acquisitionIdBeingDeleted) {
             Acquisition::findOrFail($this->acquisitionIdBeingDeleted)->delete();
+            $this->dispatch('toast', message: 'Acquisition record deleted successfully.', type: 'success');
         }
 
         $this->showDeleteModal = false;
         $this->acquisitionIdBeingDeleted = null;
     }
 
-    private function resetForm()
+    private function resetForm(): void
     {
         $this->reset([
             'acquisition_number',
@@ -154,12 +187,16 @@ class Acquisitions extends Component
     #[Title('Acquisitions')]
     public function render()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+
         $acquisitions = Acquisition::with(['catalog.author', 'catalog.assetType', 'vendor'])
-            ->when($this->search, function ($query) {
-                $query->where('acquisition_number', 'like', "%{$this->search}%")
-                    ->orWhere('transaction_number', 'like', "%{$this->search}%")
-                    ->orWhereHas('catalog', fn($q) => $q->where('title', 'like', "%{$this->search}%"))
-                    ->orWhereHas('vendor', fn($q) => $q->where('company_name', 'like', "%{$this->search}%"));
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where(function ($q) use ($likeOperator) {
+                    $q->where('acquisition_number', $likeOperator, "%{$this->search}%")
+                      ->orWhere('transaction_number', $likeOperator, "%{$this->search}%")
+                      ->orWhereHas('catalog', fn ($sub) => $sub->where('title', $likeOperator, "%{$this->search}%"))
+                      ->orWhereHas('vendor', fn ($sub) => $sub->where('company_name', $likeOperator, "%{$this->search}%"));
+                });
             })
             ->latest()
             ->paginate(10);
