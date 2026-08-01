@@ -16,26 +16,26 @@ class PatronTypeSeeder extends Seeder
         $patronTypes = [
             [
                 'name' => 'Student',
-                'description' => 'Enrolled undergraduate or postgraduate students',
+                // 'description' => 'Enrolled undergraduate or postgraduate students',
             ],
             [
                 'name' => 'Faculty',
-                'description' => 'Academic teaching staff and professors',
+                // 'description' => 'Academic teaching staff and professors',
             ],
             [
                 'name' => 'Staff',
-                'description' => 'Administrative and support personnel',
+                // 'description' => 'Administrative and support personnel',
             ],
             [
                 'name' => 'Guest / Visitor',
-                'description' => 'External patrons or temporary cardholders',
+                // 'description' => 'External patrons or temporary cardholders',
             ],
         ];
 
         foreach ($patronTypes as $type) {
             PatronType::updateOrCreate(
                 ['name' => $type['name']],
-                ['description' => $type['description']]
+                // ['description' => $type['description']]
             );
         }
     }
