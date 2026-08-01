@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('email', 100)->unique();
 
             // Foreign Key to patron_types table
-            $table->foreignId('patron_type_id')->constrained('patron_types')->cascadeOnDelete();
+            $table->foreignId('patron_type_id')->constrained()->cascadeOnDelete();
 
             $table->foreignId('grade_level_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('section_id')->nullable()->constrained()->nullOnDelete();

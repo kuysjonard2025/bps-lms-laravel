@@ -12,6 +12,7 @@ use App\Livewire\Dashboard;
 use App\Livewire\Vendors;
 
 use App\Livewire\Acquisitions;
+use App\Livewire\CirculationPolicy;
 use App\Livewire\Registrations;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
@@ -50,6 +51,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/accessions', Accessions::class)->name('accessions');
         Route::get('/academic-info', AcademicInfo::class)->name('academic-info');
         Route::get('/registrations', Registrations::class)->name('registrations');
+        Route::get('/circulation-policy', CirculationPolicy::class)->name('circulation-policy');
 
         // Process Pages
         Route::get('/acquisitions', Acquisitions::class)->name('acquisitions');

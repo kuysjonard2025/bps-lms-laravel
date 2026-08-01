@@ -71,7 +71,7 @@ class CirculationPolicy extends Component
         $this->grace_period_days = $policy->grace_period_days;
         $this->fine_per_day = (float) $policy->fine_per_day;
         $this->max_fine_amount = (float) $policy->max_fine_amount;
-        $this->is_active = $policy->is_active;
+        $this->is_active = (bool) $policy->is_active;
 
         $this->isEditing = true;
         $this->showModal = true;

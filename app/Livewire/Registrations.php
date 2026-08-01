@@ -11,6 +11,8 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 
 class Registrations extends Component
 {
@@ -53,7 +55,7 @@ class Registrations extends Component
     public ?int $patronIdBeingEdited = null;
     public string $p_patron_id = '';
     public string $p_first_name = '';
-    public string $p_middle_name = ''; // Required in schema
+    public string $p_middle_name = '';
     public string $p_last_name = '';
     public string $p_suffix = '';
     public ?int $p_patron_type_id = null;
@@ -115,7 +117,7 @@ class Registrations extends Component
     {
         $rules = [
             'u_first_name' => 'required|string|max:50',
-            'u_middle_name' => 'nullable|string|max:50',
+            'u_middle_name' => 'required|string|max:50',
             'u_last_name' => 'required|string|max:50',
             'u_suffix' => 'nullable|string|max:10',
             'u_username' => [
@@ -235,7 +237,7 @@ class Registrations extends Component
                 Rule::unique('patrons', 'patron_id')->ignore($this->patronIdBeingEdited),
             ],
             'p_first_name' => ['required', 'string', 'max:50', $fullNameUniqueRule],
-            'p_middle_name' => 'required|string|max:50', // Non-nullable in schema
+            'p_middle_name' => 'required|string|max:50',
             'p_last_name' => 'required|string|max:50',
             'p_suffix' => 'nullable|string|max:10',
             'p_patron_type_id' => 'required|exists:patron_types,id',
@@ -335,6 +337,8 @@ class Registrations extends Component
     // ------------------------------------------------------------------
     // RENDER
     // ------------------------------------------------------------------
+    #[Layout('components.layouts.app')]
+    #[Title('Registrations')]
     public function render()
     {
         // 1. Fetch Users Data
@@ -343,6 +347,7 @@ class Registrations extends Component
                 $query->where(function ($q) {
                     $q->where('username', 'like', "%{$this->search}%")
                       ->orWhere('first_name', 'like', "%{$this->search}%")
+                      ->orWhere('middle_name', 'like', "%{$this->search}%")
                       ->orWhere('last_name', 'like', "%{$this->search}%")
                       ->orWhere('email', 'like', "%{$this->search}%");
                 });
@@ -356,6 +361,7 @@ class Registrations extends Component
                 $query->where(function ($q) {
                     $q->where('patron_id', 'like', "%{$this->search}%")
                       ->orWhere('first_name', 'like', "%{$this->search}%")
+                      ->orWhere('middle_name', 'like', "%{$this->search}%")
                       ->orWhere('last_name', 'like', "%{$this->search}%")
                       ->orWhere('email', 'like', "%{$this->search}%");
                 });
