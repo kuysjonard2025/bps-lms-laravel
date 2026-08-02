@@ -22,28 +22,6 @@ class Dashboard extends Component
     #[Title('Dashboard')]
     public function render()
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Real Database Queries (Uncomment when ready)
-        |--------------------------------------------------------------------------
-        | $totalBooks = Book::sum('quantity');
-        | $activeBorrows = Borrow::where('status', 'borrowed')->count();
-        | $overdueBooks = Borrow::where('status', 'borrowed')
-        |     ->where('due_date', '<', now())
-        |     ->count();
-        | $totalPatrons = User::whereIn('role', ['student', 'faculty', 'staff'])->count();
-        |
-        | $overdueAlerts = Borrow::with(['user', 'book'])
-        |     ->where('status', 'borrowed')
-        |     ->where('due_date', '<', now())
-        |     ->orderBy('due_date', 'asc')
-        |     ->take(5)
-        |     ->get();
-        |
-        | $recentTransactions = Borrow::with(['user', 'book'])
-        |     ->latest('updated_at')
-        |     ->paginate(10);
-        */
 
         // 1. Mock Key Metrics
         $totalBooks = 1245;

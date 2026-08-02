@@ -2,17 +2,23 @@
 
 namespace App\Livewire;
 
-use App\Models\User;
+use App\Models\GradeLevel;
 use App\Models\Patron;
 use App\Models\PatronType;
-use App\Models\GradeLevel;
 use App\Models\Section;
-use Livewire\Component;
-use Livewire\WithPagination;
-use Illuminate\Validation\Rule;
+use App\Models\User;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class Registrations extends Component
 {
@@ -37,7 +43,6 @@ class Registrations extends Component
     // USER FORM PROPERTIES
     // ------------------------------------------------------------------
     public ?int $userIdBeingEdited = null;
-    public bool $isEditingAdmin = false;
     public string $u_first_name = '';
     public string $u_middle_name = '';
     public string $u_last_name = '';
@@ -66,17 +71,32 @@ class Registrations extends Component
     public string $p_address = '';
     public string $p_status = 'active';
 
+    // ------------------------------------------------------------------
+    // COMPUTED PROPERTIES
+    // ------------------------------------------------------------------
+    #[Computed]
+    public function isEditingAdmin(): bool
+    {
+        if (! $this->userIdBeingEdited) {
+            return false;
+        }
+
+        $user = User::find($this->userIdBeingEdited);
+
+        return $user && $user->role === 'admin';
+    }
+
     // Empty String Normalizers for FK Dropdowns
     public function updatedPPatronTypeId($value): void
     {
-        if ($value === '') {
+        if (blank($value)) {
             $this->p_patron_type_id = null;
         }
     }
 
     public function updatedPGradeLevelId($value): void
     {
-        if ($value === '') {
+        if (blank($value)) {
             $this->p_grade_level_id = null;
         }
         $this->p_section_id = null;
@@ -84,7 +104,7 @@ class Registrations extends Component
 
     public function updatedPSectionId($value): void
     {
-        if ($value === '') {
+        if (blank($value)) {
             $this->p_section_id = null;
         }
     }
@@ -92,12 +112,14 @@ class Registrations extends Component
     // Reset pagination when searching or switching tabs
     public function updatedSearch(): void
     {
-        $this->resetPage();
+        $this->resetPage('usersPage');
+        $this->resetPage('patronsPage');
     }
 
     public function updatedActiveTab(): void
     {
-        $this->resetPage();
+        $this->resetPage('usersPage');
+        $this->resetPage('patronsPage');
         $this->search = '';
     }
 
@@ -116,7 +138,6 @@ class Registrations extends Component
         $user = User::findOrFail($id);
 
         $this->userIdBeingEdited = $user->id;
-        $this->isEditingAdmin = ($user->role === 'admin');
         $this->u_first_name = $user->first_name ?? '';
         $this->u_middle_name = $user->middle_name ?? '';
         $this->u_last_name = $user->last_name ?? '';
@@ -132,15 +153,25 @@ class Registrations extends Component
 
     public function saveUser(): void
     {
+        $cleanSuffix = trim($this->u_suffix) ?: null;
+
+        // Composite full-name check matching user schema unique index
+        $userFullNameRule = Rule::unique('users', 'first_name')
+            ->where('first_name', trim($this->u_first_name))
+            ->where('middle_name', trim($this->u_middle_name))
+            ->where('last_name', trim($this->u_last_name))
+            ->when($cleanSuffix, fn ($q) => $q->where('suffix', $cleanSuffix), fn ($q) => $q->whereNull('suffix'))
+            ->ignore($this->userIdBeingEdited);
+
         $rules = [
-            'u_first_name' => 'required|string|max:50',
+            'u_first_name' => ['required', 'string', 'max:50', $userFullNameRule],
             'u_middle_name' => 'required|string|max:50',
             'u_last_name' => 'required|string|max:50',
             'u_suffix' => 'nullable|string|max:10',
             'u_username' => [
                 'required',
                 'string',
-                'max:50',
+                'max:20',
                 Rule::unique('users', 'username')->ignore($this->userIdBeingEdited),
             ],
             'u_role' => 'required|in:admin,librarian,assistant',
@@ -150,32 +181,66 @@ class Registrations extends Component
                 'max:100',
                 Rule::unique('users', 'email')
                     ->ignore($this->userIdBeingEdited)
-                    ->when(!trim($this->u_email), fn ($rule) => $rule->whereNull('email')),
+                    ->when(! trim($this->u_email), fn ($rule) => $rule->whereNull('email')),
             ],
-            'u_contact_number' => 'required|string|max:20',
+            'u_contact_number' => [
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('users', 'contact_number')
+                    ->ignore($this->userIdBeingEdited),
+            ],
             'u_address' => 'required|string|max:255',
             'u_password' => $this->userIdBeingEdited ? 'nullable|min:6' : 'required|min:6',
         ];
 
-        $validated = $this->validate($rules);
+        $validated = $this->validate($rules, [
+            'u_first_name.unique' => 'A user with this identical full name already exists.',
+            'u_username.unique' => 'This username is already taken.',
+            'u_email.unique' => 'This email address is already registered.',
+            'u_contact_number.unique' => 'This contact number is already registered to another user.',
+        ]);
+
+        // Security check: Only Admins can set or alter user roles to 'admin'
+        $currentUser = Auth::user();
+        $assignedRole = $validated['u_role'];
+
+        if ($this->userIdBeingEdited) {
+            $existingUser = User::findOrFail($this->userIdBeingEdited);
+            if ($currentUser->role !== 'admin' && ($validated['u_role'] === 'admin' || $existingUser->role === 'admin')) {
+                $assignedRole = $existingUser->role; // Maintain original role if non-admin attempts edit
+            }
+        } elseif ($currentUser->role !== 'admin' && $validated['u_role'] === 'admin') {
+            $assignedRole = 'librarian'; // Prevent non-admins from creating admin users
+        }
 
         $data = [
             'first_name' => trim($validated['u_first_name']),
             'middle_name' => trim($validated['u_middle_name']),
             'last_name' => trim($validated['u_last_name']),
-            'suffix' => trim($validated['u_suffix']) ?: null,
+            'suffix' => $cleanSuffix,
             'username' => trim($validated['u_username']),
-            'role' => $this->isEditingAdmin ? 'admin' : $validated['u_role'],
+            'role' => $assignedRole,
             'email' => trim($validated['u_email']) ?: null,
             'contact_number' => trim($validated['u_contact_number']),
             'address' => trim($validated['u_address']),
         ];
 
-        if (!empty($validated['u_password'])) {
+        if (! empty($validated['u_password'])) {
             $data['password'] = Hash::make($validated['u_password']);
         }
 
-        User::updateOrCreate(['id' => $this->userIdBeingEdited], $data);
+        try {
+            if ($this->userIdBeingEdited) {
+                User::findOrFail($this->userIdBeingEdited)->update($data);
+            } else {
+                User::create($data);
+            }
+        } catch (UniqueConstraintViolationException $e) {
+            throw ValidationException::withMessages([
+                'u_username' => 'A database unique constraint error occurred while saving this user.',
+            ]);
+        }
 
         $message = $this->userIdBeingEdited ? 'User updated successfully.' : 'User created successfully.';
 
@@ -188,7 +253,6 @@ class Registrations extends Component
     {
         $this->reset([
             'userIdBeingEdited',
-            'isEditingAdmin',
             'u_first_name',
             'u_middle_name',
             'u_last_name',
@@ -243,19 +307,25 @@ class Registrations extends Component
 
     public function savePatron(): void
     {
-        // Explicitly map the rule to the 'first_name' column in the database
+        $cleanSuffix = trim($this->p_suffix) ?: null;
+
+        // Dynamic check if selected patron type is student to apply conditional validation
+        $selectedType = PatronType::find($this->p_patron_type_id);
+        $isStudent = $selectedType && strtolower($selectedType->name) === 'student';
+
+        // Composite full-name check evaluating NULL suffix state correctly
         $fullNameUniqueRule = Rule::unique('patrons', 'first_name')
             ->where('first_name', trim($this->p_first_name))
             ->where('middle_name', trim($this->p_middle_name))
             ->where('last_name', trim($this->p_last_name))
-            ->where('suffix', trim($this->p_suffix) ?: null)
+            ->when($cleanSuffix, fn ($q) => $q->where('suffix', $cleanSuffix), fn ($q) => $q->whereNull('suffix'))
             ->ignore($this->patronIdBeingEdited);
 
         $rules = [
             'p_patron_id' => [
                 'required',
                 'string',
-                'max:50',
+                'max:255',
                 Rule::unique('patrons', 'patron_id')->ignore($this->patronIdBeingEdited),
             ],
             'p_first_name' => ['required', 'string', 'max:50', $fullNameUniqueRule],
@@ -263,8 +333,8 @@ class Registrations extends Component
             'p_last_name' => 'required|string|max:50',
             'p_suffix' => 'nullable|string|max:10',
             'p_patron_type_id' => 'required|exists:patron_types,id',
-            'p_grade_level_id' => 'nullable|exists:grade_levels,id',
-            'p_section_id' => 'nullable|exists:sections,id',
+            'p_grade_level_id' => $isStudent ? 'required|exists:grade_levels,id' : 'nullable|exists:grade_levels,id',
+            'p_section_id' => $isStudent ? 'required|exists:sections,id' : 'nullable|exists:sections,id',
             'p_email' => [
                 'required',
                 'email',
@@ -283,29 +353,39 @@ class Registrations extends Component
 
         $this->validate($rules, [
             'p_first_name.unique' => 'A patron with this identical full name already exists in the system.',
+            'p_patron_id.unique' => 'This Patron ID is already registered.',
+            'p_email.unique' => 'This email is already assigned to another patron.',
+            'p_contact_number.unique' => 'This contact number is already assigned to another patron.',
+            'p_grade_level_id.required' => 'Grade level is required for student patrons.',
+            'p_section_id.required' => 'Section is required for student patrons.',
         ]);
 
-        // Clear grade/section if selected patron type is not a student
-        $selectedType = PatronType::find($this->p_patron_type_id);
-        $isStudent = $selectedType && strtolower($selectedType->name) === 'student';
+        $payload = [
+            'patron_id' => trim($this->p_patron_id),
+            'first_name' => trim($this->p_first_name),
+            'middle_name' => trim($this->p_middle_name),
+            'last_name' => trim($this->p_last_name),
+            'suffix' => $cleanSuffix,
+            'patron_type_id' => $this->p_patron_type_id,
+            'grade_level_id' => $isStudent ? $this->p_grade_level_id : null,
+            'section_id' => $isStudent ? $this->p_section_id : null,
+            'email' => trim($this->p_email),
+            'contact_number' => trim($this->p_contact_number),
+            'address' => trim($this->p_address),
+            'status' => $this->p_status,
+        ];
 
-        Patron::updateOrCreate(
-            ['id' => $this->patronIdBeingEdited],
-            [
-                'patron_id' => trim($this->p_patron_id),
-                'first_name' => trim($this->p_first_name),
-                'middle_name' => trim($this->p_middle_name),
-                'last_name' => trim($this->p_last_name),
-                'suffix' => trim($this->p_suffix) ?: null,
-                'patron_type_id' => $this->p_patron_type_id,
-                'grade_level_id' => $isStudent ? $this->p_grade_level_id : null,
-                'section_id' => $isStudent ? $this->p_section_id : null,
-                'email' => trim($this->p_email),
-                'contact_number' => trim($this->p_contact_number),
-                'address' => trim($this->p_address),
-                'status' => $this->p_status,
-            ]
-        );
+        try {
+            if ($this->patronIdBeingEdited) {
+                Patron::findOrFail($this->patronIdBeingEdited)->update($payload);
+            } else {
+                Patron::create($payload);
+            }
+        } catch (UniqueConstraintViolationException $e) {
+            throw ValidationException::withMessages([
+                'p_patron_id' => 'A database unique constraint error occurred while saving the patron.',
+            ]);
+        }
 
         $message = $this->patronIdBeingEdited ? 'Patron record updated successfully.' : 'Patron record created successfully.';
 
@@ -344,19 +424,32 @@ class Registrations extends Component
         $this->showDeleteModal = true;
     }
 
-    public function deleteItem(): void
+    public function deleteRecord(): void
     {
-        if ($this->deleteType === 'user') {
-            $user = User::findOrFail($this->idBeingDeleted);
-            if ($user->role !== 'admin') {
-                $user->delete();
-                $this->dispatch('toast', message: 'User account deleted successfully.', type: 'success');
-            } else {
-                $this->dispatch('toast', message: 'Admin accounts cannot be deleted.', type: 'error');
+        try {
+            if ($this->deleteType === 'user') {
+                $user = User::findOrFail($this->idBeingDeleted);
+
+                // Prevent user from deleting themselves
+                if ($user->id === Auth::id()) {
+                    $this->dispatch('toast', message: 'You cannot delete your own account.', type: 'error');
+                    $this->showDeleteModal = false;
+
+                    return;
+                }
+
+                if ($user->role !== 'admin') {
+                    $user->delete();
+                    $this->dispatch('toast', message: 'User account deleted successfully.', type: 'success');
+                } else {
+                    $this->dispatch('toast', message: 'Admin accounts cannot be deleted.', type: 'error');
+                }
+            } elseif ($this->deleteType === 'patron') {
+                Patron::findOrFail($this->idBeingDeleted)->delete();
+                $this->dispatch('toast', message: 'Patron record deleted successfully.', type: 'success');
             }
-        } elseif ($this->deleteType === 'patron') {
-            Patron::findOrFail($this->idBeingDeleted)->delete();
-            $this->dispatch('toast', message: 'Patron record deleted successfully.', type: 'success');
+        } catch (QueryException $e) {
+            $this->dispatch('toast', message: 'Cannot delete record: It is referenced by active transactions or logs.', type: 'error');
         }
 
         $this->showDeleteModal = false;
@@ -372,43 +465,47 @@ class Registrations extends Component
     {
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
-        // 1. Fetch Users Data
-        $users = User::query()
-            ->when($this->search, function ($query) use ($likeOperator) {
-                $query->where(function ($q) use ($likeOperator) {
-                    $q->where('username', $likeOperator, "%{$this->search}%")
-                      ->orWhere('first_name', $likeOperator, "%{$this->search}%")
-                      ->orWhere('middle_name', $likeOperator, "%{$this->search}%")
-                      ->orWhere('last_name', $likeOperator, "%{$this->search}%")
-                      ->orWhere('email', $likeOperator, "%{$this->search}%");
-                });
-            })
-            ->latest()
-            ->paginate(10, ['*'], 'usersPage');
+        // 1. Conditionally fetch Users Data only when active
+        $users = $this->activeTab === 'users'
+            ? User::query()
+                ->when($this->search, function ($query) use ($likeOperator) {
+                    $query->where(function ($q) use ($likeOperator) {
+                        $q->where('username', $likeOperator, "%{$this->search}%")
+                            ->orWhere('first_name', $likeOperator, "%{$this->search}%")
+                            ->orWhere('middle_name', $likeOperator, "%{$this->search}%")
+                            ->orWhere('last_name', $likeOperator, "%{$this->search}%")
+                            ->orWhere('email', $likeOperator, "%{$this->search}%");
+                    });
+                })
+                ->latest()
+                ->paginate(10, ['*'], 'usersPage')
+            : new LengthAwarePaginator([], 0, 10);
 
-        // 2. Fetch Patrons Data
-        $patrons = Patron::with(['patronType', 'gradeLevel', 'section'])
-            ->when($this->search, function ($query) use ($likeOperator) {
-                $query->where(function ($q) use ($likeOperator) {
-                    $q->where('patron_id', $likeOperator, "%{$this->search}%")
-                      ->orWhere('first_name', $likeOperator, "%{$this->search}%")
-                      ->orWhere('middle_name', $likeOperator, "%{$this->search}%")
-                      ->orWhere('last_name', $likeOperator, "%{$this->search}%")
-                      ->orWhere('email', $likeOperator, "%{$this->search}%");
-                });
-            })
-            ->latest()
-            ->paginate(10, ['*'], 'patronsPage');
+        // 2. Conditionally fetch Patrons Data only when active
+        $patrons = $this->activeTab === 'patrons'
+            ? Patron::with(['patronType', 'gradeLevel', 'section'])
+                ->when($this->search, function ($query) use ($likeOperator) {
+                    $query->where(function ($q) use ($likeOperator) {
+                        $q->where('patron_id', $likeOperator, "%{$this->search}%")
+                            ->orWhere('first_name', $likeOperator, "%{$this->search}%")
+                            ->orWhere('middle_name', $likeOperator, "%{$this->search}%")
+                            ->orWhere('last_name', $likeOperator, "%{$this->search}%")
+                            ->orWhere('email', $likeOperator, "%{$this->search}%");
+                    });
+                })
+                ->latest()
+                ->paginate(10, ['*'], 'patronsPage')
+            : new LengthAwarePaginator([], 0, 10);
 
-        // 3. Dropdown Datasets
-        $patronTypes = PatronType::all();
-        $allGradeLevels = GradeLevel::all();
+        // 3. Dropdown Datasets (Lightweight projections)
+        $patronTypes = PatronType::orderBy('name')->get(['id', 'name']);
+        $allGradeLevels = GradeLevel::orderBy('name')->get(['id', 'name', 'code']);
         $availableSections = $this->p_grade_level_id
-            ? Section::where('grade_level_id', $this->p_grade_level_id)->get()
+            ? Section::where('grade_level_id', $this->p_grade_level_id)->orderBy('name')->get(['id', 'name'])
             : collect();
 
         // 4. Check if currently selected Patron Type is "Student"
-        $selectedPatronType = PatronType::find($this->p_patron_type_id);
+        $selectedPatronType = $patronTypes->firstWhere('id', $this->p_patron_type_id);
         $isStudentType = $selectedPatronType && strtolower($selectedPatronType->name) === 'student';
 
         return view('livewire.registrations', [

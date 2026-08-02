@@ -3,7 +3,10 @@
 namespace App\Livewire\AssetDetails;
 
 use App\Models\Author;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -55,14 +58,22 @@ class AuthorsTab extends Component
 
     public function saveAuthor(): void
     {
+        // 1. Format FIRST so validation tests the exact string saved to DB
+        $this->name = ucwords(trim($this->name));
+
         $this->validate();
 
-        Author::updateOrCreate(
-            ['id' => $this->authorIdBeingEdited],
-            [
-                'name' => ucwords(trim($this->name)),
-            ]
-        );
+        try {
+            Author::updateOrCreate(
+                ['id' => $this->authorIdBeingEdited],
+                ['name' => $this->name]
+            );
+        } catch (UniqueConstraintViolationException $e) {
+            // Converts database constraint failures into inline field errors
+            throw ValidationException::withMessages([
+                'name' => 'An author with this name already exists.',
+            ]);
+        }
 
         $message = $this->authorIdBeingEdited ? 'Author updated successfully.' : 'Author created successfully.';
 
@@ -79,8 +90,17 @@ class AuthorsTab extends Component
     public function deleteAuthor(): void
     {
         if ($this->authorIdBeingDeleted) {
-            Author::destroy($this->authorIdBeingDeleted);
-            $this->dispatch('toast', message: 'Author deleted successfully.', type: 'success');
+            try {
+                $author = Author::find($this->authorIdBeingDeleted);
+
+                if ($author) {
+                    $author->delete();
+                    $this->dispatch('toast', message: 'Author deleted successfully.', type: 'success');
+                }
+            } catch (QueryException $e) {
+                // Catches FK foreign key restrictions (e.g., PostgreSQL 23503)
+                $this->dispatch('toast', message: 'Cannot delete: This author is linked to existing asset records.', type: 'error');
+            }
         }
 
         $this->showDeleteModal = false;
@@ -89,9 +109,11 @@ class AuthorsTab extends Component
 
     public function render()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+
         $authors = Author::query()
-            ->when($this->search, function ($query) {
-                $query->where('name', 'like', "%{$this->search}%");
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where('name', $likeOperator, "%{$this->search}%");
             })
             ->latest()
             ->paginate(10);

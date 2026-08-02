@@ -72,7 +72,7 @@
                     tooltip: {
                         theme: 'light',
                         y: {
-                            formatter: (val) => val + ' Records'
+                            formatter: (val) => (val || 0).toLocaleString() + ' Records'
                         }
                     }
                 };
@@ -80,19 +80,24 @@
                 this.chart = new ApexCharts(this.$refs.lineChartCanvas, options);
                 this.chart.render();
 
-                // Listen for Livewire event to update chart seamlessly
-                Livewire.on('chart-updated', (eventData) => {
-                    if (this.chart && eventData[0]) {
+                // Seamless reactive update via $wire watcher (removes need for dispatch events)
+                $wire.$watch('chartData', (newData) => {
+                    if (this.chart && newData) {
                         this.chart.updateOptions({
                             series: [{
                                 name: 'Accessions',
-                                data: eventData[0].series
+                                data: newData.series || []
                             }],
                             xaxis: {
-                                categories: eventData[0].categories
+                                categories: newData.categories || []
                             }
                         });
                     }
+                });
+
+                // Memory cleanup
+                this.$cleanup(() => {
+                    if (this.chart) this.chart.destroy();
                 });
             }
         }"

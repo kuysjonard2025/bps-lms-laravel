@@ -4,6 +4,8 @@ namespace App\Livewire\Components;
 
 use App\Models\User;
 use Exception;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -42,6 +44,10 @@ class Header extends Component
         /** @var User $user */
         $user = Auth::user();
 
+        if (! $user) {
+            return;
+        }
+
         $this->first_name = $user->first_name ?? '';
         $this->middle_name = $user->middle_name ?? '';
         $this->last_name = $user->last_name ?? '';
@@ -77,6 +83,20 @@ class Header extends Component
     {
         /** @var User $user */
         $user = Auth::user();
+
+        if (! $user) {
+            return;
+        }
+
+        // 1. Trim inputs BEFORE validation
+        $this->first_name = trim($this->first_name);
+        $this->middle_name = trim($this->middle_name);
+        $this->last_name = trim($this->last_name);
+        $this->suffix = $this->suffix ? trim($this->suffix) : null;
+        $this->address = $this->address ? trim($this->address) : null;
+        $this->contact_number = $this->contact_number ? trim($this->contact_number) : null;
+        $this->email = strtolower(trim($this->email));
+        $this->username = trim($this->username);
 
         try {
             $this->validate([
@@ -114,19 +134,29 @@ class Header extends Component
             throw $e;
         }
 
-        $emailChanged = strtolower($user->email) !== strtolower($this->email);
+        $emailChanged = strtolower($user->email) !== $this->email;
 
-        $user->forceFill([
-            'first_name' => $this->first_name,
-            'middle_name' => $this->middle_name,
-            'last_name' => $this->last_name,
-            'suffix' => $this->suffix ?: null,
-            'address' => $this->address,
-            'contact_number' => $this->contact_number,
-            'email' => $this->email,
-            'username' => $this->username,
-            'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
-        ])->save();
+        try {
+            $user->forceFill([
+                'first_name' => $this->first_name,
+                'middle_name' => $this->middle_name,
+                'last_name' => $this->last_name,
+                'suffix' => $this->suffix,
+                'address' => $this->address,
+                'contact_number' => $this->contact_number,
+                'email' => $this->email,
+                'username' => $this->username,
+                'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
+            ])->save();
+        } catch (UniqueConstraintViolationException $e) {
+            throw ValidationException::withMessages([
+                'email' => 'This email or username is already in use by another account.',
+            ]);
+        } catch (QueryException $e) {
+            Log::error('Profile update DB error: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Database error occurred while updating profile.', type: 'error');
+            return;
+        }
 
         if ($emailChanged) {
             try {
@@ -150,6 +180,10 @@ class Header extends Component
         /** @var User $user */
         $user = Auth::user();
 
+        if (! $user) {
+            return;
+        }
+
         try {
             $this->validate([
                 'current_password' => [
@@ -168,9 +202,15 @@ class Header extends Component
             throw $e;
         }
 
-        $user->forceFill([
-            'password' => Hash::make($this->new_password),
-        ])->save();
+        try {
+            $user->forceFill([
+                'password' => Hash::make($this->new_password),
+            ])->save();
+        } catch (QueryException $e) {
+            Log::error('Password update DB error: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Database error occurred while updating password.', type: 'error');
+            return;
+        }
 
         $this->current_password = '';
         $this->new_password = '';
@@ -186,7 +226,7 @@ class Header extends Component
         session()->invalidate();
         session()->regenerateToken();
 
-        return $this->redirectRoute('login', navigate: true);
+        return $this->redirectRoute('login');
     }
 
     public function render()

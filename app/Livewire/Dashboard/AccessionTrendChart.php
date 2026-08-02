@@ -2,6 +2,9 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Models\Accession;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -9,7 +12,7 @@ class AccessionTrendChart extends Component
 {
     public string $timeframe = '6_months';
 
-    public function updatedTimeframe()
+    public function updatedTimeframe(): void
     {
         $this->dispatch('chart-updated', $this->chartData);
     }
@@ -17,30 +20,80 @@ class AccessionTrendChart extends Component
     #[Computed]
     public function chartData(): array
     {
-        [$timeline, $accessionCounts] = match ($this->timeframe) {
-            '7_days' => [
-                ['Jul 15', 'Jul 16', 'Jul 17', 'Jul 18', 'Jul 19', 'Jul 20', 'Jul 21'],
-                [12, 18, 15, 22, 30, 25, 40]
-            ],
-            '30_days' => [
-                ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                [110, 145, 190, 230]
-            ],
-            '12_months' => [
-                ['Aug 2025', 'Sep 2025', 'Oct 2025', 'Nov 2025', 'Dec 2025', 'Jan 2026', 'Feb 2026', 'Mar 2026', 'Apr 2026', 'May 2026', 'Jun 2026', 'Jul 2026'],
-                [210, 340, 420, 510, 600, 720, 850, 930, 1020, 1110, 1180, 1245]
-            ],
-            default => [ // 6_months
-                ['Feb 2026', 'Mar 2026', 'Apr 2026', 'May 2026', 'Jun 2026', 'Jul 2026'],
-                [650, 780, 890, 990, 1120, 1245]
-            ]
+        return match ($this->timeframe) {
+            '7_days'    => $this->getDailyTrend(7),
+            '30_days'   => $this->getDailyTrend(30),
+            '12_months' => $this->getMonthlyTrend(12),
+            default     => $this->getMonthlyTrend(6),
         };
+    }
 
-        // We map our clear library variables ($timeline, $accessionCounts)
-        // to the key names ApexCharts expects ('categories', 'series')
+    /**
+     * Build daily trend count for N days leading up to today.
+     */
+    private function getDailyTrend(int $days): array
+    {
+        $startDate = Carbon::today()->subDays($days - 1);
+        $endDate   = Carbon::today()->endOfDay();
+
+        // Query total counts grouped by date
+        $rawResults = Accession::query()
+            ->whereBetween('acquired_date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->select(DB::raw('DATE(acquired_date) as date'), DB::raw('COUNT(id) as total'))
+            ->groupBy('date')
+            ->pluck('total', 'date');
+
+        $categories = [];
+        $series = [];
+
+        for ($i = 0; $i < $days; $i++) {
+            $date = $startDate->copy()->addDays($i);
+            $dateKey = $date->toDateString();
+
+            $categories[] = $date->format('M d'); // e.g., "Jul 26"
+            $series[] = (int) ($rawResults[$dateKey] ?? 0);
+        }
+
         return [
-            'categories' => $timeline,
-            'series'     => $accessionCounts,
+            'categories' => $categories,
+            'series'     => $series,
+        ];
+    }
+
+    /**
+     * Build monthly trend count for N months leading up to current month.
+     */
+    private function getMonthlyTrend(int $months): array
+    {
+        $startDate = Carbon::now()->startOfMonth()->subMonths($months - 1);
+        $endDate   = Carbon::now()->endOfMonth();
+
+        // Fetch counts within date range
+        $rawResults = Accession::query()
+            ->whereBetween('acquired_date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->select(
+                DB::raw('YEAR(acquired_date) as year'),
+                DB::raw('MONTH(acquired_date) as month'),
+                DB::raw('COUNT(id) as total')
+            )
+            ->groupBy('year', 'month')
+            ->get()
+            ->keyBy(fn ($item) => sprintf('%04d-%02d', $item->year, $item->month));
+
+        $categories = [];
+        $series = [];
+
+        for ($i = 0; $i < $months; $i++) {
+            $monthDate = $startDate->copy()->addMonths($i);
+            $monthKey  = $monthDate->format('Y-m');
+
+            $categories[] = $monthDate->format('M Y'); // e.g., "Feb 2026"
+            $series[]     = isset($rawResults[$monthKey]) ? (int) $rawResults[$monthKey]->total : 0;
+        }
+
+        return [
+            'categories' => $categories,
+            'series'     => $series,
         ];
     }
 

@@ -3,7 +3,10 @@
 namespace App\Livewire\AssetDetails;
 
 use App\Models\Publisher;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -29,7 +32,7 @@ class PublishersTab extends Component
                 'string',
                 'max:50',
                 Rule::unique('publishers', 'name')
-                    ->where('address', trim($this->address))
+                    ->where('address', $this->address)
                     ->ignore($this->publisherIdBeingEdited),
             ],
             'address' => [
@@ -70,15 +73,25 @@ class PublishersTab extends Component
 
     public function savePublisher(): void
     {
+        // 1. Clean inputs BEFORE validation so rules test the exact database payload
+        $this->name = trim($this->name);
+        $this->address = trim($this->address);
+
         $this->validate();
 
-        Publisher::updateOrCreate(
-            ['id' => $this->publisherIdBeingEdited],
-            [
-                'name' => trim($this->name),
-                'address' => trim($this->address),
-            ]
-        );
+        try {
+            Publisher::updateOrCreate(
+                ['id' => $this->publisherIdBeingEdited],
+                [
+                    'name' => $this->name,
+                    'address' => $this->address,
+                ]
+            );
+        } catch (UniqueConstraintViolationException $e) {
+            throw ValidationException::withMessages([
+                'name' => 'A publisher with this exact name and address combination already exists.',
+            ]);
+        }
 
         $message = $this->publisherIdBeingEdited ? 'Publisher updated successfully.' : 'Publisher created successfully.';
 
@@ -94,9 +107,18 @@ class PublishersTab extends Component
 
     public function deletePublisher(): void
     {
-        if ($this->authorIdBeingDeleted ?? $this->publisherIdBeingDeleted) {
-            Publisher::destroy($this->publisherIdBeingDeleted);
-            $this->dispatch('toast', message: 'Publisher deleted successfully.', type: 'success');
+        if ($this->publisherIdBeingDeleted) {
+            try {
+                $publisher = Publisher::find($this->publisherIdBeingDeleted);
+
+                if ($publisher) {
+                    $publisher->delete();
+                    $this->dispatch('toast', message: 'Publisher deleted successfully.', type: 'success');
+                }
+            } catch (QueryException $e) {
+                // Catches FK foreign key restrictions (e.g., PostgreSQL 23503)
+                $this->dispatch('toast', message: 'Cannot delete: This publisher is linked to existing asset records.', type: 'error');
+            }
         }
 
         $this->showDeleteModal = false;

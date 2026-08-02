@@ -145,7 +145,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-4 py-8 text-center text-gray-500">No user accounts found.</td>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">No user accounts found.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -221,7 +221,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">No patrons found.</td>
+                            <td colspan="7" class="px-4 py-8 text-center text-gray-500">No patrons found.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -453,15 +453,14 @@
                 <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 </div>
-                <h3 class="text-sm font-bold text-gray-900">Confirm Deletion</h3>
-                <p class="text-xs text-gray-500 mt-1">Are you sure you want to delete this {{ $deleteType }}? This action cannot be undone.</p>
-
-                <div class="mt-4 flex justify-center gap-2">
-                    <button type="button" wire:click="$set('showDeleteModal', false)" class="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-md transition cursor-pointer">
+                <h3 class="text-sm font-bold text-gray-900 mb-1">Confirm Deletion</h3>
+                <p class="text-xs text-gray-500 mb-4">Are you sure you want to delete this record? This action cannot be undone.</p>
+                <div class="flex justify-center gap-2">
+                    <button type="button" wire:click="$set('showDeleteModal', false)" class="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition cursor-pointer">
                         Cancel
                     </button>
-                    <button type="button" wire:click="deleteItem" class="px-4 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md shadow-xs transition cursor-pointer">
-                        Delete
+                    <button type="button" wire:click="deleteRecord" class="px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md shadow-xs transition cursor-pointer">
+                        Yes, Delete
                     </button>
                 </div>
             </div>

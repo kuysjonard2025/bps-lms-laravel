@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Dashboard;
 
+use App\Models\Accession;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -10,10 +12,29 @@ class AccessionChart extends Component
     #[Computed]
     public function chartData(): array
     {
-        // Mock data representing accession counts per asset format
+        // Query accession count per Asset Type using exact schema foreign keys
+        $data = Accession::query()
+            ->join('catalogs', 'accessions.catalog_id', '=', 'catalogs.id')
+            ->join('asset_types', 'catalogs.asset_type_id', '=', 'asset_types.id')
+            ->select(
+                'asset_types.name as category_name',
+                DB::raw('COUNT(accessions.id) as total')
+            )
+            ->groupBy('asset_types.id', 'asset_types.name')
+            ->orderByDesc('total')
+            ->get();
+
+        // Safe fallback for empty state to keep ApexCharts/Chart.js clean
+        if ($data->isEmpty()) {
+            return [
+                'categories' => [],
+                'series'     => [],
+            ];
+        }
+
         return [
-            'categories' => ['Books', 'Journals', 'Magazines', 'Theses & Dissertations', 'News Paper'],
-            'series'     => [680, 240, 180, 105, 40],
+            'categories' => $data->pluck('category_name')->toArray(),
+            'series'     => $data->pluck('total')->map(fn ($val) => (int) $val)->toArray(),
         ];
     }
 

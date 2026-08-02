@@ -7,6 +7,8 @@ use App\Models\Author;
 use App\Models\Catalog;
 use App\Models\GeneralReference;
 use App\Models\Publisher;
+use Illuminate\Database\QueryException;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -37,37 +39,42 @@ class Catalogs extends Component
     protected function rules(): array
     {
         return [
-            'author_id' => 'required|exists:authors,id',
-            'asset_type_id' => 'required|exists:asset_types,id',
-            'publisher_id' => 'required|exists:publishers,id',
+            'author_id'            => 'required|exists:authors,id',
+            'asset_type_id'        => 'required|exists:asset_types,id',
+            'publisher_id'         => 'required|exists:publishers,id',
             'general_reference_id' => 'required|exists:general_references,id',
-            'title' => 'required|string|max:255',
-            'isbn_issn' => 'nullable|string|max:20',
-            'edition' => 'nullable|string|max:20',
-            'publication_year' => 'required|integer|digits:4|min:1800|max:' . (date('Y') + 1),
-            'description' => 'nullable|string|max:1000',
+            'title'                => 'required|string|max:255',
+            'isbn_issn'            => [
+                'nullable',
+                'string',
+                'max:20',
+                Rule::unique('catalogs', 'isbn_issn')->ignore($this->catalogIdBeingEdited),
+            ],
+            'edition'              => 'nullable|string|max:20',
+            'publication_year'     => 'required|integer|digits:4|min:1800|max:' . (date('Y') + 1),
+            'description'          => 'nullable|string|max:1000',
         ];
     }
 
-    // Convert empty string selections from select elements to null
+    // Sanitize dropdown selection inputs
     public function updatedAuthorId($value): void
     {
-        if ($value === '') $this->author_id = null;
+        if (blank($value)) $this->author_id = null;
     }
 
     public function updatedAssetTypeId($value): void
     {
-        if ($value === '') $this->asset_type_id = null;
+        if (blank($value)) $this->asset_type_id = null;
     }
 
     public function updatedPublisherId($value): void
     {
-        if ($value === '') $this->publisher_id = null;
+        if (blank($value)) $this->publisher_id = null;
     }
 
     public function updatedGeneralReferenceId($value): void
     {
-        if ($value === '') $this->general_reference_id = null;
+        if (blank($value)) $this->general_reference_id = null;
     }
 
     public function updatedSearch(): void
@@ -88,38 +95,44 @@ class Catalogs extends Component
     {
         $this->resetValidation();
         $this->catalogIdBeingEdited = $catalog->id;
-        $this->author_id = $catalog->author_id;
-        $this->asset_type_id = $catalog->asset_type_id;
-        $this->publisher_id = $catalog->publisher_id;
+        $this->author_id            = $catalog->author_id;
+        $this->asset_type_id        = $catalog->asset_type_id;
+        $this->publisher_id        = $catalog->publisher_id;
         $this->general_reference_id = $catalog->general_reference_id;
-        $this->title = $catalog->title;
-        $this->isbn_issn = $catalog->isbn_issn ?? '';
-        $this->edition = $catalog->edition ?? '';
-        $this->publication_year = (int) $catalog->publication_year;
-        $this->description = $catalog->description ?? '';
+        $this->title                = $catalog->title;
+        $this->isbn_issn            = $catalog->isbn_issn ?? '';
+        $this->edition              = $catalog->edition ?? '';
+        $this->publication_year     = (int) $catalog->publication_year;
+        $this->description          = $catalog->description ?? '';
+
         $this->showModal = true;
     }
 
     public function saveCatalog(): void
     {
-        $this->validate();
+        // Sanitize string fields prior to validation
+        $this->title = trim($this->title);
+        $this->isbn_issn = trim($this->isbn_issn);
+        $this->edition = trim($this->edition);
+        $this->description = trim($this->description);
 
-        Catalog::updateOrCreate(
-            ['id' => $this->catalogIdBeingEdited],
-            [
-                'author_id' => $this->author_id,
-                'asset_type_id' => $this->asset_type_id,
-                'publisher_id' => $this->publisher_id,
-                'general_reference_id' => $this->general_reference_id,
-                'title' => trim($this->title),
-                'isbn_issn' => trim($this->isbn_issn) ?: null,
-                'edition' => trim($this->edition) ?: null,
-                'publication_year' => $this->publication_year,
-                'description' => trim($this->description) ?: null,
-            ]
-        );
+        $validated = $this->validate();
 
-        $message = $this->catalogIdBeingEdited ? 'Catalog updated successfully.' : 'Catalog created successfully.';
+        // Standardize nullable strings
+        $payload = array_merge($validated, [
+            'isbn_issn'   => $this->isbn_issn ?: null,
+            'edition'     => $this->edition ?: null,
+            'description' => $this->description ?: null,
+        ]);
+
+        if ($this->catalogIdBeingEdited) {
+            $catalog = Catalog::findOrFail($this->catalogIdBeingEdited);
+            $catalog->update($payload);
+            $message = 'Catalog entry updated successfully.';
+        } else {
+            Catalog::create($payload);
+            $message = 'Catalog entry created successfully.';
+        }
 
         $this->showModal = false;
         $this->resetForm();
@@ -128,6 +141,18 @@ class Catalogs extends Component
 
     public function confirmDelete(int $id): void
     {
+        $catalog = Catalog::find($id);
+
+        if (!$catalog) {
+            return;
+        }
+
+        // Prevent opening modal if active relationships exist
+        if ($catalog->acquisitions()->exists()) {
+            $this->dispatch('toast', message: 'Cannot delete catalog item because associated acquisition records exist.', type: 'error');
+            return;
+        }
+
         $this->catalogIdBeingDeleted = $id;
         $this->showDeleteModal = true;
     }
@@ -135,8 +160,23 @@ class Catalogs extends Component
     public function deleteCatalog(): void
     {
         if ($this->catalogIdBeingDeleted) {
-            Catalog::destroy($this->catalogIdBeingDeleted);
-            $this->dispatch('toast', message: 'Catalog entry deleted successfully.', type: 'success');
+            try {
+                $catalog = Catalog::find($this->catalogIdBeingDeleted);
+
+                if ($catalog) {
+                    if ($catalog->acquisitions()->exists()) {
+                        $this->dispatch('toast', message: 'Deletion blocked: Active acquisition relations exist.', type: 'error');
+                        $this->showDeleteModal = false;
+                        $this->catalogIdBeingDeleted = null;
+                        return;
+                    }
+
+                    $catalog->delete();
+                    $this->dispatch('toast', message: 'Catalog entry deleted successfully.', type: 'success');
+                }
+            } catch (QueryException $e) {
+                $this->dispatch('toast', message: 'Cannot delete catalog entry due to linked system relationships.', type: 'error');
+            }
         }
 
         $this->showDeleteModal = false;
@@ -178,11 +218,11 @@ class Catalogs extends Component
             ->paginate(10);
 
         return view('livewire.catalogs', [
-            'catalogs' => $catalogs,
-            'authors' => Author::orderBy('name')->get(),
-            'assetTypes' => AssetType::orderBy('name')->get(),
-            'publishers' => Publisher::orderBy('name')->get(),
-            'generalReferences' => GeneralReference::orderBy('name')->get(),
+            'catalogs'          => $catalogs,
+            'authors'           => Author::orderBy('name')->get(['id', 'name']),
+            'assetTypes'        => AssetType::orderBy('name')->get(['id', 'name']),
+            'publishers'        => Publisher::orderBy('name')->get(['id', 'name']),
+            'generalReferences' => GeneralReference::orderBy('name')->get(['id', 'name']),
         ]);
     }
 }

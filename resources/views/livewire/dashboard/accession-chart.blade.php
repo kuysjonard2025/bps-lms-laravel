@@ -27,7 +27,7 @@
                             distributed: true,
                         }
                     },
-                    colors: ['#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE'],
+                    colors: ['#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#A5B4FC', '#C7D2FE'],
                     dataLabels: {
                         enabled: true,
                         style: { fontSize: '11px', colors: ['#FFFFFF'] },
@@ -48,20 +48,26 @@
                     grid: { borderColor: '#F3F4F6', strokeDashArray: 4 },
                     tooltip: {
                         theme: 'light',
-                        y: { formatter: (val) => val + ' Items' }
+                        y: { formatter: (val) => (val || 0).toLocaleString() + ' Items' }
                     }
                 };
 
                 this.chart = new ApexCharts(this.$refs.barChartCanvas, options);
                 this.chart.render();
 
+                // Reactive updates via Livewire $wire watcher
                 $wire.$watch('chartData', (newData) => {
-                    if (newData) {
+                    if (this.chart && newData) {
                         this.chart.updateOptions({
-                            series: [{ data: newData.series }],
-                            xaxis: { categories: newData.categories }
+                            series: [{ name: 'Total Items', data: newData.series || [] }],
+                            xaxis: { categories: newData.categories || [] }
                         });
                     }
+                });
+
+                // Memory cleanup
+                this.$cleanup(() => {
+                    if (this.chart) this.chart.destroy();
                 });
             }
         }"

@@ -3,7 +3,10 @@
 namespace App\Livewire;
 
 use App\Models\Vendor;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -28,6 +31,10 @@ class Vendors extends Component
 
     protected function rules(): array
     {
+        $cleanContactPerson = trim($this->contact_person);
+        $cleanContactNumber = trim($this->contact_number);
+        $cleanEmail = trim($this->email);
+
         return [
             'company_name' => [
                 'required',
@@ -43,7 +50,7 @@ class Vendors extends Component
                 'max:100',
                 Rule::unique('vendors', 'contact_person')
                     ->ignore($this->vendorIdBeingEdited)
-                    ->when(!trim($this->contact_person), fn ($rule) => $rule->whereNull('contact_person')),
+                    ->when(! $cleanContactPerson, fn ($rule) => $rule->whereNull('contact_person')),
             ],
             'address' => [
                 'required',
@@ -56,7 +63,7 @@ class Vendors extends Component
                 'max:20',
                 Rule::unique('vendors', 'contact_number')
                     ->ignore($this->vendorIdBeingEdited)
-                    ->when(!trim($this->contact_number), fn ($rule) => $rule->whereNull('contact_number')),
+                    ->when(! $cleanContactNumber, fn ($rule) => $rule->whereNull('contact_number')),
             ],
             'email' => [
                 'nullable',
@@ -64,7 +71,7 @@ class Vendors extends Component
                 'max:50',
                 Rule::unique('vendors', 'email')
                     ->ignore($this->vendorIdBeingEdited)
-                    ->when(!trim($this->email), fn ($rule) => $rule->whereNull('email')),
+                    ->when(! $cleanEmail, fn ($rule) => $rule->whereNull('email')),
             ],
         ];
     }
@@ -107,16 +114,24 @@ class Vendors extends Component
     {
         $this->validate();
 
-        Vendor::updateOrCreate(
-            ['id' => $this->vendorIdBeingEdited],
-            [
-                'company_name' => trim($this->company_name),
-                'contact_person' => trim($this->contact_person) ?: null,
-                'address' => trim($this->address),
-                'contact_number' => trim($this->contact_number) ?: null,
-                'email' => trim($this->email) ?: null,
-            ]
-        );
+        $payload = [
+            'company_name' => trim($this->company_name),
+            'contact_person' => trim($this->contact_person) ?: null,
+            'address' => trim($this->address),
+            'contact_number' => trim($this->contact_number) ?: null,
+            'email' => trim($this->email) ?: null,
+        ];
+
+        try {
+            Vendor::updateOrCreate(
+                ['id' => $this->vendorIdBeingEdited],
+                $payload
+            );
+        } catch (UniqueConstraintViolationException $e) {
+            throw ValidationException::withMessages([
+                'company_name' => 'A unique constraint error occurred while saving this vendor record.',
+            ]);
+        }
 
         $message = $this->vendorIdBeingEdited ? 'Vendor updated successfully.' : 'Vendor created successfully.';
 
@@ -134,8 +149,12 @@ class Vendors extends Component
     public function deleteVendor(): void
     {
         if ($this->vendorIdBeingDeleted) {
-            Vendor::destroy($this->vendorIdBeingDeleted);
-            $this->dispatch('toast', message: 'Vendor deleted successfully.', type: 'success');
+            try {
+                Vendor::destroy($this->vendorIdBeingDeleted);
+                $this->dispatch('toast', message: 'Vendor deleted successfully.', type: 'success');
+            } catch (QueryException $e) {
+                $this->dispatch('toast', message: 'Cannot delete vendor: It is currently linked to existing transactions or records.', type: 'error');
+            }
         }
 
         $this->showDeleteModal = false;
@@ -152,6 +171,7 @@ class Vendors extends Component
             'email',
             'vendorIdBeingEdited',
         ]);
+        $this->resetValidation();
     }
 
     #[Layout('components.layouts.app')]
@@ -164,10 +184,10 @@ class Vendors extends Component
             ->when($this->search, function ($query) use ($likeOperator) {
                 $query->where(function ($q) use ($likeOperator) {
                     $q->where('company_name', $likeOperator, "%{$this->search}%")
-                      ->orWhere('contact_person', $likeOperator, "%{$this->search}%")
-                      ->orWhere('address', $likeOperator, "%{$this->search}%")
-                      ->orWhere('contact_number', $likeOperator, "%{$this->search}%")
-                      ->orWhere('email', $likeOperator, "%{$this->search}%");
+                        ->orWhere('contact_person', $likeOperator, "%{$this->search}%")
+                        ->orWhere('address', $likeOperator, "%{$this->search}%")
+                        ->orWhere('contact_number', $likeOperator, "%{$this->search}%")
+                        ->orWhere('email', $likeOperator, "%{$this->search}%");
                 });
             })
             ->latest()

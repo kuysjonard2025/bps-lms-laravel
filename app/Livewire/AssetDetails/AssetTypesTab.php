@@ -3,7 +3,10 @@
 namespace App\Livewire\AssetDetails;
 
 use App\Models\AssetType;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -54,12 +57,22 @@ class AssetTypesTab extends Component
 
     public function saveAssetType(): void
     {
+        // 1. Trim first so validation checks the exact string being saved
+        $this->name = trim($this->name);
+
         $this->validate();
 
-        AssetType::updateOrCreate(
-            ['id' => $this->assetTypeIdBeingEdited],
-            ['name' => trim($this->name)]
-        );
+        try {
+            AssetType::updateOrCreate(
+                ['id' => $this->assetTypeIdBeingEdited],
+                ['name' => $this->name]
+            );
+        } catch (UniqueConstraintViolationException $e) {
+            // Safe fallback if database unique constraint fails
+            throw ValidationException::withMessages([
+                'name' => 'An asset type with this name already exists.',
+            ]);
+        }
 
         $message = $this->assetTypeIdBeingEdited ? 'Asset type updated successfully.' : 'Asset type created successfully.';
 
@@ -76,8 +89,15 @@ class AssetTypesTab extends Component
     public function deleteAssetType(): void
     {
         if ($this->assetTypeIdBeingDeleted) {
-            AssetType::destroy($this->assetTypeIdBeingDeleted);
-            $this->dispatch('toast', message: 'Asset type deleted successfully.', type: 'success');
+            try {
+                $assetType = AssetType::findOrFail($this->assetTypeIdBeingDeleted);
+                $assetType->delete();
+
+                $this->dispatch('toast', message: 'Asset type deleted successfully.', type: 'success');
+            } catch (QueryException $e) {
+                // Catches FK foreign key restriction violations (e.g., PostgreSQL 23503)
+                $this->dispatch('toast', message: 'Cannot delete: This asset type is currently linked to existing records.', type: 'error');
+            }
         }
 
         $this->showDeleteModal = false;
