@@ -243,8 +243,8 @@ class Registrations extends Component
 
     public function savePatron(): void
     {
-        // Composite unique rule for full name
-        $fullNameUniqueRule = Rule::unique('patrons')
+        // Explicitly map the rule to the 'first_name' column in the database
+        $fullNameUniqueRule = Rule::unique('patrons', 'first_name')
             ->where('first_name', trim($this->p_first_name))
             ->where('middle_name', trim($this->p_middle_name))
             ->where('last_name', trim($this->p_last_name))

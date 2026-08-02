@@ -17,7 +17,7 @@ return new class extends Migration
 
             // Identifiers & Circulation Tracking
             $table->string('accession_number', 20)->unique();
-            $table->string('batch_number', 20);
+            $table->string('batch_number', 20)->unique();
             $table->string('call_number', 20);
 
             // Status & Condition Tracking

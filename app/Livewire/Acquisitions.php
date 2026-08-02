@@ -135,6 +135,18 @@ class Acquisitions extends Component
     {
         $validated = $this->validate();
 
+        // Check for duplicate composite key (transaction_number + catalog_id + vendor_id)
+        $exists = Acquisition::where('transaction_number', $this->transaction_number)
+            ->where('catalog_id', $this->catalog_id)
+            ->where('vendor_id', $this->vendor_id)
+            ->when($this->acquisitionIdBeingEdited, fn ($query) => $query->where('id', '!=', $this->acquisitionIdBeingEdited))
+            ->exists();
+
+        if ($exists) {
+            $this->addError('transaction_number', 'An acquisition record with this Transaction Number, Vendor, and Catalog item already exists.');
+            return;
+        }
+
         if ($this->acquisitionIdBeingEdited) {
             $acq = Acquisition::findOrFail($this->acquisitionIdBeingEdited);
             $acq->update($validated);

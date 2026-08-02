@@ -76,6 +76,11 @@ class Sidebar extends Component
                     'route' => 'patron-records',
                     'icon' => 'identification',
                 ],
+                [
+                    'name' => 'Inventories',
+                    'route' => 'inventories',
+                    'icon' => 'clipboard-document-list',
+                ],
 
             ],
             'System Log & Backup' => [

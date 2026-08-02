@@ -50,8 +50,8 @@
                     <th scope="col" class="px-3 sm:px-4 py-3">Accession #</th>
                     <th scope="col" class="px-3 sm:px-4 py-3">Batch #</th>
                     <th scope="col" class="px-3 sm:px-4 py-3">Catalog Item & ACQ #</th>
-                    <th scope="col" class="hidden md:table-cell px-4 py-3">Call Number</th>
-                    <th scope="col" class="hidden sm:table-cell px-4 py-3">Condition</th>
+                    <th scope="col" class="hidden md:table-cell px-4 py-3 text-center">Call Number</th>
+                    <th scope="col" class="hidden sm:table-cell px-4 py-3 text-center">Condition</th>
                     <th scope="col" class="px-3 sm:px-4 py-3 text-center">Status</th>
                     <th scope="col" class="px-3 sm:px-4 py-3 text-right">Actions</th>
                 </tr>
@@ -72,10 +72,10 @@
                                 <span class="hidden sm:inline"> | Author: <span class="text-gray-700">{{ $item->catalog->author->name ?? 'N/A' }}</span></span>
                             </div>
                         </td>
-                        <td class="hidden md:table-cell px-4 py-3 whitespace-nowrap">
+                        <td class="hidden md:table-cell px-4 py-3 text-center whitespace-nowrap">
                             <div class="font-mono text-gray-800">{{ $item->call_number }}</div>
                         </td>
-                        <td class="hidden sm:table-cell px-4 py-3 whitespace-nowrap">
+                        <td class="hidden sm:table-cell px-4 py-3 text-center whitespace-nowrap">
                             <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-gray-100 text-gray-700">
                                 {{ $item->condition }}
                             </span>
