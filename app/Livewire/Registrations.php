@@ -515,6 +515,7 @@ class Registrations extends Component
             'allGradeLevels' => $allGradeLevels,
             'availableSections' => $availableSections,
             'isStudentType' => $isStudentType,
+            'isEditingAdmin' => $this->isEditingAdmin,
         ]);
     }
 }

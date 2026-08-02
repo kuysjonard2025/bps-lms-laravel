@@ -36,11 +36,11 @@ class AccessionTrendChart extends Component
         $startDate = Carbon::today()->subDays($days - 1);
         $endDate   = Carbon::today()->endOfDay();
 
-        // Query total counts grouped by date
+        // Query total counts grouped by date (PostgreSQL safe)
         $rawResults = Accession::query()
             ->whereBetween('acquired_date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->select(DB::raw('DATE(acquired_date) as date'), DB::raw('COUNT(id) as total'))
-            ->groupBy('date')
+            ->select(DB::raw('acquired_date::date as date'), DB::raw('COUNT(id) as total'))
+            ->groupBy(DB::raw('acquired_date::date'))
             ->pluck('total', 'date');
 
         $categories = [];
@@ -68,17 +68,20 @@ class AccessionTrendChart extends Component
         $startDate = Carbon::now()->startOfMonth()->subMonths($months - 1);
         $endDate   = Carbon::now()->endOfMonth();
 
-        // Fetch counts within date range
+        // Fetch counts within date range using PostgreSQL EXTRACT()
         $rawResults = Accession::query()
             ->whereBetween('acquired_date', [$startDate->toDateString(), $endDate->toDateString()])
             ->select(
-                DB::raw('YEAR(acquired_date) as year'),
-                DB::raw('MONTH(acquired_date) as month'),
+                DB::raw('EXTRACT(YEAR FROM acquired_date) as year'),
+                DB::raw('EXTRACT(MONTH FROM acquired_date) as month'),
                 DB::raw('COUNT(id) as total')
             )
-            ->groupBy('year', 'month')
+            ->groupBy(
+                DB::raw('EXTRACT(YEAR FROM acquired_date)'),
+                DB::raw('EXTRACT(MONTH FROM acquired_date)')
+            )
             ->get()
-            ->keyBy(fn ($item) => sprintf('%04d-%02d', $item->year, $item->month));
+            ->keyBy(fn ($item) => sprintf('%04d-%02d', (int)$item->year, (int)$item->month));
 
         $categories = [];
         $series = [];
