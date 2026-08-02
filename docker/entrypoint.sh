@@ -9,7 +9,7 @@ php artisan config:clear
 php artisan cache:clear
 
 echo "===> Running migrations..."
-php artisan migrate:fresh --force --verbose
+php artisan migrate --force --verbose
 
 echo "===> Running seeders..."
 php artisan db:seed --force --verbose
