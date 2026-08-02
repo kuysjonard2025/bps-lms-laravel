@@ -64,11 +64,11 @@
                         });
                     }
                 });
-
-                // Memory cleanup
-                this.$cleanup(() => {
-                    if (this.chart) this.chart.destroy();
-                });
+            },
+            destroy() {
+                if (this.chart) {
+                    this.chart.destroy();
+                }
             }
         }"
         x-init="initChart()"

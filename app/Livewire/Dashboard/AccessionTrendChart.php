@@ -12,11 +12,6 @@ class AccessionTrendChart extends Component
 {
     public string $timeframe = '6_months';
 
-    public function updatedTimeframe(): void
-    {
-        $this->dispatch('chart-updated', $this->chartData);
-    }
-
     #[Computed]
     public function chartData(): array
     {
@@ -36,7 +31,6 @@ class AccessionTrendChart extends Component
         $startDate = Carbon::today()->subDays($days - 1);
         $endDate   = Carbon::today()->endOfDay();
 
-        // Query total counts grouped by date (PostgreSQL safe)
         $rawResults = Accession::query()
             ->whereBetween('acquired_date', [$startDate->toDateString(), $endDate->toDateString()])
             ->select(DB::raw('acquired_date::date as date'), DB::raw('COUNT(id) as total'))
@@ -50,7 +44,7 @@ class AccessionTrendChart extends Component
             $date = $startDate->copy()->addDays($i);
             $dateKey = $date->toDateString();
 
-            $categories[] = $date->format('M d'); // e.g., "Jul 26"
+            $categories[] = $date->format('M d');
             $series[] = (int) ($rawResults[$dateKey] ?? 0);
         }
 
@@ -68,7 +62,6 @@ class AccessionTrendChart extends Component
         $startDate = Carbon::now()->startOfMonth()->subMonths($months - 1);
         $endDate   = Carbon::now()->endOfMonth();
 
-        // Fetch counts within date range using PostgreSQL EXTRACT()
         $rawResults = Accession::query()
             ->whereBetween('acquired_date', [$startDate->toDateString(), $endDate->toDateString()])
             ->select(
@@ -90,7 +83,7 @@ class AccessionTrendChart extends Component
             $monthDate = $startDate->copy()->addMonths($i);
             $monthKey  = $monthDate->format('Y-m');
 
-            $categories[] = $monthDate->format('M Y'); // e.g., "Feb 2026"
+            $categories[] = $monthDate->format('M Y');
             $series[]     = isset($rawResults[$monthKey]) ? (int) $rawResults[$monthKey]->total : 0;
         }
 

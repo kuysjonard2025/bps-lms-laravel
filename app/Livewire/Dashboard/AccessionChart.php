@@ -24,7 +24,6 @@ class AccessionChart extends Component
             ->orderByDesc('total')
             ->get();
 
-        // Safe fallback for empty state to keep ApexCharts/Chart.js clean
         if ($data->isEmpty()) {
             return [
                 'categories' => [],

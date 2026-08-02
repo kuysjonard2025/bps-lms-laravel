@@ -80,7 +80,7 @@
                 this.chart = new ApexCharts(this.$refs.lineChartCanvas, options);
                 this.chart.render();
 
-                // Seamless reactive update via $wire watcher (removes need for dispatch events)
+                // Watch Livewire property changes reactively
                 $wire.$watch('chartData', (newData) => {
                     if (this.chart && newData) {
                         this.chart.updateOptions({
@@ -94,11 +94,11 @@
                         });
                     }
                 });
-
-                // Memory cleanup
-                this.$cleanup(() => {
-                    if (this.chart) this.chart.destroy();
-                });
+            },
+            destroy() {
+                if (this.chart) {
+                    this.chart.destroy();
+                }
             }
         }"
         x-init="initChart()"
