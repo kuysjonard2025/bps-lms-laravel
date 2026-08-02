@@ -16,6 +16,10 @@ export default defineConfig({
 		}),
 		tailwindcss(),
 	],
+	build: {
+		// Prevents generating preload tags that trigger browser "preloaded but not used" warnings
+		modulePreload: false,
+	},
 	server: {
 		cors: true,
 		watch: {
