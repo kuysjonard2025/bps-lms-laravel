@@ -23,15 +23,17 @@
                         bar: {
                             borderRadius: 6,
                             horizontal: true,
-                            barHeight: '50%',
+                            barHeight: '55%',
                             distributed: true,
                         }
                     },
                     colors: ['#2563EB', '#3B82F6', '#60A5FA', '#93C5FD', '#A5B4FC', '#C7D2FE'],
                     dataLabels: {
                         enabled: true,
-                        style: { fontSize: '11px', colors: ['#FFFFFF'] },
-                        formatter: (val) => val ? val.toLocaleString() : '0'
+                        textAnchor: 'start',
+                        style: { fontSize: '11px', fontWeight: '600' },
+                        formatter: (val) => val ? val.toLocaleString() : '0',
+                        dropShadow: { enabled: false }
                     },
                     legend: { show: false },
                     series: [{
@@ -55,7 +57,7 @@
                 this.chart = new ApexCharts(this.$refs.barChartCanvas, options);
                 this.chart.render();
 
-                // Reactive updates via Livewire $wire watcher
+                // Livewire reactive listener
                 $wire.$watch('chartData', (newData) => {
                     if (this.chart && newData) {
                         this.chart.updateOptions({
@@ -64,11 +66,13 @@
                         });
                     }
                 });
-            },
-            destroy() {
-                if (this.chart) {
-                    this.chart.destroy();
-                }
+
+                // Auto-cleanup ApexCharts instance on Alpine teardown
+                this.$cleanup(() => {
+                    if (this.chart) {
+                        this.chart.destroy();
+                    }
+                });
             }
         }"
         x-init="initChart()"

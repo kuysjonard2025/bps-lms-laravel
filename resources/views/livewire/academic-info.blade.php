@@ -11,12 +11,14 @@
             <div class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
                 <button
                     wire:click="$set('activeTab', 'grade_levels')"
+                    type="button"
                     class="px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer {{ $activeTab === 'grade_levels' ? 'bg-white text-blue-600 shadow-xs' : 'text-gray-500 hover:text-gray-900' }}"
                 >
                     Grade Levels
                 </button>
                 <button
                     wire:click="$set('activeTab', 'sections')"
+                    type="button"
                     class="px-3 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer {{ $activeTab === 'sections' ? 'bg-white text-blue-600 shadow-xs' : 'text-gray-500 hover:text-gray-900' }}"
                 >
                     Sections
@@ -52,17 +54,17 @@
                 wire:model.live.debounce.300ms="search"
                 type="text"
                 placeholder="Search {{ $activeTab === 'grade_levels' ? 'grade levels or codes...' : 'sections...' }}"
-                class="w-full pl-9 pr-4 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                class="w-full pl-9 pr-4 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-            <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
         </div>
 
         @if ($activeTab === 'sections')
             <div class="w-full sm:w-auto flex items-center gap-2">
-                <label class="text-xs font-medium text-gray-500 shrink-0">Grade Level:</label>
-                <select wire:model.live="sectionGradeFilter" class="w-full sm:w-48 px-3 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                <label for="sectionGradeFilter" class="text-xs font-medium text-gray-500 shrink-0">Grade Level:</label>
+                <select id="sectionGradeFilter" wire:model.live="sectionGradeFilter" class="w-full sm:w-48 px-3 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     <option value="">All Grade Levels</option>
                     @foreach($allGradeLevels as $gl)
                         <option value="{{ $gl->id }}">{{ $gl->name }} ({{ $gl->code }})</option>
@@ -118,7 +120,7 @@
                 </tbody>
             </table>
         </div>
-        <div>{{ $gradeLevels->links() }}</div>
+        <div class="mt-2">{{ $gradeLevels->links() }}</div>
     @endif
 
     {{-- TAB 2: SECTIONS TABLE --}}
@@ -159,30 +161,33 @@
                 </tbody>
             </table>
         </div>
-        <div>{{ $sections->links() }}</div>
+        <div class="mt-2">{{ $sections->links() }}</div>
     @endif
 
     {{-- GRADE LEVEL MODAL --}}
     @if ($showGradeLevelModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div
+            wire:keydown.escape.window="$set('showGradeLevelModal', false)"
+            class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+        >
             <div wire:click="$set('showGradeLevelModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
             <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md z-10 overflow-hidden my-auto flex flex-col">
                 <div class="bg-gray-50 px-5 py-3.5 border-b border-gray-200 flex justify-between items-center shrink-0">
                     <h3 class="text-xs sm:text-sm font-bold text-gray-900">{{ $gradeLevelIdBeingEdited ? 'Edit Grade Level' : 'Add Grade Level' }}</h3>
-                    <button wire:click="$set('showGradeLevelModal', false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
+                    <button wire:click="$set('showGradeLevelModal', false)" type="button" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
                 </div>
 
                 <form wire:submit="saveGradeLevel" class="p-4 sm:p-6 space-y-4">
                     <div>
-                        <label class="block text-xs font-medium text-gray-700">Grade Level Name *</label>
-                        <input type="text" wire:model="gl_name" placeholder="e.g. Grade 11 - STEM" class="mt-1 w-full text-xs sm:text-sm rounded-md border-gray-300 border p-2 shadow-xs">
-                        @error('gl_name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                        <label for="gl_name" class="block text-xs font-medium text-gray-700">Grade Level Name *</label>
+                        <input id="gl_name" type="text" wire:model="gl_name" autofocus placeholder="e.g. Grade 11 - STEM" class="mt-1 w-full text-xs sm:text-sm rounded-md border-gray-300 border p-2 shadow-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        @error('gl_name') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-gray-700">Code *</label>
-                        <input type="text" wire:model="gl_code" placeholder="e.g. G11-STEM" class="mt-1 w-full text-xs sm:text-sm font-mono uppercase rounded-md border-gray-300 border p-2 shadow-xs">
-                        @error('gl_code') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                        <label for="gl_code" class="block text-xs font-medium text-gray-700">Code *</label>
+                        <input id="gl_code" type="text" wire:model="gl_code" placeholder="e.g. G11-STEM" class="mt-1 w-full text-xs sm:text-sm font-mono uppercase rounded-md border-gray-300 border p-2 shadow-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        @error('gl_code') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="mt-4 flex justify-end gap-2.5 pt-3 border-t border-gray-100">
@@ -198,30 +203,33 @@
 
     {{-- SECTION MODAL --}}
     @if ($showSectionModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div
+            wire:keydown.escape.window="$set('showSectionModal', false)"
+            class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+        >
             <div wire:click="$set('showSectionModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
             <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md z-10 overflow-hidden my-auto flex flex-col">
                 <div class="bg-gray-50 px-5 py-3.5 border-b border-gray-200 flex justify-between items-center shrink-0">
                     <h3 class="text-xs sm:text-sm font-bold text-gray-900">{{ $sectionIdBeingEdited ? 'Edit Section' : 'Add Section' }}</h3>
-                    <button wire:click="$set('showSectionModal', false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
+                    <button wire:click="$set('showSectionModal', false)" type="button" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
                 </div>
 
                 <form wire:submit="saveSection" class="p-4 sm:p-6 space-y-4">
                     <div>
-                        <label class="block text-xs font-medium text-gray-700">Grade Level Assignment *</label>
-                        <select wire:model="sec_grade_level_id" class="mt-1 w-full text-xs sm:text-sm rounded-md border-gray-300 border p-2 shadow-xs bg-white">
+                        <label for="sec_grade_level_id" class="block text-xs font-medium text-gray-700">Grade Level Assignment *</label>
+                        <select id="sec_grade_level_id" wire:model="sec_grade_level_id" autofocus class="mt-1 w-full text-xs sm:text-sm rounded-md border-gray-300 border p-2 shadow-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Select Grade Level</option>
                             @foreach($allGradeLevels as $gl)
                                 <option value="{{ $gl->id }}">{{ $gl->name }} ({{ $gl->code }})</option>
                             @endforeach
                         </select>
-                        @error('sec_grade_level_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                        @error('sec_grade_level_id') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-xs font-medium text-gray-700">Section Name *</label>
-                        <input type="text" wire:model="sec_name" placeholder="e.g. St. Jude, Section A" class="mt-1 w-full text-xs sm:text-sm rounded-md border-gray-300 border p-2 shadow-xs">
-                        @error('sec_name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                        <label for="sec_name" class="block text-xs font-medium text-gray-700">Section Name *</label>
+                        <input id="sec_name" type="text" wire:model="sec_name" placeholder="e.g. St. Jude, Section A" class="mt-1 w-full text-xs sm:text-sm rounded-md border-gray-300 border p-2 shadow-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        @error('sec_name') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="mt-4 flex justify-end gap-2.5 pt-3 border-t border-gray-100">
@@ -237,7 +245,10 @@
 
     {{-- DELETE CONFIRMATION MODAL --}}
     @if ($showDeleteModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+            wire:keydown.escape.window="$set('showDeleteModal', false)"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
             <div wire:click="$set('showDeleteModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
             <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md z-10 p-6 space-y-4 text-center">
                 <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 text-red-600">

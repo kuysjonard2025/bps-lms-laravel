@@ -25,15 +25,22 @@
         </div>
     @endif
 
-    <!-- Search input -->
+    <!-- Search Input -->
     <div class="mb-4">
         <div class="relative w-full md:w-80">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg class="h-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
             </div>
-            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Filter by Patron or Asset Type..." class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-colors" />
+            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Filter by Patron or Asset Type..." class="w-full pl-9 pr-8 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-colors" />
+            @if(!empty($search))
+                <button wire:click="$set('search', '')" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-gray-400 hover:text-gray-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            @endif
         </div>
     </div>
 
@@ -70,7 +77,7 @@
                                 {{ $policy->is_active ? 'Active' : 'Inactive' }}
                             </button>
                         </td>
-                        <td class="px-4 py-3 text-center space-x-3">
+                        <td class="px-4 py-3 text-center space-x-3 whitespace-nowrap">
                             <button wire:click="editPolicy({{ $policy->id }})" class="text-indigo-600 hover:text-indigo-900 text-xs font-semibold transition-colors">Edit</button>
                             <button wire:click="deletePolicy({{ $policy->id }})" wire:confirm="Are you sure you want to delete this policy?" class="text-rose-600 hover:text-rose-900 text-xs font-semibold transition-colors">Delete</button>
                         </td>
@@ -92,7 +99,7 @@
 
     <!-- Create/Edit Modal -->
     @if($showModal)
-        <div class="fixed inset-0 z-50 bg-gray-600/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="fixed inset-0 z-50 bg-gray-600/50 backdrop-blur-sm flex items-center justify-center p-4" x-data @keydown.escape.window="$wire.closeModal()">
             <div class="bg-white rounded-lg shadow-xl max-w-xl w-full p-6 border border-gray-100">
                 <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
                     <h3 class="text-lg font-bold text-gray-900">
@@ -171,14 +178,15 @@
                     </div>
 
                     <div class="flex items-center gap-2 pt-1">
-                        <input type="checkbox" wire:model="is_active" id="is_active" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4" />
-                        <label for="is_active" class="text-sm font-medium text-gray-700 select-none">Policy active</label>
+                        <input type="checkbox" wire:model="is_active" id="is_active" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer" />
+                        <label for="is_active" class="text-sm font-medium text-gray-700 select-none cursor-pointer">Policy active</label>
                     </div>
 
                     <div class="flex justify-end gap-2 border-t border-gray-100 pt-4 mt-6">
                         <button type="button" wire:click="closeModal" class="px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-md text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            {{ $isEditing ? 'Update Policy' : 'Save Policy' }}
+                        <button type="submit" wire:loading.attr="disabled" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-medium rounded-md text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <span wire:loading.remove>{{ $isEditing ? 'Update Policy' : 'Save Policy' }}</span>
+                            <span wire:loading>Saving...</span>
                         </button>
                     </div>
                 </form>

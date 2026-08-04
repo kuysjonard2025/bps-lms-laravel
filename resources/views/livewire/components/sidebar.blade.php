@@ -3,25 +3,33 @@
     <div
         x-show="sidebarOpen"
         @click="sidebarOpen = false"
-        x-transition:enter="transition-opacity ease-linear duration-300"
+        @keydown.escape.window="sidebarOpen = false"
+        x-transition:enter="transition-opacity ease-out duration-300"
         x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100"
-        x-transition:leave="transition-opacity ease-linear duration-300"
+        x-transition:leave="transition-opacity ease-in duration-200"
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
-        class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs z-40 lg:hidden"
+        class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs z-40 lg:hidden"
+        x-cloak
     ></div>
 
     {{-- Responsive Sidebar Drawer --}}
     <aside
         :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-        class="fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 min-h-screen lg:min-h-[calc(100vh-4rem)] p-4 flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0"
+        class="fixed lg:sticky top-0 lg:top-[73px] inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 h-dvh lg:h-[calc(100vh-73px)] p-4 flex flex-col justify-between transition-transform duration-300 ease-in-out shrink-0 overflow-y-auto select-none"
     >
         <div class="space-y-4">
             {{-- Mobile/Tablet Sidebar Header / Close Button --}}
             <div class="flex items-center justify-between pb-2 border-b border-gray-100 lg:hidden">
                 <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Navigation Menu</span>
-                <button @click="sidebarOpen = false" class="text-gray-500 hover:text-gray-700 text-lg font-bold p-1 cursor-pointer">&times;</button>
+                <button
+                    @click="sidebarOpen = false"
+                    type="button"
+                    class="text-gray-400 hover:text-gray-600 rounded-lg p-1 text-lg font-bold cursor-pointer"
+                >
+                    &times;
+                </button>
             </div>
 
             <nav class="space-y-4">

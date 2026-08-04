@@ -6,7 +6,15 @@
             <p class="text-xs text-gray-500">Total physical/digital holdings added over time</p>
         </div>
 
-        <div>
+        <div class="relative flex items-center">
+            {{-- Optional Loading Spinner --}}
+            <div wire:loading wire:target="timeframe" class="absolute -left-6">
+                <svg class="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+
             <select
                 wire:model.live="timeframe"
                 class="text-xs border-gray-300 rounded-lg shadow-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 py-1.5 px-3 bg-white text-gray-700 cursor-pointer"
@@ -61,8 +69,11 @@
                         }
                     },
                     yaxis: {
+                        forceNiceScale: true,
+                        decimalsInFloat: 0,
                         labels: {
-                            style: { colors: '#6B7280', fontSize: '11px' }
+                            style: { colors: '#6B7280', fontSize: '11px' },
+                            formatter: (val) => Math.floor(val)
                         }
                     },
                     grid: {
@@ -94,11 +105,13 @@
                         });
                     }
                 });
-            },
-            destroy() {
-                if (this.chart) {
-                    this.chart.destroy();
-                }
+
+                // Auto-cleanup ApexCharts instance on Alpine teardown
+                this.$cleanup(() => {
+                    if (this.chart) {
+                        this.chart.destroy();
+                    }
+                });
             }
         }"
         x-init="initChart()"

@@ -58,7 +58,7 @@
                 wire:model.live.debounce.300ms="search"
                 type="text"
                 placeholder="Search {{ $activeTab === 'users' ? 'username, name, email...' : 'patron ID, name, email...' }}"
-                class="w-full pl-9 pr-8 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                class="w-full pl-9 pr-8 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
             <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -248,7 +248,7 @@
                             @error('u_first_name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-700">Middle Name <span class="text-red-500">*</span></label>
+                            <label class="block text-xs font-medium text-gray-700">Middle Name</label>
                             <input type="text" wire:model="u_middle_name" placeholder="Doe" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
                             @error('u_middle_name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                         </div>
@@ -362,7 +362,7 @@
                             @error('p_first_name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                         </div>
                         <div>
-                            <label class="block text-xs font-medium text-gray-700">Middle Name <span class="text-red-500">*</span></label>
+                            <label class="block text-xs font-medium text-gray-700">Middle Name</label>
                             <input type="text" wire:model="p_middle_name" placeholder="Doe" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
                             @error('p_middle_name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                         </div>
@@ -451,16 +451,28 @@
             <div wire:click.self="$set('showDeleteModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
             <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-sm z-10 p-5 text-center my-auto">
                 <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-3 0-3z"/></svg>
                 </div>
-                <h3 class="text-sm font-bold text-gray-900 mb-1">Confirm Deletion</h3>
-                <p class="text-xs text-gray-500 mb-4">Are you sure you want to delete this record? This action cannot be undone.</p>
-                <div class="flex justify-center gap-2">
-                    <button type="button" wire:click="$set('showDeleteModal', false)" class="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition cursor-pointer">
+
+                <h3 class="text-sm font-bold text-gray-900">Confirm Deletion</h3>
+                <p class="text-xs text-gray-500 mt-1">
+                    Are you sure you want to delete this {{ $itemTypeToDelete ?? 'record' }}? This action cannot be undone.
+                </p>
+
+                <div class="mt-4 flex justify-center gap-2">
+                    <button
+                        type="button"
+                        wire:click="$set('showDeleteModal', false)"
+                        class="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-md transition cursor-pointer"
+                    >
                         Cancel
                     </button>
-                    <button type="button" wire:click="deleteRecord" class="px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md shadow-xs transition cursor-pointer">
-                        Yes, Delete
+                    <button
+                        type="button"
+                        wire:click="deleteRecord"
+                        class="px-4 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md shadow-xs transition cursor-pointer"
+                    >
+                        Delete
                     </button>
                 </div>
             </div>

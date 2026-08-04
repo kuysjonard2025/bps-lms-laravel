@@ -1,5 +1,5 @@
-<div class="p-4 sm:p-6 space-y-4 max-w-full">
-    {{-- Header wrapped in white card container --}}
+<div class="p-4 sm:p-6 space-y-4 max-w-full" x-data="{ closeOnEsc(e) { if (e.key === 'Escape') { $wire.showModal = false; $wire.showDeleteModal = false; } } }" @keydown.window="closeOnEsc">
+    {{-- Header Container --}}
     <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
             <h2 class="text-base sm:text-lg font-bold text-gray-900">Accessions Management</h2>
@@ -24,11 +24,19 @@
                     wire:model.live.debounce.300ms="search"
                     type="text"
                     placeholder="Search Acc #, Batch #, Call #, Title..."
-                    class="w-full pl-9 pr-4 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full pl-9 pr-8 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                 >
                 <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
+
+                {{-- Live Search Indicator --}}
+                <div wire:loading wire:target="search" class="absolute right-3 top-2.5">
+                    <svg class="animate-spin h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                </div>
             </div>
 
             <button
@@ -58,7 +66,8 @@
             </thead>
             <tbody class="divide-y divide-gray-200 bg-white">
                 @forelse($accessions as $item)
-                    <tr class="hover:bg-gray-50/50 transition">
+                    {{-- Added wire:key for Livewire tracking --}}
+                    <tr wire:key="accession-row-{{ $item->id }}" class="hover:bg-gray-50/50 transition">
                         <td class="px-3 sm:px-4 py-3 whitespace-nowrap">
                             <div class="font-mono font-bold text-blue-600">{{ $item->accession_number }}</div>
                         </td>
@@ -158,10 +167,10 @@
                                 </option>
                             @endforeach
                         </select>
-                        @error('acquisition_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                        @error('acquisition_id') <span class="text-xs text-red-500 block mt-1">{{ $message }}</span> @enderror
                     </div>
 
-                    {{-- Acquisition Metadata & Quantity Summary Preview --}}
+                    {{-- Acquisition Metadata Preview --}}
                     @if ($this->selectedAcquisition)
                         @php
                             $totalQty = $this->selectedAcquisition->quantity;
@@ -241,16 +250,16 @@
                                 @if ($remainingQty === 0)
                                     <span class="text-[10px] text-rose-600 font-semibold block mt-1">All copies for this acquisition are fully accessioned.</span>
                                 @else
-                                    <span class="text-[10px] text-gray-500">Generates sequential barcodes automatically.</span>
+                                    <span class="text-[10px] text-gray-500 block mt-1">Generates sequential barcodes automatically.</span>
                                 @endif
-                                @error('batch_qty') <span class="text-xs text-red-500 block">{{ $message }}</span> @enderror
+                                @error('batch_qty') <span class="text-xs text-red-500 block mt-1">{{ $message }}</span> @enderror
                             </div>
 
                             <div>
                                 <label class="block text-xs font-medium text-gray-500">Batch Reference Number (Auto)</label>
                                 <input type="text" wire:model="batch_number" disabled readonly class="mt-1 w-full text-xs sm:text-sm font-mono rounded-md border-gray-200 border p-2 bg-gray-100 text-gray-500 cursor-not-allowed select-none">
-                                <span class="text-[10px] text-gray-400">System-generated timestamp identifier.</span>
-                                @error('batch_number') <span class="text-xs text-red-500 block">{{ $message }}</span> @enderror
+                                <span class="text-[10px] text-gray-400 block mt-1">System-generated timestamp identifier.</span>
+                                @error('batch_number') <span class="text-xs text-red-500 block mt-1">{{ $message }}</span> @enderror
                             </div>
                         </div>
                     @else
@@ -264,22 +273,22 @@
                                     readonly
                                     class="mt-1 w-full text-xs sm:text-sm font-mono rounded-md border-gray-200 border p-2 bg-gray-100 text-gray-500 cursor-not-allowed select-none"
                                 >
-                                <span class="text-[10px] text-gray-400">System identifier cannot be modified.</span>
-                                @error('accession_number') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                                <span class="text-[10px] text-gray-400 block mt-1">System identifier cannot be modified.</span>
+                                @error('accession_number') <span class="text-xs text-red-500 block mt-1">{{ $message }}</span> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-500">Batch Reference Number (Auto)</label>
                                 <input type="text" wire:model="batch_number" disabled readonly class="mt-1 w-full text-xs sm:text-sm font-mono rounded-md border-gray-200 border p-2 bg-gray-100 text-gray-500 cursor-not-allowed select-none">
-                                @error('batch_number') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                                @error('batch_number') <span class="text-xs text-red-500 block mt-1">{{ $message }}</span> @enderror
                             </div>
                         </div>
                     @endif
 
-                    {{-- Call Number with Batch Update Toggle --}}
+                    {{-- Call Number --}}
                     <div>
                         <label class="block text-xs font-medium text-gray-700">Call Number *</label>
                         <input type="text" wire:model="call_number" maxlength="50" placeholder="e.g. 823.912 R59" class="mt-1 w-full text-xs sm:text-sm font-mono rounded-md border-gray-300 border p-2 shadow-xs">
-                        @error('call_number') <span class="text-xs text-red-500 block">{{ $message }}</span> @enderror
+                        @error('call_number') <span class="text-xs text-red-500 block mt-1">{{ $message }}</span> @enderror
 
                         @if ($accessionIdBeingEdited)
                             <div class="mt-2.5 p-2 bg-blue-50/60 border border-blue-100 rounded-md flex items-center gap-2">
@@ -305,7 +314,7 @@
                                 <option value="Fair">Fair</option>
                                 <option value="Damaged">Damaged</option>
                             </select>
-                            @error('condition') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('condition') <span class="text-xs text-red-500 block mt-1">{{ $message }}</span> @enderror
                         </div>
 
                         <div>
@@ -318,30 +327,34 @@
                                 <option value="Lost">Lost</option>
                                 <option value="Withdrawn">Withdrawn</option>
                             </select>
-                            @error('status') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('status') <span class="text-xs text-red-500 block mt-1">{{ $message }}</span> @enderror
                         </div>
 
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Acquired Date *</label>
                             <input type="date" wire:model="acquired_date" class="mt-1 w-full text-xs sm:text-sm rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('acquired_date') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('acquired_date') <span class="text-xs text-red-500 block mt-1">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-gray-700">Remarks</label>
                         <textarea wire:model="remarks" rows="2" class="mt-1 w-full text-xs sm:text-sm rounded-md border-gray-300 border p-2 shadow-xs"></textarea>
-                        @error('remarks') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                        @error('remarks') <span class="text-xs text-red-500 block mt-1">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="mt-4 flex justify-end gap-2.5 pt-2 border-t border-gray-100">
                         <button wire:click="$set('showModal', false)" type="button" class="px-3.5 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 cursor-pointer">Cancel</button>
                         <button
                             type="submit"
+                            wire:loading.attr="disabled"
                             @disabled(!$accessionIdBeingEdited && $this->getRemainingQty() === 0)
-                            class="px-3.5 py-2 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+                            class="px-3.5 py-2 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition flex items-center gap-1.5"
                         >
-                            {{ $accessionIdBeingEdited ? 'Save Changes' : 'Process Batch' }}
+                            <span wire:loading wire:target="saveAccession" class="animate-spin h-3.5 w-3.5 text-white">
+                                <svg class="w-full h-full" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                            </span>
+                            <span>{{ $accessionIdBeingEdited ? 'Save Changes' : 'Process Batch' }}</span>
                         </button>
                     </div>
                 </form>
@@ -363,7 +376,7 @@
                 </div>
                 <div class="flex justify-center gap-3 pt-2">
                     <button wire:click="$set('showDeleteModal', false)" type="button" class="px-4 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 cursor-pointer">Cancel</button>
-                    <button wire:click="deleteAccession" type="button" class="px-4 py-2 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 cursor-pointer shadow-xs">Delete Record</button>
+                    <button wire:click="deleteAccession" type="button" wire:loading.attr="disabled" class="px-4 py-2 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 cursor-pointer shadow-xs">Delete Record</button>
                 </div>
             </div>
         </div>

@@ -19,8 +19,8 @@ class Sidebar extends Component
 
             'Maintenance' => [
                 [
-                    'name' => 'Asset Details',
-                    'route' => 'asset-details',
+                    'name' => 'Catalog Classification',
+                    'route' => 'catalog-classification',
                     'icon' => 'document-text',
                 ],
                 [
@@ -85,8 +85,8 @@ class Sidebar extends Component
             ],
             'System Log & Backup' => [
                 [
-                    'name' => 'User Logs',
-                    'route' => 'user-logs',
+                    'name' => 'Authentication Logs',
+                    'route' => 'auth-logs',
                     'icon' => 'chart-bar',
                 ],
                 [

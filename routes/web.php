@@ -6,7 +6,7 @@ use App\Livewire\Auth\VerifyEmail;
 
 use App\Livewire\AcademicInfo;
 use App\Livewire\Accessions;
-use App\Livewire\AssetDetails\Index as AssetDetailsIndex;
+use App\Livewire\AssetDetails\Index as CatalogClassification;
 use App\Livewire\Catalogs;
 use App\Livewire\Dashboard;
 use App\Livewire\Vendors;
@@ -45,9 +45,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', Dashboard::class)->name('dashboard');
 
         // Maintenance Pages
-        Route::get('/asset-details', AssetDetailsIndex::class)->name('asset-details');
-        Route::get('/vendors', Vendors::class)->name('vendors');
+        Route::get('/catalog-classification', CatalogClassification::class)->name('catalog-classification');
         Route::get('/catalogs', Catalogs::class)->name('catalogs');
+        Route::get('/vendors', Vendors::class)->name('vendors');
         Route::get('/accessions', Accessions::class)->name('accessions');
         Route::get('/academic-info', AcademicInfo::class)->name('academic-info');
         Route::get('/registrations', Registrations::class)->name('registrations');
