@@ -1,4 +1,4 @@
-<div class="bg-white rounded-xl border border-gray-200 shadow-xs p-5 space-y-4">
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
             <h2 class="text-base font-bold text-gray-900">Accessions by Asset Type</h2>
@@ -7,10 +7,31 @@
     </div>
 
     <div
-        x-data="{
-            chart: null,
-            initChart() {
-                const chartData = @js($this->chartData);
+        x-data="accessionBarChart(@js($chartData))"
+        wire:ignore
+    >
+        <div x-ref="barChartCanvas"></div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('accessionBarChart', (initialData) => ({
+        chart: null,
+
+        init() {
+            this.$nextTick(() => {
+                const container = this.$refs.barChartCanvas;
+                if (!container) return;
+
+                if (typeof ApexCharts === 'undefined') {
+                    console.error('ApexCharts library is not loaded on this page.');
+                    return;
+                }
+
+                if (this.chart) {
+                    this.chart.destroy();
+                }
 
                 const options = {
                     chart: {
@@ -38,10 +59,10 @@
                     legend: { show: false },
                     series: [{
                         name: 'Total Items',
-                        data: chartData?.series || []
+                        data: initialData?.series || []
                     }],
                     xaxis: {
-                        categories: chartData?.categories || [],
+                        categories: initialData?.categories || [],
                         labels: { style: { colors: '#6B7280', fontSize: '11px' } }
                     },
                     yaxis: {
@@ -54,30 +75,19 @@
                     }
                 };
 
-                this.chart = new ApexCharts(this.$refs.barChartCanvas, options);
+                this.chart = new ApexCharts(container, options);
                 this.chart.render();
+            });
+        },
 
-                // Livewire reactive listener
-                $wire.$watch('chartData', (newData) => {
-                    if (this.chart && newData) {
-                        this.chart.updateOptions({
-                            series: [{ name: 'Total Items', data: newData.series || [] }],
-                            xaxis: { categories: newData.categories || [] }
-                        });
-                    }
-                });
-
-                // Auto-cleanup ApexCharts instance on Alpine teardown
-                this.$cleanup(() => {
-                    if (this.chart) {
-                        this.chart.destroy();
-                    }
+        updateChart(newData) {
+            if (this.chart && newData) {
+                this.chart.updateOptions({
+                    series: [{ name: 'Total Items', data: newData.series || [] }],
+                    xaxis: { categories: newData.categories || [] }
                 });
             }
-        }"
-        x-init="initChart()"
-        wire:ignore
-    >
-        <div x-ref="barChartCanvas"></div>
-    </div>
-</div>
+        }
+    }));
+});
+</script>

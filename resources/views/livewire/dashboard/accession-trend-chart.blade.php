@@ -1,4 +1,4 @@
-<div class="bg-white rounded-xl border border-gray-200 shadow-xs p-5 space-y-4">
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
     {{-- Header & Timeframe Filter --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -17,7 +17,7 @@
 
             <select
                 wire:model.live="timeframe"
-                class="text-xs border-gray-300 rounded-lg shadow-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 py-1.5 px-3 bg-white text-gray-700 cursor-pointer"
+                class="text-xs border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 py-1.5 px-3 bg-white text-gray-700 cursor-pointer"
             >
                 <option value="7_days">Last 7 Days</option>
                 <option value="30_days">Last 30 Days</option>
@@ -29,10 +29,31 @@
 
     {{-- ApexCharts Container --}}
     <div
-        x-data="{
-            chart: null,
-            initChart() {
-                const initialData = @js($this->chartData);
+        x-data="accessionTrendChart(@js($chartData))"
+        wire:ignore
+    >
+        <div x-ref="lineChartCanvas"></div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('accessionTrendChart', (initialData) => ({
+        chart: null,
+
+        init() {
+            this.$nextTick(() => {
+                const container = this.$refs.lineChartCanvas;
+                if (!container) return;
+
+                if (typeof ApexCharts === 'undefined') {
+                    console.error('ApexCharts library is not loaded.');
+                    return;
+                }
+
+                if (this.chart) {
+                    this.chart.destroy();
+                }
 
                 const options = {
                     chart: {
@@ -88,35 +109,10 @@
                     }
                 };
 
-                this.chart = new ApexCharts(this.$refs.lineChartCanvas, options);
+                this.chart = new ApexCharts(container, options);
                 this.chart.render();
-
-                // Watch Livewire property changes reactively
-                $wire.$watch('chartData', (newData) => {
-                    if (this.chart && newData) {
-                        this.chart.updateOptions({
-                            series: [{
-                                name: 'Accessions',
-                                data: newData.series || []
-                            }],
-                            xaxis: {
-                                categories: newData.categories || []
-                            }
-                        });
-                    }
-                });
-
-                // Auto-cleanup ApexCharts instance on Alpine teardown
-                this.$cleanup(() => {
-                    if (this.chart) {
-                        this.chart.destroy();
-                    }
-                });
-            }
-        }"
-        x-init="initChart()"
-        wire:ignore
-    >
-        <div x-ref="lineChartCanvas"></div>
-    </div>
-</div>
+            });
+        }
+    }));
+});
+</script>

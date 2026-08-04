@@ -12,7 +12,6 @@ class AccessionChart extends Component
     #[Computed]
     public function chartData(): array
     {
-        // Query accession count per Asset Type using exact schema foreign keys
         $data = Accession::query()
             ->join('catalogs', 'accessions.catalog_id', '=', 'catalogs.id')
             ->join('asset_types', 'catalogs.asset_type_id', '=', 'asset_types.id')
@@ -39,6 +38,8 @@ class AccessionChart extends Component
 
     public function render()
     {
-        return view('livewire.dashboard.accession-chart');
+        return view('livewire.dashboard.accession-chart', [
+            'chartData' => $this->chartData,
+        ]);
     }
 }

@@ -23,9 +23,6 @@ class AccessionTrendChart extends Component
         };
     }
 
-    /**
-     * Build daily trend count for N days leading up to today.
-     */
     private function getDailyTrend(int $days): array
     {
         $startDate = Carbon::today()->subDays($days - 1);
@@ -54,9 +51,6 @@ class AccessionTrendChart extends Component
         ];
     }
 
-    /**
-     * Build monthly trend count for N months leading up to current month.
-     */
     private function getMonthlyTrend(int $months): array
     {
         $startDate = Carbon::now()->startOfMonth()->subMonths($months - 1);
@@ -95,6 +89,8 @@ class AccessionTrendChart extends Component
 
     public function render()
     {
-        return view('livewire.dashboard.accession-trend-chart');
+        return view('livewire.dashboard.accession-trend-chart', [
+            'chartData' => $this->chartData,
+        ]);
     }
 }
