@@ -42,7 +42,7 @@
                             @foreach($routes as $route)
                                 <a
                                     href="{{ Route::has($route['route']) ? route($route['route']) : '#' }}"
-                                    wire:navigate.hover.none
+                                    wire:navigate
                                     @click="sidebarOpen = false"
                                     class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs($route['route']) ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-gray-700 hover:bg-gray-100' }}"
                                 >
