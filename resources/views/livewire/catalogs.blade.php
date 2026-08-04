@@ -45,13 +45,13 @@
         <table class="min-w-full divide-y divide-gray-200 text-left text-xs sm:text-sm text-gray-700">
             <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[11px]">
                 <tr>
-                    <th scope="col" class="px-4 py-3 font-semibold">Title</th>
-                    <th scope="col" class="px-4 py-3 font-semibold">Author</th>
-                    <th scope="col" class="px-4 py-3 font-semibold hidden md:table-cell">Asset Type</th>
-                    <th scope="col" class="px-4 py-3 font-semibold hidden lg:table-cell">Publisher</th>
-                    <th scope="col" class="px-4 py-3 font-semibold hidden lg:table-cell">Reference</th>
-                    <th scope="col" class="px-4 py-3 font-semibold">ISBN / Year</th>
-                    <th scope="col" class="px-4 py-3 text-right font-semibold">Actions</th>
+                    <th scope="col" class="px-4 py-3 font-semibold whitespace-nowrap">Title</th>
+                    <th scope="col" class="px-4 py-3 font-semibold whitespace-nowrap">Author</th>
+                    <th scope="col" class="px-4 py-3 font-semibold whitespace-nowrap hidden md:table-cell">Asset Type</th>
+                    <th scope="col" class="px-4 py-3 font-semibold whitespace-nowrap hidden lg:table-cell">Publisher</th>
+                    <th scope="col" class="px-4 py-3 font-semibold whitespace-nowrap hidden lg:table-cell">Reference</th>
+                    <th scope="col" class="px-4 py-3 font-semibold whitespace-nowrap">ISBN / Year</th>
+                    <th scope="col" class="px-4 py-3 text-right font-semibold whitespace-nowrap">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 bg-white">

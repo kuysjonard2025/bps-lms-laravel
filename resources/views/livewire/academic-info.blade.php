@@ -80,23 +80,23 @@
             <table class="w-full text-left text-xs text-gray-700">
                 <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[11px] border-b border-gray-200">
                     <tr>
-                        <th scope="col" class="px-4 py-3">Code</th>
-                        <th scope="col" class="px-4 py-3">Grade Level Name</th>
-                        <th scope="col" class="px-4 py-3 text-center">Sections Count</th>
-                        <th scope="col" class="px-4 py-3 text-right">Actions</th>
+                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Code</th>
+                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Grade Level Name</th>
+                        <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Sections Count</th>
+                        <th scope="col" class="px-4 py-3 text-right whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 bg-white">
                     @forelse($gradeLevels as $gl)
                         <tr class="hover:bg-gray-50/50 transition">
-                            <td class="px-4 py-3 font-mono font-bold text-blue-600">{{ $gl->code }}</td>
-                            <td class="px-4 py-3 font-semibold text-gray-900">{{ $gl->name }}</td>
-                            <td class="px-4 py-3 text-center">
+                            <td class="px-4 py-3 font-mono font-bold text-blue-600 whitespace-nowrap">{{ $gl->code }}</td>
+                            <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">{{ $gl->name }}</td>
+                            <td class="px-4 py-3 text-center whitespace-nowrap">
                                 <span class="px-2.5 py-1 text-[11px] font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                                     {{ $gl->sections_count }} {{ Str::plural('section', $gl->sections_count) }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-right space-x-1">
+                            <td class="px-4 py-3 text-right space-x-1 whitespace-nowrap">
                                 <button
                                     wire:click="openCreateSectionModal({{ $gl->id }})"
                                     title="Add Section to {{ $gl->name }}"
@@ -129,20 +129,20 @@
             <table class="w-full text-left text-xs text-gray-700">
                 <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[11px] border-b border-gray-200">
                     <tr>
-                        <th scope="col" class="px-4 py-3">Section Name</th>
-                        <th scope="col" class="px-4 py-3">Grade Level</th>
-                        <th scope="col" class="px-4 py-3 text-right">Actions</th>
+                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Section Name</th>
+                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Grade Level</th>
+                        <th scope="col" class="px-4 py-3 text-right whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 bg-white">
                     @forelse($sections as $sec)
                         <tr class="hover:bg-gray-50/50 transition">
-                            <td class="px-4 py-3 font-semibold text-gray-900">{{ $sec->name }}</td>
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">{{ $sec->name }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
                                 <span class="font-bold text-blue-600 font-mono">{{ $sec->gradeLevel->code ?? 'N/A' }}</span>
                                 <span class="text-gray-500 text-[11px] ml-1">({{ $sec->gradeLevel->name ?? 'Unassigned' }})</span>
                             </td>
-                            <td class="px-4 py-3 text-right space-x-1">
+                            <td class="px-4 py-3 text-right space-x-1 whitespace-nowrap">
                                 <button
                                     wire:click="openEditSectionModal({{ $sec->id }})"
                                     class="text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-blue-50 transition cursor-pointer"

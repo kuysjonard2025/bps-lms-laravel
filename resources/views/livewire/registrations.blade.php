@@ -77,27 +77,27 @@
             <table class="w-full text-left text-xs text-gray-700">
                 <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[11px] border-b border-gray-200">
                     <tr>
-                        <th scope="col" class="px-4 py-3">Username</th>
-                        <th scope="col" class="px-4 py-3">Full Name</th>
-                        <th scope="col" class="px-4 py-3">Contact / Email</th>
-                        <th scope="col" class="px-4 py-3 text-center">Role</th>
-                        <th scope="col" class="px-4 py-3 text-center">Status</th>
-                        <th scope="col" class="px-4 py-3 text-right">Actions</th>
+                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Username</th>
+                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Full Name</th>
+                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Contact / Email</th>
+                        <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Role</th>
+                        <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Status</th>
+                        <th scope="col" class="px-4 py-3 text-right whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 bg-white">
                     @forelse($users as $user)
                         <tr wire:key="user-row-{{ $user->id }}" class="hover:bg-gray-50/50 transition">
-                            <td class="px-4 py-3 font-mono font-bold text-blue-600">{{ $user->username }}</td>
-                            <td class="px-4 py-3 font-semibold text-gray-900">
+                            <td class="px-4 py-3 font-mono font-bold text-blue-600 whitespace-nowrap">{{ $user->username }}</td>
+                            <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
                                 {{ implode(' ', array_filter([$user->first_name, $user->middle_name, $user->last_name, $user->suffix])) ?: '—' }}
                             </td>
-                            <td class="px-4 py-3 text-gray-600">
+                            <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
                                 @if($user->email) <div>{{ $user->email }}</div> @endif
                                 @if($user->contact_number) <div class="text-[11px] text-gray-400">{{ $user->contact_number }}</div> @endif
                                 @if(!$user->email && !$user->contact_number) <span class="text-gray-400">—</span> @endif
                             </td>
-                            <td class="px-4 py-3 text-center">
+                            <td class="px-4 py-3 text-center whitespace-nowrap">
                                 @php
                                     $roleBadgeStyles = [
                                         'admin' => 'bg-amber-100 text-amber-800',
@@ -114,7 +114,7 @@
                                     {{ $roleLabels[$user->role] ?? $user->role }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-center">
+                            <td class="px-4 py-3 text-center whitespace-nowrap">
                                 @if($user->email_verified_at)
                                     <span class="px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider bg-green-100 text-green-800">
                                         Verified
@@ -160,23 +160,23 @@
             <table class="w-full text-left text-xs text-gray-700">
                 <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[11px] border-b border-gray-200">
                     <tr>
-                        <th scope="col" class="px-4 py-3">Patron ID</th>
-                        <th scope="col" class="px-4 py-3">Full Name</th>
-                        <th scope="col" class="px-4 py-3">Type / Academic Info</th>
-                        <th scope="col" class="px-4 py-3">Address</th>
-                        <th scope="col" class="px-4 py-3">Contact</th>
-                        <th scope="col" class="px-4 py-3 text-center">Status</th>
-                        <th scope="col" class="px-4 py-3 text-right">Actions</th>
+                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Patron ID</th>
+                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Full Name</th>
+                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Type / Academic Info</th>
+                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Address</th>
+                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Contact</th>
+                        <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Status</th>
+                        <th scope="col" class="px-4 py-3 text-right whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 bg-white">
                     @forelse($patrons as $patron)
                         <tr wire:key="patron-row-{{ $patron->id }}" class="hover:bg-gray-50/50 transition">
-                            <td class="px-4 py-3 font-mono font-bold text-blue-600">{{ $patron->patron_id }}</td>
-                            <td class="px-4 py-3 font-semibold text-gray-900">
+                            <td class="px-4 py-3 font-mono font-bold text-blue-600 whitespace-nowrap">{{ $patron->patron_id }}</td>
+                            <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
                                 {{ implode(' ', array_filter([$patron->first_name, $patron->middle_name, $patron->last_name, $patron->suffix])) }}
                             </td>
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 whitespace-nowrap">
                                 <span class="uppercase font-bold text-[10px] px-2 py-0.5 rounded bg-gray-100 text-gray-700 mr-1">
                                     {{ $patron->patronType->name ?? 'N/A' }}
                                 </span>
@@ -187,14 +187,14 @@
                                     @endif
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-gray-600">
+                            <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
                                 {{ $patron->address }}
                             </td>
-                            <td class="px-4 py-3 text-gray-600">
+                            <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
                                 <div>{{ $patron->email }}</div>
                                 <div class="text-[11px] text-gray-400">{{ $patron->contact_number }}</div>
                             </td>
-                            <td class="px-4 py-3 text-center">
+                            <td class="px-4 py-3 text-center whitespace-nowrap">
                                 @php
                                     $statusColors = [
                                         'active' => 'bg-green-100 text-green-800',

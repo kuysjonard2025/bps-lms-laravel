@@ -43,11 +43,11 @@
         <table class="w-full text-left text-xs lg:text-sm text-gray-700">
             <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[11px] border-b border-gray-200">
                 <tr>
-                    <th scope="col" class="px-4 py-3 font-semibold">Company Name</th>
-                    <th scope="col" class="px-4 py-3 font-semibold">Contact Person</th>
-                    <th scope="col" class="px-4 py-3 font-semibold hidden md:table-cell">Address</th>
-                    <th scope="col" class="px-4 py-3 font-semibold">Contact Details</th>
-                    <th scope="col" class="px-4 py-3 text-right font-semibold">Actions</th>
+                    <th scope="col" class="px-4 py-3 font-semibold whitespace-nowrap">Company Name</th>
+                    <th scope="col" class="px-4 py-3 font-semibold whitespace-nowrap">Contact Person</th>
+                    <th scope="col" class="px-4 py-3 font-semibold whitespace-nowrap hidden md:table-cell">Address</th>
+                    <th scope="col" class="px-4 py-3 font-semibold whitespace-nowrap">Contact Details</th>
+                    <th scope="col" class="px-4 py-3 text-right font-semibold whitespace-nowrap">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 bg-white">
@@ -59,7 +59,7 @@
                         <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
                             {{ $vendor->contact_person ?: '—' }}
                         </td>
-                        <td class="px-4 py-3 text-gray-500 max-w-xs truncate hidden md:table-cell" title="{{ $vendor->address }}">
+                        <td class="px-4 py-3 text-gray-500 max-w-xs truncate whitespace-nowrap hidden md:table-cell" title="{{ $vendor->address }}">
                             {{ $vendor->address }}
                         </td>
                         <td class="px-4 py-3 text-gray-500 whitespace-nowrap">

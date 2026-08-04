@@ -55,13 +55,13 @@
         <table class="w-full text-left text-xs text-gray-700">
             <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[11px] border-b border-gray-200">
                 <tr>
-                    <th scope="col" class="px-3 sm:px-4 py-3">Accession #</th>
-                    <th scope="col" class="px-3 sm:px-4 py-3">Batch #</th>
-                    <th scope="col" class="px-3 sm:px-4 py-3">Catalog Item & ACQ #</th>
-                    <th scope="col" class="hidden md:table-cell px-4 py-3 text-center">Call Number</th>
-                    <th scope="col" class="hidden sm:table-cell px-4 py-3 text-center">Condition</th>
-                    <th scope="col" class="px-3 sm:px-4 py-3 text-center">Status</th>
-                    <th scope="col" class="px-3 sm:px-4 py-3 text-right">Actions</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">Accession #</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">Batch #</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">Catalog Item & ACQ #</th>
+                    <th scope="col" class="hidden md:table-cell px-4 py-3 text-center whitespace-nowrap">Call Number</th>
+                    <th scope="col" class="hidden sm:table-cell px-4 py-3 text-center whitespace-nowrap">Condition</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 text-center whitespace-nowrap">Status</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 text-right whitespace-nowrap">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 bg-white">
