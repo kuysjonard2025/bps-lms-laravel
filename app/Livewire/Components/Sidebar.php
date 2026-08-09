@@ -19,8 +19,8 @@ class Sidebar extends Component
 
             'Maintenance' => [
                 [
-                    'name' => 'Catalog Classification',
-                    'route' => 'catalog-classification',
+                    'name' => 'Asset Details',
+                    'route' => 'asset-details',
                     'icon' => 'document-text',
                 ],
                 [

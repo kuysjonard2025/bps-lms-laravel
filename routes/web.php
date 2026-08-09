@@ -1,19 +1,19 @@
 <?php
 
+use App\Livewire\AcademicInfo;
+use App\Livewire\Accessions;
+use App\Livewire\Acquisitions;
+use App\Livewire\AssetDetails\Index as AssetDetails;
 use App\Livewire\Auth\CompleteProfile;
 use App\Livewire\Auth\Login as LoginComponent;
 use App\Livewire\Auth\VerifyEmail;
-
-use App\Livewire\AcademicInfo;
-use App\Livewire\Accessions;
-use App\Livewire\AssetDetails\Index as CatalogClassification;
 use App\Livewire\Catalogs;
-use App\Livewire\Dashboard;
-use App\Livewire\Vendors;
-
-use App\Livewire\Acquisitions;
+use App\Livewire\Circulations;
 use App\Livewire\CirculationPolicy;
+use App\Livewire\Dashboard;
+use App\Livewire\PatronLogs;
 use App\Livewire\Registrations;
+use App\Livewire\Vendors;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     // 3. Email Verification Action Handler (Clicked from email)
     Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
         $request->fulfill();
+
         return redirect()->route('dashboard');
     })->middleware('signed')->name('verification.verify');
 
@@ -45,7 +46,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', Dashboard::class)->name('dashboard');
 
         // Maintenance Pages
-        Route::get('/catalog-classification', CatalogClassification::class)->name('catalog-classification');
+        Route::get('/asset-details', AssetDetails::class)->name('asset-details');
         Route::get('/catalogs', Catalogs::class)->name('catalogs');
         Route::get('/vendors', Vendors::class)->name('vendors');
         Route::get('/accessions', Accessions::class)->name('accessions');
@@ -55,12 +56,15 @@ Route::middleware('auth')->group(function () {
 
         // Process Pages
         Route::get('/acquisitions', Acquisitions::class)->name('acquisitions');
+        Route::get('/patron-logs', PatronLogs::class)->name('patron-logs');
+        Route::get('/circulations', Circulations::class)->name('circulations');
     });
 
     Route::post('/logout', function () {
         Auth::logout();
         session()->invalidate();
         session()->regenerateToken();
+
         return redirect()->route('login');
     })->name('logout');
 });

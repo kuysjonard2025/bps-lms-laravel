@@ -19,17 +19,17 @@ class PatronTypeSeeder extends Seeder
                 // 'description' => 'Enrolled undergraduate or postgraduate students',
             ],
             [
-                'name' => 'Faculty',
+                'name' => 'Teacher',
                 // 'description' => 'Academic teaching staff and professors',
             ],
-            [
-                'name' => 'Staff',
-                // 'description' => 'Administrative and support personnel',
-            ],
-            [
-                'name' => 'Guest / Visitor',
-                // 'description' => 'External patrons or temporary cardholders',
-            ],
+            // [
+            //     'name' => 'Staff',
+            //     // 'description' => 'Administrative and support personnel',
+            // ],
+            // [
+            //     'name' => 'Guest / Visitor',
+            //     // 'description' => 'External patrons or temporary cardholders',
+            // ],
         ];
 
         foreach ($patronTypes as $type) {

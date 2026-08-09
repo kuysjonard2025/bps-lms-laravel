@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('call_number', 20);
 
             // Status & Condition Tracking
-            $table->enum('condition', ['New', 'Good', 'Fair', 'Damaged'])->default('Good');
+            $table->enum('condition', ['New', 'Good', 'Fair', 'Damaged', 'Missing'])->default('Good');
             $table->enum('status', [
                 'Available',
                 'On Loan',
