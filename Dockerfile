@@ -4,6 +4,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+
+# Copy composer vendor folder so Tailwind v4 can discover pagination views
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY vendor ./vendor
+
 RUN npm run build
 
 # --- Stage 2: Application Runtime ---

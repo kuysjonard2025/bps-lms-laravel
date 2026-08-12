@@ -21,17 +21,9 @@ fi
 
 echo "===> Caching application configurations..."
 # Optimizing Laravel performance for production
-if [ "$APP_ENV" = "production" ]; then
-    php artisan config:cache
-    php artisan route:cache
-    php artisan view:cache
-    php artisan event:cache
-else
-    # Ensure fresh config resolution in dev/staging environments
-    php artisan config:clear
-    php artisan route:clear
-    php artisan view:clear
-fi
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 
 echo "===> Starting PHP-FPM background service..."
 php-fpm -D
