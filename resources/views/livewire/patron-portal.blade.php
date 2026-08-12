@@ -172,4 +172,9 @@
             </div>
         </div>
     @endif
+
+    {{-- Footer --}}
+    <div class="text-center text-[11px] text-slate-400">
+        &copy; {{ date('Y') }} Bicutan Parochial School, Inc. All rights reserved.
+    </div>
 </div>

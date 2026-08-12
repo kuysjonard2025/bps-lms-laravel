@@ -31,9 +31,6 @@
         {{ $slot }}
     </main>
 
-    {{-- Footer Bar --}}
-    <livewire:components.footer />
-
     @livewireScripts
 </body>
 </html>
