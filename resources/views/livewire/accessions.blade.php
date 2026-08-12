@@ -139,7 +139,7 @@
         </table>
     </div>
 
-    <div>{{ $accessions->links() }}</div>
+    <div class="mt-4">{{ $accessions->links() }}</div>
 
     {{-- Create / Edit Modal --}}
     @if ($showModal)

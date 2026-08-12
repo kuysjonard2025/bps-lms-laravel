@@ -6,6 +6,7 @@ use App\Models\Accession;
 use App\Models\Acquisition;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -140,7 +141,7 @@ class Accessions extends Component
                     $this->batch_qty = $remainingQty > 0 ? $remainingQty : 1;
                     $this->batch_number = 'B-' . date('Ymd-Hi');
                     $this->accession_number = $this->generateAccessionNumber();
-                    $this->acquired_date = $acquisition->received_date ? $acquisition->received_date->format('Y-m-d') : now()->format('Y-m-d');
+                    $this->acquired_date = $acquisition->received_date ? Carbon::parse($acquisition->received_date)->format('Y-m-d') : Carbon::now()->format('Y-m-d');
                 }
             }
         } else {
@@ -155,7 +156,7 @@ class Accessions extends Component
 
     public function updatedStatusFilter(): void
     {
-        $this->resetPage();
+        $this->resetPage(); // <-- Added to fix pagination bugs when filtering by status
     }
 
     public function openCreateModal(): void
@@ -212,7 +213,7 @@ class Accessions extends Component
         $this->call_number = $accession->call_number;
         $this->condition = $accession->condition;
         $this->status = $accession->status;
-        $this->acquired_date = $accession->acquired_date ? $accession->acquired_date->format('Y-m-d') : '';
+        $this->acquired_date = $accession->acquired_date ? Carbon::parse($accession->acquired_date)->format('Y-m-d') : '';
         $this->remarks = $accession->remarks ?? '';
         $this->updateBatchCallNumber = false;
         $this->showModal = true;
