@@ -138,8 +138,8 @@
                                 <td class="p-3.5 pl-4 font-bold text-slate-900">
                                     {{ $loan->accession->catalog->title ?? 'N/A' }}
                                 </td>
-                                <td class="p-3.5 text-slate-500">{{ $loan->accession->catalog->author ?? 'N/A' }}</td>
-                                <td class="p-3.5 text-slate-500">{{ $loan->accession->catalog->isbn ?? 'N/A' }}</td>
+                                <td class="p-3.5 text-slate-500">{{ $loan->accession->catalog->author->name ?? 'N/A' }}</td>
+                                <td class="p-3.5 text-slate-500">{{ $loan->accession->isbn_issn ?? 'N/A' }}</td>
                                 <td class="p-3.5 text-slate-500">{{ $loan->borrowed_at ? \Carbon\Carbon::parse($loan->borrowed_at)->format('M d, Y') : '—' }}</td>
                                 <td class="p-3.5 text-slate-500">{{ $loan->due_at ? \Carbon\Carbon::parse($loan->due_at)->format('M d, Y') : '—' }}</td>
                                 <td class="p-3.5 text-slate-500">
