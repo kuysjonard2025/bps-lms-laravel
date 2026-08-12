@@ -70,7 +70,7 @@ class PatronPortal extends Component
                 });
             })
             ->latest()
-            ->paginate(8, ['*'], 'opacPage');
+            ->paginate(12, ['*'], 'opacPage');
 
         // 2. Patron Transactions Query
         $myLoans = Circulation::with(['accession.catalog.author'])
