@@ -1,14 +1,24 @@
 # --- Stage 1: Build Frontend Assets ---
-FROM node:20-alpine AS frontend
+FROM php:8.3-fpm-alpine AS frontend
+
+# Install Node.js, npm, and Composer in the frontend build stage
+RUN apk add --no-cache nodejs npm curl
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
 WORKDIR /app
+
+# Copy composer files first to install PHP dependencies for Tailwind scanning
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+
+# Copy package files and install frontend dependencies
 COPY package*.json ./
 RUN npm ci
+
+# Copy the rest of the application source code
 COPY . .
 
-# Copy composer vendor folder so Tailwind v4 can discover pagination views
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-COPY vendor ./vendor
-
+# Run the Tailwind production build (now it can successfully find /vendor)
 RUN npm run build
 
 # --- Stage 2: Application Runtime ---
