@@ -78,7 +78,7 @@
 
                         <div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
                             <span>ISBN: <strong class="text-slate-700">{{ $item->isbn_issn ?? 'N/A' }}</strong></span>
-                            <span>Edition: <strong class="text-slate-700">{{ $item->edition ?? '1st' }}</strong></span>
+                            <span>Edition: <strong class="text-slate-700">{{ $item->edition ?? ' - ' }}</strong></span>
                         </div>
                     </div>
                 @empty
