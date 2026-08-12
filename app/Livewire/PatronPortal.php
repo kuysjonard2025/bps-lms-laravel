@@ -49,9 +49,19 @@ class PatronPortal extends Component
         $this->redirect(route('patron.login'), navigate: true);
     }
 
+    public function setTab(string $tab): void
+    {
+        $this->activeTab = $tab;
+    }
+
     public function updatingOpacSearch(): void
     {
         $this->resetPage('opacPage');
+    }
+
+    public function updatingTransactionFilter(): void
+    {
+        $this->resetPage('loansPage');
     }
 
     #[Layout('components.layouts.guest')]

@@ -12,6 +12,14 @@ class Login extends Component
 {
     public string $patronId = '';
 
+    public function mount(): void
+    {
+        // Redirect if patron is already authenticated
+        if (Session::has('patron_session_id')) {
+            $this->redirect(route('patron.portal'), navigate: true);
+        }
+    }
+
     public function login(): void
     {
         $this->validate([
