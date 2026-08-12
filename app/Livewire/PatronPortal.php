@@ -65,7 +65,7 @@ class PatronPortal extends Component
             ->when($this->opacSearch, function ($q) use ($likeOperator) {
                 $q->where(function ($sub) use ($likeOperator) {
                     $sub->where('title', $likeOperator, "%{$this->opacSearch}%")
-                        ->orWhere('isbn', $likeOperator, "%{$this->opacSearch}%")
+                        ->orWhere('isbn_issn', $likeOperator, "%{$this->opacSearch}%")
                         ->orWhereHas('author', fn ($a) => $a->where('name', $likeOperator, "%{$this->opacSearch}%"));
                 });
             })
