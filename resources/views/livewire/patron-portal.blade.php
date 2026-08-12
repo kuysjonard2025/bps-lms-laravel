@@ -120,8 +120,10 @@
                 <table class="w-full text-left text-xs text-slate-600">
                     <thead class="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
                         <tr>
-                            <th class="p-3.5 pl-4">Book Title</th>
                             <th class="p-3.5">Accession No.</th>
+                            <th class="p-3.5 pl-4">Book Title</th>
+                            <th class="p-3.5">Author</th>
+                            <th class="p-3.5">ISBN</th>
                             <th class="p-3.5">Borrowed Date</th>
                             <th class="p-3.5">Due Date</th>
                             <th class="p-3.5">Returned Date</th>
@@ -132,10 +134,12 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($myLoans as $loan)
                             <tr class="hover:bg-slate-50/60 transition">
+                                <td class="p-3.5 font-mono text-[11px] text-slate-500">{{ $loan->accession->accession_number ?? 'N/A' }}</td>
                                 <td class="p-3.5 pl-4 font-bold text-slate-900">
                                     {{ $loan->accession->catalog->title ?? 'N/A' }}
                                 </td>
-                                <td class="p-3.5 font-mono text-[11px] text-slate-500">{{ $loan->accession->accession_number ?? 'N/A' }}</td>
+                                <td class="p-3.5 text-slate-500">{{ $loan->accession->catalog->author ?? 'N/A' }}</td>
+                                <td class="p-3.5 text-slate-500">{{ $loan->accession->catalog->isbn ?? 'N/A' }}</td>
                                 <td class="p-3.5 text-slate-500">{{ $loan->borrowed_at ? \Carbon\Carbon::parse($loan->borrowed_at)->format('M d, Y') : '—' }}</td>
                                 <td class="p-3.5 text-slate-500">{{ $loan->due_at ? \Carbon\Carbon::parse($loan->due_at)->format('M d, Y') : '—' }}</td>
                                 <td class="p-3.5 text-slate-500">
