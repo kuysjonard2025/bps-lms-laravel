@@ -120,35 +120,35 @@
                 <table class="w-full text-left text-xs text-slate-600">
                     <thead class="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
                         <tr>
-                            <th class="p-3.5">Accession No.</th>
-                            <th class="p-3.5 pl-4">Book Title</th>
-                            <th class="p-3.5">Author</th>
-                            <th class="p-3.5">ISBN</th>
-                            <th class="p-3.5">Borrowed Date</th>
-                            <th class="p-3.5">Due Date</th>
-                            <th class="p-3.5">Returned Date</th>
-                            <th class="p-3.5">Fine / Penalty</th>
-                            <th class="p-3.5 pr-4 text-right">Status</th>
+                            <th class="p-3.5 whitespace-nowrap">Accession No.</th>
+                            <th class="p-3.5 pl-4 whitespace-nowrap">Book Title</th>
+                            <th class="p-3.5 whitespace-nowrap">Author</th>
+                            <th class="p-3.5 whitespace-nowrap">ISBN</th>
+                            <th class="p-3.5 whitespace-nowrap">Borrowed Date</th>
+                            <th class="p-3.5 whitespace-nowrap">Due Date</th>
+                            <th class="p-3.5 whitespace-nowrap">Returned Date</th>
+                            <th class="p-3.5 whitespace-nowrap">Fine / Penalty</th>
+                            <th class="p-3.5 pr-4 text-right whitespace-nowrap">Status</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($myLoans as $loan)
                             <tr class="hover:bg-slate-50/60 transition">
-                                <td class="p-3.5 font-mono text-[11px] text-slate-500">{{ $loan->accession->accession_number ?? 'N/A' }}</td>
-                                <td class="p-3.5 pl-4 font-bold text-slate-900">
+                                <td class="p-3.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">{{ $loan->accession->accession_number ?? 'N/A' }}</td>
+                                <td class="p-3.5 pl-4 font-bold text-slate-900 whitespace-nowrap">
                                     {{ $loan->accession->catalog->title ?? 'N/A' }}
                                 </td>
-                                <td class="p-3.5 text-slate-500">{{ $loan->accession->catalog->author->name ?? 'N/A' }}</td>
-                                <td class="p-3.5 text-slate-500">{{ $loan->accession->isbn_issn ?? 'N/A' }}</td>
-                                <td class="p-3.5 text-slate-500">{{ $loan->borrowed_at ? \Carbon\Carbon::parse($loan->borrowed_at)->format('M d, Y') : '—' }}</td>
-                                <td class="p-3.5 text-slate-500">{{ $loan->due_at ? \Carbon\Carbon::parse($loan->due_at)->format('M d, Y') : '—' }}</td>
-                                <td class="p-3.5 text-slate-500">
+                                <td class="p-3.5 text-slate-500 whitespace-nowrap">{{ $loan->accession->catalog->author->name ?? 'N/A' }}</td>
+                                <td class="p-3.5 text-slate-500 whitespace-nowrap">{{ $loan->accession->catalog->isbn_issn ?? 'N/A' }}</td>
+                                <td class="p-3.5 text-slate-500 whitespace-nowrap">{{ $loan->borrowed_at ? \Carbon\Carbon::parse($loan->borrowed_at)->format('M d, Y') : '—' }}</td>
+                                <td class="p-3.5 text-slate-500 whitespace-nowrap">{{ $loan->due_at ? \Carbon\Carbon::parse($loan->due_at)->format('M d, Y') : '—' }}</td>
+                                <td class="p-3.5 text-slate-500 whitespace-nowrap">
                                     {{ $loan->returned_at ? \Carbon\Carbon::parse($loan->returned_at)->format('M d, Y h:i A') : '—' }}
                                 </td>
-                                <td class="p-3.5 font-semibold {{ ($loan->fine_amount ?? 0) > 0 ? 'text-rose-600' : 'text-slate-400' }}">
+                                <td class="p-3.5 font-semibold {{ ($loan->fine_amount ?? 0) > 0 ? 'text-rose-600' : 'text-slate-400' }} whitespace-nowrap">
                                     ₱{{ number_format($loan->fine_amount ?? 0, 2) }}
                                 </td>
-                                <td class="p-3.5 pr-4 text-right">
+                                <td class="p-3.5 pr-4 text-right whitespace-nowrap">
                                     @if ($loan->status === 'returned')
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">
                                             RETURNED
