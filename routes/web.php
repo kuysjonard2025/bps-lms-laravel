@@ -11,7 +11,9 @@ use App\Livewire\Catalogs;
 use App\Livewire\Circulations;
 use App\Livewire\CirculationPolicy;
 use App\Livewire\Dashboard;
+use App\Livewire\PatronAuth\Login as PatronLogin;
 use App\Livewire\PatronLogs;
+use App\Livewire\PatronPortal;
 use App\Livewire\Registrations;
 use App\Livewire\Vendors;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -24,7 +26,13 @@ Route::middleware('guest')->group(function () {
     Route::redirect('/login', '/');
 });
 
-// Authenticated Routes
+// Patron Portal Routes (Session-based via Patron ID)
+Route::prefix('patron')->name('patron.')->group(function () {
+    Route::get('/login', PatronLogin::class)->name('login');
+    Route::get('/portal', PatronPortal::class)->name('portal');
+});
+
+// Authenticated Routes (Staff / Admins)
 Route::middleware('auth')->group(function () {
 
     // 1. Force Profile Setup first
