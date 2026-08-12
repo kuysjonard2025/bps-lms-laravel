@@ -21,7 +21,7 @@
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="min-h-full bg-slate-50 text-slate-900 antialiased selection:bg-blue-600 selection:text-white flex flex-col justify-center relative">
+<body class="min-h-full bg-slate-50 text-slate-900 antialiased selection:bg-blue-600 selection:text-white flex flex-col justify-center py-10 relative">
 
     {{-- Subtle Background Grid Pattern --}}
     <div class="fixed inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] bg-size-[16px_16px] mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none"></div>
