@@ -20,7 +20,7 @@
                 <button
                     wire:click="$set('activeTab', 'opac')"
                     class="px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer {{ $activeTab === 'opac' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
-                    🔍 OPAC (Book Catalog)
+                    🔍 OPAC (Asset Catalog)
                 </button>
                 <button
                     wire:click="$set('activeTab', 'transactions')"
