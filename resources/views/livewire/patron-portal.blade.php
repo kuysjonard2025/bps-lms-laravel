@@ -170,7 +170,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center py-8 text-slate-400">No circulation records found.</td>
+                                <td colspan="9" class="text-center py-8 text-slate-400">No circulation records found.</td>
                             </tr>
                         @endforelse
                     </tbody>
