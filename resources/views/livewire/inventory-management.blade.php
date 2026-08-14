@@ -171,7 +171,7 @@
                                     {{ $item->acquisition->acquisition_number ?? 'N/A' }}
                                 </div>
                                 <div class="text-[10px] text-slate-400">
-                                    Vendor: {{ $item->acquisition->vendor->name ?? 'Unknown' }}
+                                    Vendor: {{ $item->acquisition->vendor->company_name ?? 'Unknown' }}
                                 </div>
                             </td>
                             <td class="p-3 pr-4 text-slate-500 whitespace-nowrap">
