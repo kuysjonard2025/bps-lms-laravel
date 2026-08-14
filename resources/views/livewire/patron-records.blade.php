@@ -155,15 +155,15 @@
                         <table class="w-full text-left text-xs text-slate-600">
                             <thead class="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
                                 <tr>
-                                    <th class="p-3 pl-4">Accession No.</th>
-                                    <th class="p-3">Book Title</th>
-                                    <th class="p-3">Author</th>
-                                    <th class="p-3">ISBN</th>
-                                    <th class="p-3">Borrowed Date</th>
-                                    <th class="p-3">Due Date</th>
-                                    <th class="p-3">Returned Date</th>
-                                    <th class="p-3">Fine / Penalty</th>
-                                    <th class="p-3 pr-4 text-right">Status</th>
+                                    <th class="p-3 pl-4 whitespace-nowrap">Accession No.</th>
+                                    <th class="p-3 whitespace-nowrap">Book Title</th>
+                                    <th class="p-3 whitespace-nowrap">Author</th>
+                                    <th class="p-3 whitespace-nowrap">ISBN</th>
+                                    <th class="p-3 whitespace-nowrap">Borrowed Date</th>
+                                    <th class="p-3 whitespace-nowrap">Due Date</th>
+                                    <th class="p-3 whitespace-nowrap">Returned Date</th>
+                                    <th class="p-3 whitespace-nowrap">Fine / Penalty</th>
+                                    <th class="p-3 pr-4 text-right whitespace-nowrap">Status</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
