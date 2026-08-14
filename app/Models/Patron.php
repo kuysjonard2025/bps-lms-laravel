@@ -37,6 +37,11 @@ class Patron extends Model
         return $this->belongsTo(PatronType::class);
     }
 
+    public function circulations()
+    {
+        return $this->hasMany(Circulation::class);
+    }
+
     public function getFullNameAttribute(): string
     {
         return trim("{$this->first_name} {$this->middle_name} {$this->last_name} {$this->suffix}");
