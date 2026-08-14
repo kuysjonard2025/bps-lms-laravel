@@ -77,8 +77,8 @@ class Sidebar extends Component
                     'icon' => 'identification',
                 ],
                 [
-                    'name' => 'Inventories',
-                    'route' => 'inventories',
+                    'name' => 'Inventory Management',
+                    'route' => 'inventory-management',
                     'icon' => 'clipboard-document-list',
                 ],
 
