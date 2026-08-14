@@ -192,7 +192,7 @@
                                 </option>
                             @endforeach
                         </select>
-                        @error('acquisition_id') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @error
+                        @error('acquisition_id') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
                     {{-- Acquisition Metadata Preview --}}
