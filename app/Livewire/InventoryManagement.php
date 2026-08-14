@@ -39,24 +39,6 @@ class InventoryManagement extends Component
         $this->resetPage();
     }
 
-    public function updateItemStatus(int $id, string $status): void
-    {
-        $accession = Accession::findOrFail($id);
-        $accession->status = $status;
-        $accession->save();
-
-        $this->dispatch('toast', message: "Accession #{$accession->accession_number} status updated to {$status}.", type: 'success');
-    }
-
-    public function updateItemCondition(int $id, string $condition): void
-    {
-        $accession = Accession::findOrFail($id);
-        $accession->condition = $condition;
-        $accession->save();
-
-        $this->dispatch('toast', message: "Accession #{$accession->accession_number} condition updated to {$condition}.", type: 'success');
-    }
-
     #[Layout('components.layouts.app')]
     #[Title('Inventory Management')]
     public function render()

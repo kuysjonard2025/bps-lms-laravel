@@ -2,8 +2,8 @@
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Inventory Management</h1>
-            <p class="text-xs text-slate-500 mt-1">Track physical accession copies, book conditions, and shelf stock status.</p>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Inventory View</h1>
+            <p class="text-xs text-slate-500 mt-1">Read-only view of physical accession copies, conditions, and stock status.</p>
         </div>
     </div>
 
@@ -89,7 +89,7 @@
             </div>
         </div>
 
-        {{-- Accession Table --}}
+        {{-- Accession Read-Only Table --}}
         <div class="overflow-x-auto border border-slate-100 rounded-xl">
             <table class="w-full text-left text-xs text-slate-600">
                 <thead class="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
@@ -99,8 +99,8 @@
                         <th class="p-3 whitespace-nowrap">Asset Type</th>
                         <th class="p-3 whitespace-nowrap">Condition</th>
                         <th class="p-3 whitespace-nowrap">Status</th>
-                        <th class="p-3 whitespace-nowrap">Acquired Date</th>
-                        <th class="p-3 pr-4 text-right whitespace-nowrap">Actions</th>
+                        <th class="p-3 whitespace-nowrap">Acquisition Info</th>
+                        <th class="p-3 pr-4 whitespace-nowrap">Acquired Date</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -166,34 +166,16 @@
                                         @break
                                 @endswitch
                             </td>
-                            <td class="p-3 text-slate-500 whitespace-nowrap">
-                                {{ $item->acquired_date ? $item->acquired_date->format('M d, Y') : '—' }}
+                            <td class="p-3 whitespace-nowrap">
+                                <div class="text-[11px] font-medium text-slate-700">
+                                    {{ $item->acquisition->acquisition_number ?? 'N/A' }}
+                                </div>
+                                <div class="text-[10px] text-slate-400">
+                                    Vendor: {{ $item->acquisition->vendor->name ?? 'Unknown' }}
+                                </div>
                             </td>
-                            <td class="p-3 pr-4 text-right whitespace-nowrap space-x-1">
-                                {{-- Condition Select --}}
-                                <select
-                                    wire:change="updateItemCondition({{ $item->id }}, $event.target.value)"
-                                    class="text-[11px] font-medium py-1 px-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none cursor-pointer"
-                                >
-                                    <option value="" disabled selected>Condition</option>
-                                    <option value="New" {{ $item->condition === 'New' ? 'disabled' : '' }}>New</option>
-                                    <option value="Good" {{ $item->condition === 'Good' ? 'disabled' : '' }}>Good</option>
-                                    <option value="Fair" {{ $item->condition === 'Fair' ? 'disabled' : '' }}>Fair</option>
-                                    <option value="Damaged" {{ $item->condition === 'Damaged' ? 'disabled' : '' }}>Damaged</option>
-                                    <option value="Missing" {{ $item->condition === 'Missing' ? 'disabled' : '' }}>Missing</option>
-                                </select>
-
-                                {{-- Status Select --}}
-                                <select
-                                    wire:change="updateItemStatus({{ $item->id }}, $event.target.value)"
-                                    class="text-[11px] font-medium py-1 px-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none cursor-pointer"
-                                >
-                                    <option value="" disabled selected>Status</option>
-                                    <option value="Available" {{ $item->status === 'Available' ? 'disabled' : '' }}>Available</option>
-                                    <option value="Under Maintenance" {{ $item->status === 'Under Maintenance' ? 'disabled' : '' }}>Maintenance</option>
-                                    <option value="Lost" {{ $item->status === 'Lost' ? 'disabled' : '' }}>Lost</option>
-                                    <option value="Withdrawn" {{ $item->status === 'Withdrawn' ? 'disabled' : '' }}>Withdrawn</option>
-                                </select>
+                            <td class="p-3 pr-4 text-slate-500 whitespace-nowrap">
+                                {{ $item->acquired_date ? $item->acquired_date->format('M d, Y') : '—' }}
                             </td>
                         </tr>
                     @empty
