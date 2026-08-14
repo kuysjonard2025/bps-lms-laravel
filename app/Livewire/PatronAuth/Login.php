@@ -23,10 +23,11 @@ class Login extends Component
     public function login(): void
     {
         $this->validate([
-            'patronId' => 'required|string',
+            'patronId' => 'required|string|max:50',
         ]);
 
-        $patron = Patron::where('patron_id', trim($this->patronId))->first();
+        $cleanId = strtoupper(trim($this->patronId));
+        $patron = Patron::where('patron_id', $cleanId)->first();
 
         if (! $patron) {
             $this->addError('patronId', 'Patron ID not found in library record.');
@@ -38,7 +39,8 @@ class Login extends Component
             return;
         }
 
-        // Store patron session identifier
+        // Secure session handling
+        Session::regenerate();
         Session::put('patron_session_id', $patron->id);
 
         $this->dispatch('toast', message: 'Welcome to the Library Portal!', type: 'success');

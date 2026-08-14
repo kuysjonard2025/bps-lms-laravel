@@ -18,12 +18,12 @@
             {{-- Navigation Tabs --}}
             <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/60 shrink-0">
                 <button
-                    wire:click="$set('activeTab', 'opac')"
+                    wire:click="setTab('opac')"
                     class="px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer {{ $activeTab === 'opac' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
                     🔍 OPAC (Asset Catalog)
                 </button>
                 <button
-                    wire:click="$set('activeTab', 'transactions')"
+                    wire:click="setTab('transactions')"
                     class="px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer {{ $activeTab === 'transactions' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
                     📖 My Transactions
                 </button>
@@ -60,19 +60,14 @@
             {{-- OPAC Books Grid --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                 @forelse ($catalogItems as $item)
-                    @php
-                        $accessions = optional($item->accessions);
-                        $availableCount = $accessions ? $accessions->where('status', 'Available')->count() : 0;
-                        $totalCount = $accessions ? $accessions->count() : 0;
-                    @endphp
                     <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:border-blue-300 transition group">
                         <div class="space-y-3">
                             <div class="flex items-start justify-between gap-2">
                                 <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
                                     {{ $item->assetType->name ?? 'Book' }}
                                 </span>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ $availableCount > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' }}">
-                                    {{ $availableCount > 0 ? "{$availableCount} / {$totalCount} Available" : 'Out of Stock' }}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ $item->available_copies > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' }}">
+                                    {{ $item->available_copies > 0 ? "{$item->available_copies} / {$item->total_copies} Available" : 'Out of Stock' }}
                                 </span>
                             </div>
 

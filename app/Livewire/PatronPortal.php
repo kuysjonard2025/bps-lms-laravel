@@ -59,6 +59,11 @@ class PatronPortal extends Component
         $this->resetPage('opacPage');
     }
 
+    public function updatingOpacAssetType(): void
+    {
+        $this->resetPage('opacPage');
+    }
+
     public function updatingTransactionFilter(): void
     {
         $this->resetPage('loansPage');
@@ -70,8 +75,17 @@ class PatronPortal extends Component
     {
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
-        // 1. OPAC Catalog Query
-        $catalogItems = Catalog::with(['author', 'assetType', 'accessions'])
+        // 1. OPAC Catalog Query (using withCount for optimal database performance)
+        $catalogItems = Catalog::with(['author', 'assetType'])
+            ->withCount([
+                'accessions as total_copies',
+                'accessions as available_copies' => function ($q) {
+                    $q->where('status', 'Available');
+                }
+            ])
+            ->when($this->opacAssetType !== 'all', function ($q) {
+                $q->where('asset_type_id', $this->opacAssetType);
+            })
             ->when($this->opacSearch, function ($q) use ($likeOperator) {
                 $q->where(function ($sub) use ($likeOperator) {
                     $sub->where('title', $likeOperator, "%{$this->opacSearch}%")
