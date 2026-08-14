@@ -3,7 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Patron Management & History</h1>
-            <p class="text-xs text-slate-500 mt-1">Search patrons, check borrowing history, outstanding fines, and account status.</p>
+            <p class="text-xs text-slate-500 mt-1">Search patrons, check borrowing history, and account status.</p>
         </div>
     </div>
 
@@ -108,7 +108,7 @@
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                             <span class="text-slate-400 text-[10px] block uppercase font-bold">Type</span>
                             <strong class="text-slate-800">{{ $selectedPatron->patronType->name ?? 'N/A' }}</strong>
@@ -124,12 +124,6 @@
                             <span class="font-bold {{ $selectedPatron->status === 'active' ? 'text-emerald-600' : 'text-rose-600' }}">
                                 {{ ucfirst($selectedPatron->status) }}
                             </span>
-                        </div>
-                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                            <span class="text-slate-400 text-[10px] block uppercase font-bold">Unpaid Fines</span>
-                            <strong class="text-rose-600">
-                                ₱{{ number_format($patronLoans ? $patronLoans->sum('fine_amount') : 0, 2) }}
-                            </strong>
                         </div>
                     </div>
                 </div>
