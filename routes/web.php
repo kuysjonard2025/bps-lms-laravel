@@ -11,6 +11,7 @@ use App\Livewire\Catalogs;
 use App\Livewire\Circulations;
 use App\Livewire\CirculationPolicy;
 use App\Livewire\Dashboard;
+use App\Livewire\InventoryManagement;
 use App\Livewire\PatronAuth\Login as PatronLogin;
 use App\Livewire\PatronLogs;
 use App\Livewire\PatronPortal;
@@ -68,6 +69,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/patron-logs', PatronLogs::class)->name('patron-logs');
         Route::get('/circulations', Circulations::class)->name('circulations');
         Route::get('/patron-records', PatronRecords::class)->name('patron-records');
+        Route::get('/inventory-management', InventoryManagement::class)->name('inventory-management');
     });
 
     Route::post('/logout', function () {
