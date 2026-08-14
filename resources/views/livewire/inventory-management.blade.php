@@ -2,8 +2,8 @@
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Inventory View</h1>
-            <p class="text-xs text-slate-500 mt-1">Read-only view of physical accession copies, conditions, and stock status.</p>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Inventory Stock View</h1>
+            <p class="text-xs text-slate-500 mt-1">Grouped stock management by title, acquisition records, and individual physical copies.</p>
         </div>
     </div>
 
@@ -48,11 +48,11 @@
         <div class="flex flex-col lg:flex-row items-center justify-between gap-3">
             <div class="flex flex-wrap items-center gap-2 w-full">
                 {{-- Search --}}
-                <div class="relative flex-1 min-w-[200px]">
+                <div class="relative flex-1 min-w-[220px]">
                     <input
                         type="text"
                         wire:model.live.debounce.300ms="search"
-                        placeholder="Search Accession #, Batch #, Call #, Title, Author..."
+                        placeholder="Search Title, Author, ISBN, Acquisition #, Accession #..."
                         class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
                     >
                     <span class="absolute left-3 top-2.5 text-slate-400">🔍</span>
@@ -60,7 +60,7 @@
 
                 {{-- Status Filter --}}
                 <select wire:model.live="statusFilter" class="py-2 px-3 text-xs rounded-xl border border-slate-200 text-slate-700 outline-none">
-                    <option value="all">All Statuses</option>
+                    <option value="all">All Copy Statuses</option>
                     <option value="Available">Available</option>
                     <option value="On Loan">On Loan</option>
                     <option value="Reserved">Reserved</option>
@@ -89,99 +89,132 @@
             </div>
         </div>
 
-        {{-- Accession Read-Only Table --}}
+        {{-- Grouped Inventory Table --}}
         <div class="overflow-x-auto border border-slate-100 rounded-xl">
             <table class="w-full text-left text-xs text-slate-600">
                 <thead class="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
                     <tr>
-                        <th class="p-3 pl-4 whitespace-nowrap">Accession / Batch</th>
-                        <th class="p-3 whitespace-nowrap">Book Title & Call No.</th>
+                        <th class="p-3 pl-4 w-8"></th>
+                        <th class="p-3 whitespace-nowrap">Catalog Title & Metadata</th>
                         <th class="p-3 whitespace-nowrap">Asset Type</th>
-                        <th class="p-3 whitespace-nowrap">Condition</th>
-                        <th class="p-3 whitespace-nowrap">Status</th>
-                        <th class="p-3 whitespace-nowrap">Acquisition Info</th>
-                        <th class="p-3 pr-4 whitespace-nowrap">Acquired Date</th>
+                        <th class="p-3 whitespace-nowrap">Stock Breakdown</th>
+                        <th class="p-3 pr-4 whitespace-nowrap text-right">Total Copies</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                    @forelse ($accessions as $item)
-                        <tr class="hover:bg-slate-50/60 transition">
-                            <td class="p-3 pl-4 whitespace-nowrap">
-                                <div class="font-mono font-bold text-slate-800">{{ $item->accession_number }}</div>
-                                <div class="text-[10px] text-slate-400 font-mono">Batch: {{ $item->batch_number }}</div>
+                    @forelse ($catalogs as $catalog)
+                        <tr x-data="{ open: false }" class="hover:bg-slate-50/60 transition group">
+                            <td class="p-3 pl-4 align-top">
+                                <button @click="open = !open" class="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition">
+                                    <span x-show="!open" class="text-xs font-bold block w-4 text-center">+</span>
+                                    <span x-show="open" class="text-xs font-bold block w-4 text-center" x-cloak>−</span>
+                                </button>
                             </td>
-                            <td class="p-3 whitespace-nowrap">
-                                <div class="font-bold text-slate-900">{{ $item->catalog->title ?? 'Untitled' }}</div>
-                                <div class="text-[10px] text-slate-500 flex items-center gap-2">
-                                    <span class="font-mono font-semibold">Call #: {{ $item->call_number ?? 'N/A' }}</span>
-                                    <span>•</span>
-                                    <span>By {{ $item->catalog->author->name ?? 'Unknown Author' }}</span>
+
+                            <td class="p-3 align-top">
+                                <div class="font-bold text-slate-900 text-sm">{{ $catalog->title }}</div>
+                                <div class="text-[11px] text-slate-500 flex flex-wrap items-center gap-2 mt-0.5">
+                                    <span>By <strong>{{ $catalog->author->name ?? 'Unknown Author' }}</strong></span>
+                                    @if($catalog->isbn_issn)
+                                        <span>•</span>
+                                        <span class="font-mono">ISBN/ISSN: {{ $catalog->isbn_issn }}</span>
+                                    @endif
                                 </div>
                             </td>
-                            <td class="p-3 whitespace-nowrap">
+
+                            <td class="p-3 align-top whitespace-nowrap">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">
-                                    {{ $item->catalog->assetType->name ?? 'Standard' }}
+                                    {{ $catalog->assetType->name ?? 'Standard' }}
                                 </span>
                             </td>
-                            <td class="p-3 whitespace-nowrap">
-                                @switch($item->condition)
-                                    @case('New')
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">NEW</span>
-                                        @break
-                                    @case('Good')
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">GOOD</span>
-                                        @break
-                                    @case('Fair')
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">FAIR</span>
-                                        @break
-                                    @case('Damaged')
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">DAMAGED</span>
-                                        @break
-                                    @case('Missing')
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800">MISSING</span>
-                                        @break
-                                    @default
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">{{ $item->condition }}</span>
-                                @endswitch
-                            </td>
-                            <td class="p-3 whitespace-nowrap">
-                                @switch($item->status)
-                                    @case('Available')
-                                        <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">AVAILABLE</span>
-                                        @break
-                                    @case('On Loan')
-                                        <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">ON LOAN</span>
-                                        @break
-                                    @case('Reserved')
-                                        <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">RESERVED</span>
-                                        @break
-                                    @case('Under Maintenance')
-                                        <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">MAINTENANCE</span>
-                                        @break
-                                    @case('Lost')
-                                        <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">LOST</span>
-                                        @break
-                                    @case('Withdrawn')
-                                        <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">WITHDRAWN</span>
-                                        @break
-                                @endswitch
-                            </td>
-                            <td class="p-3 whitespace-nowrap">
-                                <div class="text-[11px] font-medium text-slate-700">
-                                    {{ $item->acquisition->acquisition_number ?? 'N/A' }}
-                                </div>
-                                <div class="text-[10px] text-slate-400">
-                                    Vendor: {{ $item->acquisition->vendor->company_name ?? 'Unknown' }}
+
+                            {{-- Stock Summary Badges --}}
+                            <td class="p-3 align-top">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                                        {{ $catalog->available_copies }} Avail
+                                    </span>
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                                        {{ $catalog->on_loan_copies }} Loaned
+                                    </span>
+                                    @if($catalog->maintenance_copies > 0)
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/60">
+                                            {{ $catalog->maintenance_copies }} Issue
+                                        </span>
+                                    @endif
                                 </div>
                             </td>
-                            <td class="p-3 pr-4 text-slate-500 whitespace-nowrap">
-                                {{ $item->acquired_date ? $item->acquired_date->format('M d, Y') : '—' }}
+
+                            <td class="p-3 pr-4 align-top text-right whitespace-nowrap">
+                                <span class="font-bold text-slate-900 text-sm">{{ $catalog->total_copies }}</span>
+                            </td>
+                        </tr>
+
+                        {{-- Expanded Copies Sub-Table --}}
+                        <tr x-show="open" x-cloak class="bg-slate-50/70 border-t-0">
+                            <td colspan="5" class="p-4 pl-12">
+                                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+                                    <div class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                        Physical Accession Copies & Acquisition Details
+                                    </div>
+                                    <table class="w-full text-left text-xs">
+                                        <thead class="bg-slate-50 text-[10px] font-bold uppercase text-slate-400 border-b border-slate-100">
+                                            <tr>
+                                                <th class="p-2">Accession / Batch #</th>
+                                                <th class="p-2">Call Number</th>
+                                                <th class="p-2">Acquisition #</th>
+                                                <th class="p-2">Vendor</th>
+                                                <th class="p-2">Condition</th>
+                                                <th class="p-2">Status</th>
+                                                <th class="p-2">Acquired Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            @forelse($catalog->accessions as $copy)
+                                                <tr class="hover:bg-slate-50/50">
+                                                    <td class="p-2 font-mono font-bold text-slate-800">
+                                                        {{ $copy->accession_number }}
+                                                        <div class="text-[10px] text-slate-400 font-normal">Batch: {{ $copy->batch_number }}</div>
+                                                    </td>
+                                                    <td class="p-2 font-mono text-slate-600">{{ $copy->call_number ?? 'N/A' }}</td>
+                                                    <td class="p-2 font-medium text-slate-700">{{ $copy->acquisition->acquisition_number ?? 'N/A' }}</td>
+                                                    <td class="p-2 text-slate-600">{{ $copy->acquisition->vendor->company_name ?? 'N/A' }}</td>
+                                                    <td class="p-2">
+                                                        @switch($copy->condition)
+                                                            @case('New') <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">NEW</span> @break
+                                                            @case('Good') <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-800">GOOD</span> @break
+                                                            @case('Fair') <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800">FAIR</span> @break
+                                                            @case('Damaged') <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-800">DAMAGED</span> @break
+                                                            @case('Missing') <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-200 text-slate-800">MISSING</span> @break
+                                                            @default <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-600">{{ $copy->condition }}</span>
+                                                        @endswitch
+                                                    </td>
+                                                    <td class="p-2">
+                                                        @switch($copy->status)
+                                                            @case('Available') <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">AVAILABLE</span> @break
+                                                            @case('On Loan') <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">ON LOAN</span> @break
+                                                            @case('Reserved') <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200">RESERVED</span> @break
+                                                            @case('Under Maintenance') <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">MAINTENANCE</span> @break
+                                                            @case('Lost') <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-50 text-rose-700 border border-rose-200">LOST</span> @break
+                                                            @default <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-600">{{ $copy->status }}</span>
+                                                        @endswitch
+                                                    </td>
+                                                    <td class="p-2 text-slate-500">{{ $copy->acquired_date ? $copy->acquired_date->format('M d, Y') : '—' }}</td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="7" class="p-3 text-center text-slate-400">No physical copy records match the current filters.</td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-8 text-slate-400">
-                                No inventory accessions match your search criteria.
+                            <td colspan="5" class="text-center py-8 text-slate-400">
+                                No inventory titles match your search criteria.
                             </td>
                         </tr>
                     @endforelse
@@ -190,7 +223,7 @@
         </div>
 
         <div>
-            {{ $accessions->links() }}
+            {{ $catalogs->links() }}
         </div>
     </div>
 </div>
