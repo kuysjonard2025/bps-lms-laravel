@@ -8,7 +8,7 @@
 
         {{-- Tab Switcher & Quick Add Actions --}}
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
-            <div class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1" role="tablist">
+            <div class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1" role="tablist" aria-label="Registration Categories">
                 <button
                     type="button"
                     role="tab"
@@ -64,7 +64,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
             @if($search)
-                <button wire:click="$set('search', '')" class="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 text-xs cursor-pointer">
+                <button wire:click="$set('search', '')" type="button" class="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 text-xs cursor-pointer" aria-label="Clear search">
                     ✕
                 </button>
             @endif
@@ -232,11 +232,13 @@
 
     {{-- USER MODAL --}}
     @if ($showUserModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
             <div wire:click.self="$set('showUserModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
             <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-lg z-10 overflow-hidden my-auto flex flex-col max-h-[90vh]">
                 <div class="bg-gray-50 px-5 py-3.5 border-b border-gray-200 flex justify-between items-center shrink-0">
-                    <h3 class="text-xs sm:text-sm font-bold text-gray-900">{{ $userIdBeingEdited ? 'Edit System User' : 'Register System User' }}</h3>
+                    <h3 id="user-modal-title" class="text-xs sm:text-sm font-bold text-gray-900">
+                        {{ $userIdBeingEdited ? 'Edit System User' : 'Register System User' }}
+                    </h3>
                     <button type="button" wire:click="$set('showUserModal', false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
                 </div>
 
@@ -328,11 +330,13 @@
 
     {{-- PATRON MODAL --}}
     @if ($showPatronModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="patron-modal-title">
             <div wire:click.self="$set('showPatronModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
             <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-xl z-10 overflow-hidden my-auto flex flex-col max-h-[90vh]">
                 <div class="bg-gray-50 px-5 py-3.5 border-b border-gray-200 flex justify-between items-center shrink-0">
-                    <h3 class="text-xs sm:text-sm font-bold text-gray-900">{{ $patronIdBeingEdited ? 'Edit Library Patron' : 'Register Library Patron' }}</h3>
+                    <h3 id="patron-modal-title" class="text-xs sm:text-sm font-bold text-gray-900">
+                        {{ $patronIdBeingEdited ? 'Edit Library Patron' : 'Register Library Patron' }}
+                    </h3>
                     <button type="button" wire:click="$set('showPatronModal', false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
                 </div>
 
@@ -447,14 +451,16 @@
 
     {{-- DELETE CONFIRMATION MODAL --}}
     @if ($showDeleteModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
             <div wire:click.self="$set('showDeleteModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
             <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-sm z-10 p-5 text-center my-auto">
                 <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-3 0-3z"/></svg>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-3 0-3z"/>
+                    </svg>
                 </div>
 
-                <h3 class="text-sm font-bold text-gray-900">Confirm Deletion</h3>
+                <h3 id="delete-modal-title" class="text-sm font-bold text-gray-900">Confirm Deletion</h3>
                 <p class="text-xs text-gray-500 mt-1">
                     Are you sure you want to delete this {{ $itemTypeToDelete ?? 'record' }}? This action cannot be undone.
                 </p>
