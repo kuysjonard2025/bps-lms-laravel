@@ -3,54 +3,54 @@
     {{-- Header & Quick Actions --}}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p class="text-sm text-gray-500">Overview of library activity and management actions.</p>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
+            <p class="text-xs text-slate-500 mt-1">Overview of library activity, circulation, and metrics.</p>
         </div>
     </div>
 
     {{-- Key Stats / Metrics Grid --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {{-- Total Books --}}
-        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+        {{-- Total Assets --}}
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Assets</p>
-                <p class="text-2xl font-bold text-gray-900 mt-1">{{ number_format($totalBooks) }}</p>
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Assets</p>
+                <p class="text-2xl font-bold text-slate-900 mt-1">{{ number_format($totalBooks) }}</p>
             </div>
-            <div class="p-3 bg-blue-50 text-blue-600 rounded-lg shrink-0">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center shrink-0">
+                📚
             </div>
         </div>
 
         {{-- Active Borrows --}}
-        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Active Borrows</p>
-                <p class="text-2xl font-bold text-gray-900 mt-1">{{ number_format($activeBorrows) }}</p>
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Borrows</p>
+                <p class="text-2xl font-bold text-slate-900 mt-1">{{ number_format($activeBorrows) }}</p>
             </div>
-            <div class="p-3 bg-amber-50 text-amber-600 rounded-lg shrink-0">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 font-bold flex items-center justify-center shrink-0">
+                📖
             </div>
         </div>
 
-        {{-- Overdue Books --}}
-        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+        {{-- Overdue Assets --}}
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Overdue Assets</p>
-                <p class="text-2xl font-bold text-red-600 mt-1">{{ number_format($overdueBooks) }}</p>
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overdue Assets</p>
+                <p class="text-2xl font-bold text-rose-600 mt-1">{{ number_format($overdueBooks) }}</p>
             </div>
-            <div class="p-3 bg-red-50 text-red-600 rounded-lg shrink-0">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div class="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 font-bold flex items-center justify-center shrink-0">
+                ⚠️
             </div>
         </div>
 
         {{-- Total Patrons --}}
-        <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
-                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Patrons</p>
-                <p class="text-2xl font-bold text-gray-900 mt-1">{{ number_format($totalPatrons) }}</p>
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Patrons</p>
+                <p class="text-2xl font-bold text-slate-900 mt-1">{{ number_format($totalPatrons) }}</p>
             </div>
-            <div class="p-3 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <div class="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center shrink-0">
+                👥
             </div>
         </div>
     </div>
@@ -65,97 +65,116 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {{-- Overdue Alerts Section --}}
-        <div class="bg-white rounded-xl border border-gray-200 shadow-xs p-5 flex flex-col h-full">
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col h-full">
             <div class="flex items-center justify-between mb-4">
-                <h2 class="text-base font-bold text-gray-900 flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
                     Overdue Alerts
                 </h2>
-                <span class="text-xs font-semibold px-2 py-1 rounded-full bg-red-50 text-red-700">
+                <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-100">
                     {{ $overdueAlerts->count() }} Urgent
                 </span>
             </div>
 
             <div class="space-y-3 flex-1 overflow-y-auto max-h-[380px]">
                 @forelse ($overdueAlerts as $alert)
-                    <div class="p-3 rounded-lg border border-red-100 bg-red-50/50 flex flex-col justify-between gap-2">
+                    <div class="p-3 rounded-xl border border-rose-100 bg-rose-50/40 flex flex-col justify-between gap-2">
                         <div>
-                            <p class="text-xs font-semibold text-gray-900">{{ $alert->user->first_name }} {{ $alert->user->last_name }}</p>
-                            <p class="text-xs text-gray-600 truncate">{{ $alert->book->title }}</p>
+                            <p class="text-xs font-bold text-slate-900">
+                                {{ $alert->patron->first_name ?? 'Patron' }} {{ $alert->patron->last_name ?? '' }}
+                            </p>
+                            <p class="text-xs text-slate-600 truncate mt-0.5">
+                                {{ $alert->accession->catalog->title ?? 'Unknown Title' }}
+                            </p>
                         </div>
-                        <div class="flex items-center justify-between text-[11px] text-red-600 font-medium pt-1 border-t border-red-100">
-                            <span>Due: {{ $alert->due_date ? \Carbon\Carbon::parse($alert->due_date)->format('M d, Y') : 'N/A' }}</span>
-                            <span>{{ $alert->due_date ? \Carbon\Carbon::parse($alert->due_date)->diffForHumans() : '' }}</span>
+                        <div class="flex items-center justify-between text-[11px] text-rose-600 font-medium pt-1 border-t border-rose-100/80">
+                            <span>Due: {{ $alert->due_at ? $alert->due_at->format('M d, Y') : 'N/A' }}</span>
+                            <span>{{ $alert->due_at ? $alert->due_at->diffForHumans() : '' }}</span>
                         </div>
                     </div>
                 @empty
-                    <div class="text-center py-8 text-gray-500 text-xs">
-                        No overdue books at the moment! 🎉
+                    <div class="text-center py-10 text-slate-400 text-xs">
+                        No overdue assets right now! 🎉
                     </div>
                 @endforelse
             </div>
         </div>
 
         {{-- Recent Activity / Transactions Section --}}
-        <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-xs p-5 space-y-4">
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <h2 class="text-base font-bold text-gray-900">Recent Transactions</h2>
+                <h2 class="text-base font-bold text-slate-900">Recent Transactions</h2>
 
                 {{-- Search Filter --}}
                 <div class="relative max-w-xs w-full">
                     <input
                         type="text"
                         wire:model.live.debounce.300ms="search"
-                        placeholder="Search patron or book title..."
-                        class="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Search patron, book, or transaction #..."
+                        class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
                     />
-                    <svg class="w-4 h-4 text-gray-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <span class="absolute left-3 top-2.5 text-slate-400 text-xs">🔍</span>
                 </div>
             </div>
 
             {{-- Transactions Table --}}
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs">
+            <div class="overflow-x-auto border border-slate-100 rounded-xl">
+                <table class="w-full text-left border-collapse text-xs text-slate-600">
                     <thead>
-                        <tr class="bg-gray-50 border-b border-gray-200 text-gray-500 font-semibold uppercase tracking-wider">
-                            <th class="p-3">Patron</th>
-                            <th class="p-3">Book</th>
+                        <tr class="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase text-[11px] tracking-wider">
+                            <th class="p-3 pl-4">Patron</th>
+                            <th class="p-3">Book Title</th>
                             <th class="p-3">Status</th>
-                            <th class="p-3">Timeliness</th>
-                            <th class="p-3">Due Date</th>
+                            <th class="p-3">Fine</th>
+                            <th class="p-3 pr-4">Due Date</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-slate-100">
                         @forelse ($recentTransactions as $transaction)
-                            <tr class="hover:bg-gray-50/80 transition-colors">
-                                <td class="p-3 font-medium text-gray-900">
-                                    {{ $transaction->user->first_name }} {{ $transaction->user->last_name }}
-                                </td>
-                                <td class="p-3 text-gray-600 max-w-[200px] truncate">
-                                    {{ $transaction->book->title }}
-                                </td>
-                                <td class="p-3">
-                                    @if ($transaction->status === 'returned')
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">Returned</span>
-                                    @else
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800">Borrowed</span>
+                            <tr class="hover:bg-slate-50/60 transition-colors">
+                                <td class="p-3 pl-4 font-medium text-slate-900 whitespace-nowrap">
+                                    <div class="font-bold">{{ $transaction->patron->first_name ?? 'N/A' }} {{ $transaction->patron->last_name ?? '' }}</div>
+                                    @if($transaction->transaction_number)
+                                        <div class="text-[10px] text-slate-400 font-mono">TX: {{ $transaction->transaction_number }}</div>
                                     @endif
                                 </td>
-                                <td class="p-3">
-                                    @if ($transaction->status !== 'returned' && $transaction->due_date && \Carbon\Carbon::parse($transaction->due_date)->isPast())
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-800">Overdue</span>
+                                <td class="p-3 text-slate-700 max-w-[200px] truncate whitespace-nowrap">
+                                    <div class="font-semibold">{{ $transaction->accession->catalog->title ?? 'Unknown Title' }}</div>
+                                    <div class="text-[10px] text-slate-400 font-mono">Acc #: {{ $transaction->accession->accession_number ?? 'N/A' }}</div>
+                                </td>
+                                <td class="p-3 whitespace-nowrap">
+                                    @switch($transaction->status)
+                                        @case('returned')
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">RETURNED</span>
+                                            @break
+                                        @case('borrowed')
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">BORROWED</span>
+                                            @break
+                                        @case('overdue')
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">OVERDUE</span>
+                                            @break
+                                        @case('lost')
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800">LOST</span>
+                                            @break
+                                        @default
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">{{ strtoupper($transaction->status) }}</span>
+                                    @endswitch
+                                </td>
+                                <td class="p-3 font-mono whitespace-nowrap">
+                                    @if($transaction->fine_amount > 0)
+                                        <span class="text-rose-600 font-bold">₱{{ number_format($transaction->fine_amount, 2) }}</span>
                                     @else
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700">On Time</span>
+                                        <span class="text-slate-400">₱0.00</span>
                                     @endif
                                 </td>
-                                <td class="p-3 text-gray-500">
-                                    {{ $transaction->due_date ? \Carbon\Carbon::parse($transaction->due_date)->format('M d, Y') : 'N/A' }}
+                                <td class="p-3 pr-4 text-slate-500 whitespace-nowrap">
+                                    {{ $transaction->due_at ? $transaction->due_at->format('M d, Y') : 'N/A' }}
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-6 text-gray-400">
-                                    No recent transactions found.
+                                <td colspan="5" class="text-center py-8 text-slate-400">
+                                    No recent circulation transactions found.
                                 </td>
                             </tr>
                         @endforelse
@@ -164,11 +183,9 @@
             </div>
 
             {{-- Safe Pagination Rendering --}}
-            @if (method_exists($recentTransactions, 'links'))
-                <div class="pt-2">
-                    {{ $recentTransactions->links() }}
-                </div>
-            @endif
+            <div class="pt-2">
+                {{ $recentTransactions->links() }}
+            </div>
         </div>
 
     </div>

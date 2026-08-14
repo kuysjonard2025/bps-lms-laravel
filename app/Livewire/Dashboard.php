@@ -2,6 +2,9 @@
 
 namespace App\Livewire;
 
+use App\Models\Accession;
+use App\Models\Circulation;
+use App\Models\Patron;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -13,7 +16,7 @@ class Dashboard extends Component
 
     public string $search = '';
 
-    public function updatedSearch(): void
+    public function updatingSearch(): void
     {
         $this->resetPage();
     }
@@ -22,89 +25,50 @@ class Dashboard extends Component
     #[Title('Dashboard')]
     public function render()
     {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
-        // 1. Mock Key Metrics
-        $totalBooks = 1245;
-        $activeBorrows = 48;
-        $overdueBooks = 5;
-        $totalPatrons = 312;
+        // 1. Key Metrics
+        $totalBooks    = Accession::count();
+        $activeBorrows = Circulation::where('status', 'borrowed')->count();
+        $overdueBooks  = Circulation::where(function ($q) {
+                            $q->where('status', 'overdue')
+                              ->orWhere(function ($sub) {
+                                  $sub->where('status', 'borrowed')
+                                      ->where('due_at', '<', now());
+                              });
+                        })->count();
+        $totalPatrons  = Patron::count();
 
-        // 2. Mock Overdue Alerts
-        $overdueAlerts = collect([
-            (object)[
-                'id' => 1,
-                'user' => (object)['first_name' => 'Juan', 'last_name' => 'Dela Cruz'],
-                'book' => (object)['title' => 'Introduction to Algorithms (4th Ed.)'],
-                'due_date' => now()->subDays(4)->toDateTimeString(),
-            ],
-            (object)[
-                'id' => 2,
-                'user' => (object)['first_name' => 'Maria', 'last_name' => 'Santos'],
-                'book' => (object)['title' => 'Clean Code: A Handbook of Agile Software Craftsmanship'],
-                'due_date' => now()->subDays(2)->toDateTimeString(),
-            ],
-            (object)[
-                'id' => 3,
-                'user' => (object)['first_name' => 'Alex', 'last_name' => 'Reyes'],
-                'book' => (object)['title' => 'Design Patterns: Elements of Reusable Object-Oriented Software'],
-                'due_date' => now()->subDay()->toDateTimeString(),
-            ],
-        ]);
+        // 2. Overdue Alerts (Top urgent items)
+        $overdueAlerts = Circulation::with(['patron', 'accession.catalog'])
+            ->where(function ($q) {
+                $q->where('status', 'overdue')
+                  ->orWhere(function ($sub) {
+                      $sub->where('status', 'borrowed')
+                          ->where('due_at', '<', now());
+                  });
+            })
+            ->orderBy('due_at', 'asc')
+            ->take(10)
+            ->get();
 
-        // 3. Mock Recent Transactions
-        $allTransactions = collect([
-            (object)[
-                'id' => 101,
-                'user' => (object)['first_name' => 'Juan', 'last_name' => 'Dela Cruz'],
-                'book' => (object)['title' => 'Introduction to Algorithms'],
-                'status' => 'borrowed',
-                'due_date' => now()->subDays(4)->toDateTimeString(),
-                'updated_at' => now()->subHours(2),
-            ],
-            (object)[
-                'id' => 102,
-                'user' => (object)['first_name' => 'Ana', 'last_name' => 'Gomez'],
-                'book' => (object)['title' => 'Modern Operating Systems'],
-                'status' => 'returned',
-                'due_date' => now()->addDays(3)->toDateTimeString(),
-                'updated_at' => now()->subHours(5),
-            ],
-            (object)[
-                'id' => 103,
-                'user' => (object)['first_name' => 'Mark', 'last_name' => 'Bautista'],
-                'book' => (object)['title' => 'Database System Concepts'],
-                'status' => 'borrowed',
-                'due_date' => now()->addDays(5)->toDateTimeString(),
-                'updated_at' => now()->subDay(),
-            ],
-            (object)[
-                'id' => 104,
-                'user' => (object)['first_name' => 'Maria', 'last_name' => 'Santos'],
-                'book' => (object)['title' => 'Clean Code'],
-                'status' => 'borrowed',
-                'due_date' => now()->subDays(2)->toDateTimeString(),
-                'updated_at' => now()->subDays(2),
-            ],
-            (object)[
-                'id' => 105,
-                'user' => (object)['first_name' => 'Carlos', 'last_name' => 'Mendoza'],
-                'book' => (object)['title' => 'Computer Networking: A Top-Down Approach'],
-                'status' => 'returned',
-                'due_date' => now()->addDays(10)->toDateTimeString(),
-                'updated_at' => now()->subDays(3),
-            ],
-        ]);
-
-        // Filter mock transactions based on search input
-        if (!empty($this->search)) {
-            $allTransactions = $allTransactions->filter(function ($item) {
-                $fullName = strtolower($item->user->first_name . ' ' . $item->user->last_name);
-                $title = strtolower($item->book->title);
-                $query = strtolower($this->search);
-
-                return str_contains($fullName, $query) || str_contains($title, $query);
-            });
-        }
+        // 3. Recent Transactions (Paginated)
+        $recentTransactions = Circulation::with(['patron', 'accession.catalog', 'processedBy'])
+            ->when($this->search, function ($q) use ($likeOperator) {
+                $q->where(function ($sub) use ($likeOperator) {
+                    $sub->whereHas('patron', function ($p) use ($likeOperator) {
+                        $p->where('first_name', $likeOperator, "%{$this->search}%")
+                          ->orWhere('last_name', $likeOperator, "%{$this->search}%")
+                          ->orWhere('card_number', $likeOperator, "%{$this->search}%");
+                    })
+                    ->orWhereHas('accession.catalog', function ($c) use ($likeOperator) {
+                        $c->where('title', $likeOperator, "%{$this->search}%");
+                    })
+                    ->orWhere('transaction_number', $likeOperator, "%{$this->search}%");
+                });
+            })
+            ->latest()
+            ->paginate(10);
 
         return view('livewire.dashboard', [
             'totalBooks'         => $totalBooks,
@@ -112,7 +76,7 @@ class Dashboard extends Component
             'overdueBooks'       => $overdueBooks,
             'totalPatrons'       => $totalPatrons,
             'overdueAlerts'      => $overdueAlerts,
-            'recentTransactions' => $allTransactions,
+            'recentTransactions' => $recentTransactions,
         ]);
     }
 }
