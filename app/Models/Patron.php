@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Patron extends Model
 {
@@ -37,7 +38,7 @@ class Patron extends Model
         return $this->belongsTo(PatronType::class);
     }
 
-    public function circulations()
+    public function circulations(): HasMany
     {
         return $this->hasMany(Circulation::class);
     }
