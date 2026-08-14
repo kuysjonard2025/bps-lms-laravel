@@ -116,7 +116,7 @@
                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                             <span class="text-slate-400 text-[10px] block uppercase font-bold">Grade / Section</span>
                             <strong class="text-slate-800">
-                                {{ $selectedPatron->gradeLevel->name ?? '—' }} {{ $selectedPatron->section ? '('.$selectedPatron->section->name.')' : '' }}
+                                {{ $selectedPatron->gradeLevel->name ?? '—' }} {{ $selectedPatron->section?->name ? '('.$selectedPatron->section->name.')' : '' }}
                             </strong>
                         </div>
                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
@@ -155,11 +155,14 @@
                         <table class="w-full text-left text-xs text-slate-600">
                             <thead class="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
                                 <tr>
-                                    <th class="p-3 pl-4">Accession</th>
-                                    <th class="p-3">Title</th>
-                                    <th class="p-3">Borrowed</th>
-                                    <th class="p-3">Due</th>
-                                    <th class="p-3">Fine</th>
+                                    <th class="p-3 pl-4">Accession No.</th>
+                                    <th class="p-3">Book Title</th>
+                                    <th class="p-3">Author</th>
+                                    <th class="p-3">ISBN</th>
+                                    <th class="p-3">Borrowed Date</th>
+                                    <th class="p-3">Due Date</th>
+                                    <th class="p-3">Returned Date</th>
+                                    <th class="p-3">Fine / Penalty</th>
                                     <th class="p-3 pr-4 text-right">Status</th>
                                 </tr>
                             </thead>
@@ -169,14 +172,23 @@
                                         <td class="p-3 pl-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
                                             {{ $loan->accession->accession_number ?? 'N/A' }}
                                         </td>
-                                        <td class="p-3 font-bold text-slate-900">
+                                        <td class="p-3 font-bold text-slate-900 whitespace-nowrap">
                                             {{ $loan->accession->catalog->title ?? 'N/A' }}
+                                        </td>
+                                        <td class="p-3 text-slate-500 whitespace-nowrap">
+                                            {{ $loan->accession->catalog->author->name ?? $loan->accession->catalog->author ?? '—' }}
+                                        </td>
+                                        <td class="p-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                                            {{ $loan->accession->catalog->isbn_issn ?? '—' }}
                                         </td>
                                         <td class="p-3 text-slate-500 whitespace-nowrap">
                                             {{ $loan->borrowed_at ? \Carbon\Carbon::parse($loan->borrowed_at)->format('M d, Y') : '—' }}
                                         </td>
                                         <td class="p-3 text-slate-500 whitespace-nowrap">
                                             {{ $loan->due_at ? \Carbon\Carbon::parse($loan->due_at)->format('M d, Y') : '—' }}
+                                        </td>
+                                        <td class="p-3 text-slate-500 whitespace-nowrap">
+                                            {{ $loan->returned_at ? \Carbon\Carbon::parse($loan->returned_at)->format('M d, Y') : '—' }}
                                         </td>
                                         <td class="p-3 font-semibold {{ ($loan->fine_amount ?? 0) > 0 ? 'text-rose-600' : 'text-slate-400' }} whitespace-nowrap">
                                             ₱{{ number_format($loan->fine_amount ?? 0, 2) }}
@@ -195,7 +207,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center py-8 text-slate-400">
+                                        <td colspan="9" class="text-center py-8 text-slate-400">
                                             No borrowing history found for this patron filter.
                                         </td>
                                     </tr>
