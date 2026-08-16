@@ -21,10 +21,15 @@ trait LogsActivity
                 'after'  => $model->getChanges(),
             ];
 
-            // Remove timestamps from diff noise
-            unset($changes['before']['updated_at'], $changes['after']['updated_at']);
+            // Remove noise and sensitive hidden attributes (like password, remember_token)
+            $hidden = array_merge(['updated_at', 'created_at'], $model->getHidden());
+            foreach ($hidden as $attribute) {
+                unset($changes['before'][$attribute], $changes['after'][$attribute]);
+            }
 
-            static::recordActivity($model, 'updated', 'Updated record fields', $changes);
+            if (!empty($changes['after'])) {
+                static::recordActivity($model, 'updated', 'Updated record fields', $changes);
+            }
         });
 
         // Handle Record Deletion
