@@ -54,7 +54,7 @@ class AuthenticationLogs extends Component
                 });
             })
             ->orderBy('logged_at', 'desc')
-            ->paginate(15);
+            ->paginate(10);
 
         return view('livewire.authentication-logs', [
             'logs'  => $logs,
