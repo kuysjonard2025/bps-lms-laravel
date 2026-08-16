@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Livewire\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Patron extends Model
 {
+    use LogsActivity;
+
     protected $fillable = [
         'patron_id',
         'first_name',
