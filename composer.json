@@ -15,7 +15,8 @@
         "laravel/tinker": "^3.0",
         "livewire/blaze": "^1.0",
         "livewire/livewire": "^4.0",
-        "ronald2wing/laravel-mailtrap": "^1.0"
+        "ronald2wing/laravel-mailtrap": "^1.0",
+        "spatie/laravel-backup": "^10.3"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
