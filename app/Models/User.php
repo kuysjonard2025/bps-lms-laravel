@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Traits\LogsActivity;
+use App\Livewire\Traits\LogsActivity;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;

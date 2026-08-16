@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Traits;
+namespace App\Livewire\Traits;
 
 use App\Models\ActivityLog;
 use Illuminate\Support\Facades\Auth;
