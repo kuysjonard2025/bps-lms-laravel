@@ -90,13 +90,13 @@
 
                             <td class="p-3 pr-4 text-right whitespace-nowrap space-x-2">
                                 <button
-                                    wire:click="downloadBackup('{{ $backup['file_name'] }}')"
+                                    wire:click="downloadBackup(@js($backup['file_name']))"
                                     class="px-2.5 py-1 text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
                                 >
                                     ⬇️ Download
                                 </button>
                                 <button
-                                    wire:click="deleteBackup('{{ $backup['file_name'] }}')"
+                                    wire:click="deleteBackup(@js($backup['file_name']))"
                                     wire:confirm="Are you sure you want to delete this backup archive?"
                                     class="px-2.5 py-1 text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 rounded-lg hover:bg-rose-100 transition"
                                 >

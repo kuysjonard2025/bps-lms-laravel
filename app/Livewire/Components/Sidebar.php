@@ -95,7 +95,7 @@ class Sidebar extends Component
                     'icon' => 'queue-list',
                 ],
                 [
-                    'name' => 'Database Backups/Recovery',
+                    'name' => 'DB Backups & Recovery',
                     'route' => 'database-backups',
                     'icon' => 'server',
                 ]
