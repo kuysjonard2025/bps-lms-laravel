@@ -103,7 +103,7 @@
                     @forelse ($logs as $log)
                         <tr class="hover:bg-slate-50/60 transition">
                             <td class="p-3 pl-4">
-                                <div class="font-bold text-slate-900">{{ $log->user->initials ?? 'Unregistered User' }}</div>
+                                <div class="font-bold text-slate-900">{{ $log->user?->getFullNameAttribute() ?? 'Unregistered User' }}</div>
                                 <div class="text-[11px] text-slate-500 font-mono">{{ $log->email }}</div>
                             </td>
 
