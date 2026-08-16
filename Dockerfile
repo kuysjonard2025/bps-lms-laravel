@@ -46,8 +46,10 @@ RUN apk add --no-cache \
 # Install required PHP extensions (including zip)
 RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql bcmath opcache zip
 
-# Disable PHP-FPM access logging
-RUN sed -i 's/^access.log = .*/access.log = \/dev\/null/' /usr/local/etc/php-fpm.d/www.conf
+# Disable PHP-FPM access logging across both default configs
+RUN sed -i 's|^access.log = .*|access.log = /dev/null|g' /usr/local/etc/php-fpm.d/www.conf \
+    && sed -i 's|^access.log = .*|access.log = /dev/null|g' /usr/local/etc/php-fpm.d/docker.conf \
+    && echo "access.log = /dev/null" >> /usr/local/etc/php-fpm.d/zz-docker.conf
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
