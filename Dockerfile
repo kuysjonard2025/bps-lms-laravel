@@ -26,7 +26,7 @@ RUN npm run build
 # --- Stage 2: Application Runtime ---
 FROM php:8.3-fpm-alpine
 
-# Install system dependencies, libzip-dev, and runtime packages
+# Install system dependencies, libzip-dev, database clients (pg_dump/mysqldump), and runtime packages
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -38,7 +38,9 @@ RUN apk add --no-cache \
     libxml2-dev \
     oniguruma-dev \
     libzip-dev \
+    postgresql-client \
     postgresql-dev \
+    mysql-client \
     mariadb-connector-c-dev
 
 # Install required PHP extensions (including zip)

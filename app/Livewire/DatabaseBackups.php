@@ -22,9 +22,15 @@ class DatabaseBackups extends Component
         $this->isCreatingBackup = true;
 
         try {
-            // Runs Spatie backup command
             Artisan::call('backup:run', ['--only-db' => true]);
-            session()->flash('success', 'Database backup created successfully!');
+            $output = Artisan::output();
+
+            // Catch Spatie CLI errors if the command fails internally
+            if (str_contains(strtolower($output), 'failed') || str_contains(strtolower($output), 'exception') || str_contains(strtolower($output), 'error')) {
+                session()->flash('error', 'Backup failed: ' . substr($output, 0, 300));
+            } else {
+                session()->flash('success', 'Database backup created successfully!');
+            }
         } catch (\Exception $e) {
             session()->flash('error', 'Backup failed: ' . $e->getMessage());
         }
@@ -68,7 +74,7 @@ class DatabaseBackups extends Component
         /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
         $disk = Storage::disk($diskName);
 
-        // Scan all files recursively on the disk and filter only .zip archives
+        // Recursively list all .zip files on the target disk
         $files = collect($disk->allFiles())
             ->filter(fn ($file) => str_ends_with($file, '.zip'))
             ->values();
