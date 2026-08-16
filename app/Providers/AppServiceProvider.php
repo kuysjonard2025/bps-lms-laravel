@@ -81,8 +81,14 @@ class AppServiceProvider extends ServiceProvider
 
         // Lockout (Too many failed attempts)
         Event::listen(Lockout::class, function (Lockout $event) {
+            // Check standard request input first, fallback to Livewire payload
+            $email = request()->input('email')
+                ?? request()->input('components.0.snapshot.data.umail')
+                ?? request()->input('serverMemo.data.umail')
+                ?? 'Unknown';
+
             AuthLog::create([
-                'email'      => $event->request->input('email', 'Unknown'),
+                'email'      => $email,
                 'event'      => 'lockout',
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
