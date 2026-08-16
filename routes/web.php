@@ -18,6 +18,7 @@ use App\Livewire\PatronLogs;
 use App\Livewire\PatronPortal;
 use App\Livewire\PatronRecords;
 use App\Livewire\Registrations;
+use App\Livewire\UserActivityLogs;
 use App\Livewire\Vendors;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
@@ -74,6 +75,7 @@ Route::middleware('auth')->group(function () {
 
         // System Logs & Backup
         Route::get('/authentication-logs', AuthenticationLogs::class)->name('authentication-logs');
+        Route::get('/user-activity-logs', UserActivityLogs::class)->name('user-activity-logs');
     });
 
     Route::post('/logout', function () {
