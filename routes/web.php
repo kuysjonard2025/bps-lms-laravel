@@ -7,6 +7,7 @@ use App\Livewire\AssetDetails\Index as AssetDetails;
 use App\Livewire\Auth\CompleteProfile;
 use App\Livewire\Auth\Login as LoginComponent;
 use App\Livewire\Auth\VerifyEmail;
+use App\Livewire\AuthenticationLogs;
 use App\Livewire\Catalogs;
 use App\Livewire\Circulations;
 use App\Livewire\CirculationPolicy;
@@ -70,6 +71,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/circulations', Circulations::class)->name('circulations');
         Route::get('/patron-records', PatronRecords::class)->name('patron-records');
         Route::get('/inventory-management', InventoryManagement::class)->name('inventory-management');
+
+        // System Logs & Backup
+        Route::get('/authentication-logs', AuthenticationLogs::class)->name('authentication-logs');
     });
 
     Route::post('/logout', function () {

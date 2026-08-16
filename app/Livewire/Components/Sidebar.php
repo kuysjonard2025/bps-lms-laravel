@@ -86,7 +86,7 @@ class Sidebar extends Component
             'System Log & Backup' => [
                 [
                     'name' => 'Authentication Logs',
-                    'route' => 'auth-logs',
+                    'route' => 'authentication-logs',
                     'icon' => 'chart-bar',
                 ],
                 [
