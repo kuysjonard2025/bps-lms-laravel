@@ -12,6 +12,7 @@ use App\Livewire\Catalogs;
 use App\Livewire\Circulations;
 use App\Livewire\CirculationPolicy;
 use App\Livewire\Dashboard;
+use App\Livewire\DatabaseBackups;
 use App\Livewire\InventoryManagement;
 use App\Livewire\PatronAuth\Login as PatronLogin;
 use App\Livewire\PatronLogs;
@@ -76,6 +77,7 @@ Route::middleware('auth')->group(function () {
         // System Logs & Backup
         Route::get('/authentication-logs', AuthenticationLogs::class)->name('authentication-logs');
         Route::get('/user-activity-logs', UserActivityLogs::class)->name('user-activity-logs');
+        Route::get('/database-backups', DatabaseBackups::class)->name('database-backups');
     });
 
     Route::post('/logout', function () {
