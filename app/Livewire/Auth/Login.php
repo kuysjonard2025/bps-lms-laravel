@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auth;
 
+use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Layout;
@@ -21,6 +22,9 @@ class Login extends Component
 
         // 2. Block execution if attempts exceed limit (5 attempts)
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            // Dispatch the Lockout event manually so your AuthLog listener catches it
+            event(new Lockout(request()));
+
             $seconds = RateLimiter::availableIn($throttleKey);
 
             $this->addError(
