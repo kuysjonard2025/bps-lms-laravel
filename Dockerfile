@@ -1,13 +1,15 @@
 # --- Stage 1: Build Frontend Assets ---
 FROM php:8.3-fpm-alpine AS frontend
 
-# Install Node.js, npm, and Composer in the frontend build stage
-RUN apk add --no-cache nodejs npm curl
+# Install Node.js, npm, git, unzip, and required extensions for composer
+RUN apk add --no-cache nodejs npm curl git unzip libpng-dev libxml2-dev oniguruma-dev \
+    && docker-php-ext-install pdo pdo_mysql bcmath
+
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-# Copy composer files first to install PHP dependencies for Tailwind scanning
+# Copy composer files and install PHP dependencies (so Tailwind can scan /vendor)
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 
@@ -18,7 +20,7 @@ RUN npm ci
 # Copy the rest of the application source code
 COPY . .
 
-# Run the Tailwind production build (now it can successfully find /vendor)
+# Run the Tailwind production build
 RUN npm run build
 
 # --- Stage 2: Application Runtime ---
@@ -29,10 +31,11 @@ RUN apk add --no-cache \
     nginx \
     supervisor \
     curl \
-    libpng-dev \
-    libxml2-dev \
+    git \
     zip \
     unzip \
+    libpng-dev \
+    libxml2-dev \
     oniguruma-dev \
     postgresql-dev \
     mariadb-connector-c-dev
@@ -47,7 +50,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copy application files
+# Copy application files and built frontend assets
 COPY . .
 COPY --from=frontend /app/public/build ./public/build
 
