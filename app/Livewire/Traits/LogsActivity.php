@@ -52,4 +52,22 @@ trait LogsActivity
             'created_at'   => now(),
         ]);
     }
+
+    /**
+     * Helper method to log custom system activities without requiring an Eloquent Model instance.
+     */
+    public static function logCustomActivity(string $logName, string $event, string $description, array $properties = []): void
+    {
+        ActivityLog::create([
+            'user_id'      => Auth::id(),
+            'log_name'     => $logName,
+            'event'        => $event,
+            'subject_type' => null,
+            'subject_id'   => null,
+            'description'  => $description,
+            'properties'   => $properties ?: null,
+            'ip_address'   => request()->ip(),
+            'created_at'   => now(),
+        ]);
+    }
 }

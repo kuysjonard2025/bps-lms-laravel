@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\LogsActivity;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
@@ -29,6 +30,14 @@ class DatabaseBackups extends Component
             if (str_contains(strtolower($output), 'failed') || str_contains(strtolower($output), 'exception') || str_contains(strtolower($output), 'error')) {
                 session()->flash('error', 'Backup failed: ' . substr($output, 0, 300));
             } else {
+                // Log activity on successful creation
+                LogsActivity::logCustomActivity(
+                    logName: 'backup',
+                    event: 'created',
+                    description: 'Generated a manual database backup archive',
+                    properties: ['type' => 'manual_db_backup']
+                );
+
                 session()->flash('success', 'Database backup created successfully!');
             }
         } catch (\Exception $e) {
@@ -46,6 +55,14 @@ class DatabaseBackups extends Component
         $disk = Storage::disk($diskName);
 
         if ($disk->exists($fileName)) {
+            // Log activity on file download
+            LogsActivity::logCustomActivity(
+                logName: 'backup',
+                event: 'downloaded',
+                description: 'Downloaded database backup archive: ' . basename($fileName),
+                properties: ['file' => $fileName]
+            );
+
             return $disk->download($fileName);
         }
 
@@ -61,6 +78,15 @@ class DatabaseBackups extends Component
 
         if ($disk->exists($fileName)) {
             $disk->delete($fileName);
+
+            // Log activity on file deletion
+            LogsActivity::logCustomActivity(
+                logName: 'backup',
+                event: 'deleted',
+                description: 'Deleted database backup archive: ' . basename($fileName),
+                properties: ['file' => $fileName]
+            );
+
             session()->flash('success', 'Backup file deleted.');
         } else {
             session()->flash('error', 'File could not be found.');
