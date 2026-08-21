@@ -6,7 +6,7 @@
             </svg>
         </div>
 
-        <h2 class="text-2xl font-extrabold text-sky-950 mb-1">Kiosk Terminal</h2>
+        <h2 class="text-2xl font-extrabold text-sky-950 mb-1">Patron Logs</h2>
         <p class="text-xs text-slate-500 mb-6">Enter PIN to initialize terminal session.</p>
 
         <form wire:submit.prevent="authenticate" class="space-y-4">
