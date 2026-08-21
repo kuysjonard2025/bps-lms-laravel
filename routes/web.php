@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureKioskAuthenticated;
 use App\Livewire\AcademicInfo;
 use App\Livewire\Accessions;
 use App\Livewire\Acquisitions;
@@ -14,6 +15,8 @@ use App\Livewire\CirculationPolicy;
 use App\Livewire\Dashboard;
 use App\Livewire\DatabaseBackups;
 use App\Livewire\InventoryManagement;
+use App\Livewire\Kiosk\KioskLogin;
+use App\Livewire\Kiosk\PatronKiosk;
 use App\Livewire\PatronAuth\Login as PatronLogin;
 use App\Livewire\PatronLogs;
 use App\Livewire\PatronPortal;
@@ -35,6 +38,15 @@ Route::middleware('guest')->group(function () {
 Route::prefix('patron')->name('patron.')->group(function () {
     Route::get('/login', PatronLogin::class)->name('login');
     Route::get('/portal', PatronPortal::class)->name('portal');
+});
+
+// Dedicated Standalone Kiosk Routes (PIN-Protected Session)
+Route::prefix('kiosk')->name('kiosk.')->group(function () {
+    Route::get('/login', KioskLogin::class)->name('login');
+
+    Route::middleware(EnsureKioskAuthenticated::class)->group(function () {
+        Route::get('/patron-log', PatronKiosk::class)->name('patron-log');
+    });
 });
 
 // Authenticated Routes (Staff / Admins)
