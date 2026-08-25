@@ -1,9 +1,21 @@
 # --- Stage 1: Build Frontend Assets ---
 FROM php:8.3-fpm-alpine AS frontend
 
-# Install Node.js, npm, git, libzip-dev, and PHP zip extension
-RUN apk add --no-cache nodejs npm curl git unzip libpng-dev libxml2-dev oniguruma-dev libzip-dev \
-    && docker-php-ext-install pdo pdo_mysql bcmath zip
+# Install Node.js, npm, git, libzip-dev, GD dependencies, and PHP extensions
+RUN apk add --no-cache \
+    nodejs \
+    npm \
+    curl \
+    git \
+    unzip \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    libxml2-dev \
+    oniguruma-dev \
+    libzip-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo pdo_mysql bcmath zip gd
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -26,7 +38,7 @@ RUN npm run build
 # --- Stage 2: Application Runtime ---
 FROM php:8.3-fpm-alpine
 
-# Install system dependencies, libzip-dev, database clients (pg_dump/mysqldump), and runtime packages
+# Install system dependencies, libzip-dev, GD dependencies, database clients, and runtime packages
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -35,6 +47,8 @@ RUN apk add --no-cache \
     zip \
     unzip \
     libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
     libxml2-dev \
     oniguruma-dev \
     libzip-dev \
@@ -43,8 +57,9 @@ RUN apk add --no-cache \
     mysql-client \
     mariadb-connector-c-dev
 
-# Install required PHP extensions (including zip)
-RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql bcmath opcache zip
+# Install required PHP extensions (including zip and gd)
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo pdo_mysql pdo_pgsql bcmath opcache zip gd
 
 # Disable PHP-FPM access logging across both default configs
 RUN sed -i 's|^access.log = .*|access.log = /dev/null|g' /usr/local/etc/php-fpm.d/www.conf \
