@@ -29,9 +29,19 @@ class GeneralReferencesTab extends Component
             'name' => [
                 'required',
                 'string',
+                'min:2',
                 'max:255',
                 Rule::unique('general_references', 'name')->ignore($this->referenceIdBeingEdited),
             ],
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'name.unique' => 'A general reference with this name already exists.',
+            'name.min' => 'General reference name must be at least 2 characters.',
+            'name.max' => 'General reference name must not exceed 255 characters.',
         ];
     }
 
@@ -58,7 +68,7 @@ class GeneralReferencesTab extends Component
     public function saveReference(): void
     {
         // 1. Trim whitespace before running validation
-        $this->name = trim($this->name);
+        $this->name = strtolower(trim($this->name));
 
         $this->validate();
 

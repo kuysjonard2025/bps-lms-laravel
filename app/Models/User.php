@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
  * @property string $first_name
  * @property string $middle_name
  * @property string $last_name
- * @property string|null $prefix
+ * @property string|null $suffix
  * @property string|null $address
  * @property string|null $contact_number
  * @property string $email
@@ -32,7 +32,7 @@ use Illuminate\Support\Str;
     'first_name',
     'middle_name',
     'last_name',
-    'prefix',
+    'suffix',
     'address',
     'contact_number',
     'username',
@@ -64,7 +64,9 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getFullNameAttribute(): string
     {
-        return trim("{$this->prefix} {$this->first_name} {$this->middle_name} {$this->last_name}");
+        $name = ucwords($this->first_name . ' ' . $this->middle_name . ' ' . $this->last_name);
+        $suffix = strtoupper($this->suffix ? ' ' . $this->suffix : '');
+        return trim($name . $suffix);
     }
 
     /**
@@ -72,9 +74,10 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function initials(): string
     {
-        $name = trim("{$this->first_name} {$this->last_name}");
+        $name = ucwords($this->first_name . ' ' . $this->last_name);
+        $initials = trim($name);
 
-        return Str::of($name)
+        return Str::of($initials)
             ->explode(' ')
             ->map(fn (string $segment) => Str::substr($segment, 0, 1))
             ->take(2)

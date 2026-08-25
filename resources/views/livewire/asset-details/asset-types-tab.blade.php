@@ -37,7 +37,7 @@
                 @forelse($assetTypes as $assetType)
                     <tr wire:key="asset-type-row-{{ $assetType->id }}" class="hover:bg-gray-50/75 transition-colors">
                         <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
-                            {{ $assetType->name }}
+                            {{ ucwords($assetType->name) }}
                         </td>
                         <td class="px-4 py-3 text-right whitespace-nowrap space-x-1">
                             <button

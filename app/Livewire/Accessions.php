@@ -2,8 +2,10 @@
 
 namespace App\Livewire;
 
+use App\Exports\AccessionsExport;
 use App\Models\Accession;
 use App\Models\Acquisition;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
@@ -15,6 +17,9 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class Accessions extends Component
 {
@@ -156,7 +161,7 @@ class Accessions extends Component
 
     public function updatedStatusFilter(): void
     {
-        $this->resetPage(); // <-- Added to fix pagination bugs when filtering by status
+        $this->resetPage();
     }
 
     public function openCreateModal(): void
@@ -180,7 +185,6 @@ class Accessions extends Component
     private function generateAccessionNumber(int $offset = 0): string
     {
         $year = date('Y');
-        // Retrieve max existing suffix integer for current year
         $latest = Accession::whereYear('created_at', $year)
             ->where('accession_number', 'LIKE', "ACC-{$year}-%")
             ->orderByDesc('id')
@@ -221,11 +225,10 @@ class Accessions extends Component
 
     public function saveAccession(): void
     {
-        // Trim inputs prior to validation
         $this->accession_number = trim($this->accession_number);
         $this->batch_number = trim($this->batch_number);
         $this->call_number = trim($this->call_number);
-        $this->remarks = trim($this->remarks);
+        $this->remarks = blank($this->remarks) ? null : strtolower(trim($this->remarks));
 
         $this->validate();
 
@@ -266,7 +269,6 @@ class Accessions extends Component
                     : 'Accession record updated successfully.';
             } else {
                 DB::transaction(function () {
-                    // Lock acquisition row for update to prevent concurrent over-allocation
                     $acquisition = Acquisition::where('id', $this->acquisition_id)->lockForUpdate()->first();
                     $existingCount = Accession::where('acquisition_id', $this->acquisition_id)->count();
                     $remainingQty = max(0, $acquisition->quantity - $existingCount);
@@ -277,11 +279,8 @@ class Accessions extends Component
                         ]);
                     }
 
-                    $records = [];
-                    $now = now();
-
                     for ($i = 0; $i < $this->batch_qty; $i++) {
-                        $records[] = [
+                        Accession::create([
                             'acquisition_id'   => $this->acquisition_id,
                             'catalog_id'       => $this->catalog_id,
                             'accession_number' => $this->generateAccessionNumber($i),
@@ -291,12 +290,8 @@ class Accessions extends Component
                             'status'           => $this->status,
                             'acquired_date'    => $this->acquired_date,
                             'remarks'          => $this->remarks ?: null,
-                            'created_at'       => $now,
-                            'updated_at'       => $now,
-                        ];
+                        ]);
                     }
-
-                    Accession::insert($records);
                 });
 
                 $message = "Successfully created a batch of {$this->batch_qty} accession records.";
@@ -344,7 +339,6 @@ class Accessions extends Component
                     $this->dispatch('toast', message: 'Accession item deleted successfully.', type: 'success');
                 }
             } catch (QueryException $e) {
-                // Catches FK foreign key restrictions (e.g., active circulation records referencing this accession)
                 $this->dispatch('toast', message: 'Cannot delete: This accession item is referenced by existing circulation or log records.', type: 'error');
             }
         }
@@ -353,13 +347,11 @@ class Accessions extends Component
         $this->accessionIdBeingDeleted = null;
     }
 
-    #[Layout('components.layouts.app')]
-    #[Title('Accessions')]
-    public function render()
+    private function getFilteredAccessionsQuery()
     {
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
-        $accessions = Accession::with(['catalog.author', 'catalog.assetType', 'acquisition'])
+        return Accession::with(['catalog.author', 'catalog.assetType', 'acquisition'])
             ->when($this->search, function ($query) use ($likeOperator) {
                 $query->where(function ($q) use ($likeOperator) {
                     $q->where('accession_number', $likeOperator, "%{$this->search}%")
@@ -369,11 +361,43 @@ class Accessions extends Component
                 });
             })
             ->when($this->statusFilter, fn ($q) => $q->where('status', $this->statusFilter))
-            ->latest()
-            ->paginate(10);
+            ->latest();
+    }
 
+    public function exportExcel(): BinaryFileResponse
+    {
+        $fileName = 'accessions-report-' . now()->format('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(
+            new AccessionsExport($this->search, $this->statusFilter),
+            $fileName
+        );
+    }
+
+    public function exportPdf(): StreamedResponse
+    {
+        $accessions = $this->getFilteredAccessionsQuery()->get();
+
+        $pdf = Pdf::loadView('pdf.accessions-report', [
+            'accessions' => $accessions,
+            'filters'    => [
+                'search' => $this->search,
+                'status' => $this->statusFilter,
+            ],
+            'date' => now()->format('F j, Y g:i A'), // Changed from 'generatedAt' to 'date'
+        ]);
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, 'accessions-report-' . now()->format('Y-m-d') . '.pdf');
+    }
+
+    #[Layout('components.layouts.app')]
+    #[Title('Accessions')]
+    public function render()
+    {
         return view('livewire.accessions', [
-            'accessions'   => $accessions,
+            'accessions'   => $this->getFilteredAccessionsQuery()->paginate(10),
             'acquisitions' => Acquisition::with('catalog')->latest()->get(),
         ]);
     }

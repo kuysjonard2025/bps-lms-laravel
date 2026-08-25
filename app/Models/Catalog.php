@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Livewire\Traits\LogsActivity;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,14 @@ class Catalog extends Model
         'edition',
         'publication_year',
         'description',
+    ];
+
+    protected $casts = [
+        'author_id'            => 'integer',
+        'asset_type_id'        => 'integer',
+        'publisher_id'         => 'integer',
+        'general_reference_id' => 'integer',
+        'publication_year'     => 'integer',
     ];
 
     public function author(): BelongsTo
@@ -57,5 +66,15 @@ class Catalog extends Model
     public function availableAccessions(): HasMany
     {
         return $this->hasMany(Accession::class)->where('status', 'Available');
+    }
+
+    public function scopeSearch(Builder $query, string $term): Builder
+    {
+        return $query->where(function (Builder $q) use ($term) {
+            $q->whereILIKE('title', "%{$term}%")
+              ->orWhereILIKE('isbn_issn', "%{$term}%")
+              ->orWhereHas('author', fn (Builder $sub) => $sub->whereILIKE('name', "%{$term}%"))
+              ->orWhereHas('publisher', fn (Builder $sub) => $sub->whereILIKE('name', "%{$term}%"));
+        });
     }
 }

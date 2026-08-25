@@ -1,4 +1,4 @@
-<div class="space-y-6" x-data="{ closeOnEsc(e) { if (e.key === 'Escape') { $wire.showModal = false; $wire.showDeleteModal = false; } } }" @keydown.window="closeOnEsc">
+<div class="space-y-6">
 
     {{-- Header & Quick Actions --}}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -42,6 +42,59 @@
                 </svg>
             </div>
 
+            {{-- Export Dropdown --}}
+            <div x-data="{ open: false }" class="relative w-full sm:w-auto">
+                <button
+                    @click="open = !open"
+                    @click.away="open = false"
+                    type="button"
+                    class="w-full sm:w-auto px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 active:bg-slate-100 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-xs shrink-0"
+                >
+                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span>Export</span>
+                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+
+                <div
+                    x-show="open"
+                    x-transition:enter="transition ease-out duration-100"
+                    x-transition:enter-start="transform opacity-0 scale-95"
+                    x-transition:enter-end="transform opacity-100 scale-100"
+                    x-transition:leave="transition ease-in duration-75"
+                    x-transition:leave-start="transform opacity-100 scale-100"
+                    x-transition:leave-end="transform opacity-0 scale-95"
+                    class="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-30"
+                    style="display: none;"
+                >
+                    <button
+                        wire:click="exportExcel"
+                        @click="open = false"
+                        type="button"
+                        class="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 cursor-pointer"
+                    >
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span>Export Excel</span>
+                    </button>
+                    <button
+                        wire:click="exportPdf"
+                        @click="open = false"
+                        type="button"
+                        class="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-rose-600 flex items-center gap-2 cursor-pointer"
+                    >
+                        <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        <span>Export PDF</span>
+                    </button>
+                </div>
+            </div>
+
             <button
                 wire:click="openCreateModal"
                 type="button"
@@ -74,24 +127,24 @@
                     @forelse($accessions as $item)
                         <tr wire:key="accession-row-{{ $item->id }}" class="hover:bg-slate-50/60 transition-colors">
                             <td class="p-3 pl-4 font-mono font-bold text-blue-600 whitespace-nowrap">
-                                {{ $item->accession_number }}
+                                {{ ucwords($item->accession_number) }}
                             </td>
                             <td class="p-3 font-mono text-slate-600 whitespace-nowrap">
-                                {{ $item->batch_number }}
+                                {{ ucwords($item->batch_number) }}
                             </td>
                             <td class="p-3 max-w-[220px] sm:max-w-none">
-                                <div class="font-bold text-slate-900 truncate">{{ $item->catalog->title ?? '—' }}</div>
+                                <div class="font-bold text-slate-900 truncate">{{ ucwords($item->catalog->title) ?? '—' }}</div>
                                 <div class="text-[11px] text-slate-500 truncate mt-0.5">
-                                    <span class="font-mono text-blue-600 font-semibold">{{ $item->acquisition->acquisition_number ?? 'N/A' }}</span>
-                                    <span class="hidden sm:inline"> &bull; Author: <span class="text-slate-700">{{ $item->catalog->author->name ?? 'N/A' }}</span></span>
+                                    <span class="font-mono text-blue-600 font-semibold">{{ ucwords($item->acquisition->acquisition_number) ?? 'N/A' }}</span>
+                                    <span class="hidden sm:inline"> &bull; Author: <span class="text-slate-700">{{ ucwords($item->catalog->author->name) ?? 'N/A' }}</span></span>
                                 </div>
                             </td>
                             <td class="hidden md:table-cell p-3 text-center font-mono text-slate-800 whitespace-nowrap">
-                                {{ $item->call_number }}
+                                {{ ucwords($item->call_number) }}
                             </td>
                             <td class="hidden sm:table-cell p-3 text-center whitespace-nowrap">
                                 <span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200/60">
-                                    {{ $item->condition }}
+                                    {{ ucwords($item->condition) }}
                                 </span>
                             </td>
                             <td class="p-3 text-center whitespace-nowrap">
@@ -106,7 +159,7 @@
                                     };
                                 @endphp
                                 <span class="px-2.5 py-1 text-[10px] font-bold rounded-full border {{ $statusClasses }}">
-                                    {{ $item->status }}
+                                    {{ ucwords($item->status) }}
                                 </span>
                             </td>
                             <td class="p-3 pr-4 text-right whitespace-nowrap space-x-1">
@@ -115,24 +168,24 @@
                                         type="button"
                                         disabled
                                         title="Item is on loan and cannot be modified"
-                                        class="text-slate-300 cursor-not-allowed font-bold px-2 py-1"
+                                        class="text-slate-300 cursor-not-allowed font-bold px-2 py-1 text-xs"
                                     >Edit</button>
                                     <button
                                         type="button"
                                         disabled
                                         title="Item is on loan and cannot be deleted"
-                                        class="text-slate-300 cursor-not-allowed font-bold px-2 py-1"
+                                        class="text-slate-300 cursor-not-allowed font-bold px-2 py-1 text-xs"
                                     >Delete</button>
                                 @else
                                     <button
                                         wire:click="openEditModal({{ $item->id }})"
                                         type="button"
-                                        class="text-blue-600 hover:text-blue-800 font-bold px-2 py-1 rounded-lg hover:bg-blue-50 transition cursor-pointer"
+                                        class="text-blue-600 hover:text-blue-800 font-bold px-2 py-1 rounded-lg hover:bg-blue-50 transition cursor-pointer text-xs"
                                     >Edit</button>
                                     <button
                                         wire:click="confirmDelete({{ $item->id }})"
                                         type="button"
-                                        class="text-rose-600 hover:text-rose-800 font-bold px-2 py-1 rounded-lg hover:bg-rose-50 transition cursor-pointer"
+                                        class="text-rose-600 hover:text-rose-800 font-bold px-2 py-1 rounded-lg hover:bg-rose-50 transition cursor-pointer text-xs"
                                     >Delete</button>
                                 @endif
                             </td>
@@ -160,7 +213,7 @@
     @if ($showModal)
         <div
             x-data
-            @keydown.escape.window="$wire.set('showModal', false)"
+            @keydown.window.escape="$wire.set('showModal', false)"
             class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
             role="dialog"
             aria-modal="true"
@@ -188,7 +241,7 @@
                             <option value="">Select Acquisition Log</option>
                             @foreach($acquisitions as $acq)
                                 <option value="{{ $acq->id }}">
-                                    {{ $acq->acquisition_number }} — {{ $acq->catalog->title ?? 'N/A' }} (Txn: {{ $acq->transaction_number }})
+                                    {{ $acq->acquisition_number }} &mdash; {{ $acq->catalog->title ?? 'N/A' }} (Txn: {{ $acq->transaction_number }})
                                 </option>
                             @endforeach
                         </select>
@@ -398,33 +451,23 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label for="accession-remarks" class="block text-xs font-semibold text-slate-700">Remarks</label>
-                        <textarea
-                            id="accession-remarks"
-                            wire:model="remarks"
-                            rows="2"
-                            class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                        ></textarea>
-                        @error('remarks') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-2 border-t border-slate-100">
+                    {{-- Modal Actions --}}
+                    <div class="pt-4 border-t border-slate-200/80 flex justify-end gap-2">
                         <button
                             wire:click="$set('showModal', false)"
                             type="button"
-                            class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 cursor-pointer transition"
+                            class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition cursor-pointer"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            wire:loading.attr="disabled"
-                            @disabled(!$accessionIdBeingEdited && $this->getRemainingQty() === 0)
-                            class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed transition shadow-xs"
+                            class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition cursor-pointer flex items-center gap-2"
                         >
-                            <span wire:loading wire:target="saveAccession" class="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></span>
-                            <span>{{ $accessionIdBeingEdited ? 'Save Changes' : 'Process Batch' }}</span>
+                            <span wire:loading.remove wire:target="saveAccession">
+                                {{ $accessionIdBeingEdited ? 'Update Accession' : 'Generate Accession Copies' }}
+                            </span>
+                            <span wire:loading wire:target="saveAccession">Processing...</span>
                         </button>
                     </div>
                 </form>
@@ -432,48 +475,47 @@
         </div>
     @endif
 
-    {{-- Delete Modal --}}
+    {{-- Confirmation Modal for Deletion --}}
     @if ($showDeleteModal)
         <div
             x-data
-            @keydown.escape.window="$wire.set('showDeleteModal', false)"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4"
+            @keydown.window.escape="$wire.set('showDeleteModal', false)"
+            class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
             role="dialog"
             aria-modal="true"
         >
             <div wire:click="$set('showDeleteModal', false)" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"></div>
 
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-sm z-10 p-5 sm:p-6 text-center space-y-4 border border-slate-100">
-                <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto shrink-0 border border-rose-100">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md z-10 p-6 border border-slate-100">
+                <div class="flex items-center gap-3 text-rose-600 mb-3">
+                    <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
+                    <h3 class="text-base font-bold text-slate-900">Confirm Deletion</h3>
                 </div>
 
-                <div>
-                    <h3 class="text-base font-bold text-slate-900">Delete Accession Record?</h3>
-                    <p class="text-xs text-slate-500 mt-1">Are you sure you want to delete this accession item? This action cannot be undone.</p>
-                </div>
+                <p class="text-xs text-slate-600">
+                    Are you sure you want to delete this accession record? This action cannot be undone.
+                </p>
 
-                <div class="flex flex-col-reverse sm:flex-row justify-center gap-2 sm:gap-3 pt-2">
+                <div class="mt-6 flex justify-end gap-2">
                     <button
                         wire:click="$set('showDeleteModal', false)"
                         type="button"
-                        class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 cursor-pointer transition"
+                        class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition cursor-pointer"
                     >
                         Cancel
                     </button>
                     <button
                         wire:click="deleteAccession"
-                        wire:loading.attr="disabled"
                         type="button"
-                        class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-white bg-rose-600 rounded-xl hover:bg-rose-700 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 transition shadow-xs"
+                        class="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition cursor-pointer"
                     >
-                        <span wire:loading wire:target="deleteAccession" class="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></span>
-                        <span>Delete Record</span>
+                        Delete Record
                     </button>
                 </div>
             </div>
         </div>
     @endif
+
 </div>

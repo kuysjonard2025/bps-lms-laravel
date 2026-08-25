@@ -29,9 +29,19 @@ class AssetTypesTab extends Component
             'name' => [
                 'required',
                 'string',
+                'min:2',
                 'max:255',
                 Rule::unique('asset_types', 'name')->ignore($this->assetTypeIdBeingEdited),
             ],
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'name.unique' => 'An asset type with this name already exists.',
+            'name.min' => 'Asset type name must be at least 2 characters.',
+            'name.max' => 'Asset type name must not exceed 255 characters.',
         ];
     }
 
@@ -58,7 +68,7 @@ class AssetTypesTab extends Component
     public function saveAssetType(): void
     {
         // 1. Trim first so validation checks the exact string being saved
-        $this->name = trim($this->name);
+        $this->name = strtolower(trim($this->name));
 
         $this->validate();
 

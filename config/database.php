@@ -114,8 +114,8 @@ return [
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
             'dump' => [
-                'dump_binary_path' => '/usr/bin',
-                'use_single_transaction' => true,
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', '/usr/bin'),
+                'timeout' => 60 * 5,
             ],
         ],
 

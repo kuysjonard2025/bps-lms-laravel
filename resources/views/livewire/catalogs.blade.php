@@ -15,14 +15,14 @@
                     type="text"
                     id="catalog-search"
                     placeholder="Search title, ISBN, author..."
-                    class="w-full pl-9 pr-9 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    class="w-full pl-9 pr-9 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                 >
                 {{-- Search Icon --}}
-                <svg wire:loading.remove wire:target="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg wire:loading.remove wire:target="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
                 {{-- Searching Spinner --}}
-                <svg wire:loading wire:target="search" class="animate-spin w-4 h-4 text-blue-600 absolute left-3 top-2.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg wire:loading wire:target="search" class="animate-spin w-4 h-4 text-blue-600 absolute left-3 top-2.5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -60,15 +60,15 @@
                     @forelse($catalogs as $catalog)
                         <tr wire:key="catalog-row-{{ $catalog->id }}" class="hover:bg-slate-50/60 transition-colors">
                             <td class="p-3 pl-4 font-medium text-slate-900 max-w-[200px] truncate whitespace-nowrap">
-                                <div class="font-bold truncate" title="{{ $catalog->title }}">{{ $catalog->title }}</div>
+                                <div class="font-bold truncate" title="{{ ucwords($catalog->title) }}">{{ ucwords($catalog->title) }}</div>
                                 @if($catalog->edition)
-                                    <div class="text-[10px] text-slate-400 font-normal">{{ $catalog->edition }} Edition</div>
+                                    <div class="text-[10px] text-slate-400 font-normal">{{ ucwords($catalog->edition) }} Edition</div>
                                 @endif
                             </td>
-                            <td class="p-3 text-slate-700 whitespace-nowrap font-medium">{{ $catalog->author->name ?? '—' }}</td>
-                            <td class="p-3 text-slate-600 whitespace-nowrap hidden md:table-cell">{{ $catalog->assetType->name ?? '—' }}</td>
-                            <td class="p-3 text-slate-600 whitespace-nowrap hidden lg:table-cell">{{ $catalog->publisher->name ?? '—' }}</td>
-                            <td class="p-3 text-slate-600 whitespace-nowrap hidden lg:table-cell">{{ $catalog->generalReference->name ?? '—' }}</td>
+                            <td class="p-3 text-slate-700 whitespace-nowrap font-medium">{{ ucwords($catalog->author->name ?? '—') }}</td>
+                            <td class="p-3 text-slate-600 whitespace-nowrap hidden md:table-cell">{{ ucwords($catalog->assetType->name ?? '—') }}</td>
+                            <td class="p-3 text-slate-600 whitespace-nowrap hidden lg:table-cell">{{ ucwords($catalog->publisher->name ?? '—') }}</td>
+                            <td class="p-3 text-slate-600 whitespace-nowrap hidden lg:table-cell">{{ ucwords($catalog->generalReference->name ?? '—') }}</td>
                             <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-[11px]">
                                 <div>{{ $catalog->isbn_issn ?: '—' }}</div>
                                 <div class="text-[10px] text-slate-400 font-sans">{{ $catalog->publication_year }}</div>
@@ -113,19 +113,20 @@
     @if ($showModal)
         <div
             x-data
-            @keydown.escape.window="$wire.set('showModal', false)"
+            @keydown.escape.window="$wire.closeModal()"
             class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
             role="dialog"
             aria-modal="true"
+            aria-labelledby="modal-title"
         >
-            <div wire:click="$set('showModal', false)" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"></div>
+            <div wire:click="closeModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"></div>
 
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl z-10 max-h-[90vh] flex flex-col my-auto overflow-hidden border border-slate-100">
                 <div class="bg-slate-50 px-5 sm:px-6 py-4 border-b border-slate-200/80 flex justify-between items-center shrink-0">
-                    <h3 class="text-sm font-bold text-slate-900">
+                    <h3 id="modal-title" class="text-sm font-bold text-slate-900">
                         {{ $catalogIdBeingEdited ? 'Edit Catalog' : 'Add New Catalog' }}
                     </h3>
-                    <button wire:click="$set('showModal', false)" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1">&times;</button>
+                    <button wire:click="closeModal" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1">&times;</button>
                 </div>
 
                 <form wire:submit="saveCatalog" class="p-5 sm:p-6 space-y-4 overflow-y-auto">
@@ -135,7 +136,7 @@
                             id="catalog-title"
                             type="text"
                             wire:model="title"
-                            class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                            class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                         >
                         @error('title') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                     </div>
@@ -146,7 +147,7 @@
                             <select
                                 id="catalog-author"
                                 wire:model="author_id"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                             >
                                 <option value="">Select Author</option>
                                 @foreach($authors as $author)
@@ -161,7 +162,7 @@
                             <select
                                 id="catalog-asset-type"
                                 wire:model="asset_type_id"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                             >
                                 <option value="">Select Asset Type</option>
                                 @foreach($assetTypes as $type)
@@ -178,7 +179,7 @@
                             <select
                                 id="catalog-publisher"
                                 wire:model="publisher_id"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                             >
                                 <option value="">Select Publisher</option>
                                 @foreach($publishers as $publisher)
@@ -193,7 +194,7 @@
                             <select
                                 id="catalog-reference"
                                 wire:model="general_reference_id"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                             >
                                 <option value="">Select General Reference</option>
                                 @foreach($generalReferences as $ref)
@@ -212,7 +213,7 @@
                                 type="text"
                                 wire:model="isbn_issn"
                                 maxlength="20"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                             >
                             @error('isbn_issn') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                         </div>
@@ -224,7 +225,7 @@
                                 type="text"
                                 wire:model="edition"
                                 maxlength="20"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                             >
                             @error('edition') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                         </div>
@@ -235,7 +236,7 @@
                                 id="catalog-year"
                                 type="number"
                                 wire:model="publication_year"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                             >
                             @error('publication_year') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                         </div>
@@ -247,14 +248,14 @@
                             id="catalog-description"
                             wire:model="description"
                             rows="3"
-                            class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                            class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                         ></textarea>
                         @error('description') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-2 border-t border-slate-100">
                         <button
-                            wire:click="$set('showModal', false)"
+                            wire:click="closeModal"
                             type="button"
                             class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 cursor-pointer transition"
                         >
@@ -282,6 +283,7 @@
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
             role="dialog"
             aria-modal="true"
+            aria-labelledby="delete-modal-title"
         >
             <div wire:click="$set('showDeleteModal', false)" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"></div>
 
@@ -293,7 +295,7 @@
                 </div>
 
                 <div>
-                    <h3 class="text-base font-bold text-slate-900">Delete Catalog Entry</h3>
+                    <h3 id="delete-modal-title" class="text-base font-bold text-slate-900">Delete Catalog Entry</h3>
                     <p class="text-xs text-slate-500 mt-1">Are you sure you want to delete this catalog record? This action cannot be undone.</p>
                 </div>
 

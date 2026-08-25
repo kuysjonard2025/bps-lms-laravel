@@ -28,9 +28,6 @@ class Accession extends Model
         'acquired_date' => 'date',
     ];
 
-    /**
-     * Accessor to treat accession_number as the barcode value.
-     */
     protected function barcode(): Attribute
     {
         return Attribute::make(

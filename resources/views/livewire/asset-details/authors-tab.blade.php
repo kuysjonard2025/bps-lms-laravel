@@ -37,7 +37,7 @@
                 @forelse($authors as $author)
                     <tr wire:key="author-row-{{ $author->id }}" class="hover:bg-gray-50/75 transition-colors">
                         <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
-                            {{ $author->name }}
+                            {{ ucwords($author->name) }}
                         </td>
                         <td class="px-4 py-3 text-right whitespace-nowrap space-x-1">
                             <button

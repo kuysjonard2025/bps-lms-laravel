@@ -30,9 +30,19 @@ class AuthorsTab extends Component
             'name' => [
                 'required',
                 'string',
+                'min:2',
                 'max:255',
                 Rule::unique('authors', 'name')->ignore($this->authorIdBeingEdited),
             ],
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'name.unique' => 'An author with this name already exists.',
+            'name.min' => 'Author name must be at least 2 characters.',
+            'name.max' => 'Author name must not exceed 255 characters.',
         ];
     }
 
@@ -59,7 +69,7 @@ class AuthorsTab extends Component
     public function saveAuthor(): void
     {
         // 1. Format FIRST so validation tests the exact string saved to DB
-        $this->name = ucwords(trim($this->name));
+        $this->name = strtolower(trim($this->name));
 
         $this->validate();
 

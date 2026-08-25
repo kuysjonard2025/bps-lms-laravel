@@ -10,35 +10,16 @@ return new class extends Migration
     {
         Schema::create('accessions', function (Blueprint $table) {
             $table->id();
-
-            // Foreign Keys
-            $table->foreignId('catalog_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('acquisition_id')->constrained()->cascadeOnDelete();
-
-            // Identifiers & Circulation Tracking
-            $table->string('accession_number', 20)->unique();
-            $table->string('batch_number', 20);
-            $table->string('call_number', 20);
-
-            // Status & Condition Tracking
-            $table->enum('condition', ['New', 'Good', 'Fair', 'Damaged', 'Missing'])->default('Good');
-            $table->enum('status', [
-                'Available',
-                'On Loan',
-                'Reserved',
-                'Under Maintenance',
-                'Lost',
-                'Withdrawn'
-            ])->default('Available');
-
+            $table->foreignId('catalog_id')->constrained()->restrictOnDelete();
+            $table->foreignId('acquisition_id')->constrained()->restrictOnDelete();
+            $table->string('accession_number')->unique();
+            $table->string('batch_number')->index();
+            $table->string('call_number');
+            $table->string('condition')->default('New'); // New, Good, Fair, Damaged
+            $table->string('status')->default('Available'); // Available, On Loan, Reserved, Under Maintenance, Lost, Withdrawn
             $table->date('acquired_date');
             $table->text('remarks')->nullable();
-
             $table->timestamps();
-
-            // Indexes for search and query performance
-            $table->index(['acquisition_id', 'catalog_id', 'batch_number']);
-            $table->index(['status', 'condition']);
         });
     }
 

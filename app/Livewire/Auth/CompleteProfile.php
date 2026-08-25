@@ -46,10 +46,10 @@ class CompleteProfile extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        $firstName = trim($this->first_name) ?: null;
-        $middleName = trim($this->middle_name) ?: null;
-        $lastName = trim($this->last_name) ?: null;
-        $suffix = trim($this->suffix) ?: null;
+        $firstName = strtolower(trim($this->first_name)) ?: null;
+        $middleName = strtolower(trim($this->middle_name)) ?: null;
+        $lastName = strtolower(trim($this->last_name)) ?: null;
+        $suffix = strtolower(trim($this->suffix)) ?: null;
 
         // Compound unique rule for [first_name, middle_name, last_name, suffix]
         $fullNameRule = Rule::unique('users', 'first_name')
@@ -73,9 +73,11 @@ class CompleteProfile extends Component
                 'required', 'string', 'max:20',
                 Rule::unique('users', 'username')->ignore($user->id)
             ],
-            'password'       => 'nullable|string|min:6|confirmed',
+            'password'       => 'nullable|string|min:6|max:20|confirmed',
         ], [
-            'first_name.unique' => 'An account with this full name and suffix already exists.'
+            'first_name.unique' => 'An account with this full name and suffix already exists.',
+            'password.min' => 'The password must be at least 6 characters.',
+            'password.max' => 'The password must not exceed 20 characters.',
         ]);
 
         $emailChanged = strtolower((string)$user->email) !== strtolower(trim($this->email));
@@ -85,10 +87,10 @@ class CompleteProfile extends Component
             'middle_name'       => $middleName ? Str::title($middleName) : null,
             'last_name'         => $lastName ? Str::title($lastName) : null,
             'suffix'            => $suffix,
-            'address'           => trim($this->address) ?: null,
-            'contact_number'    => trim($this->contact_number) ?: null,
-            'email'             => trim($this->email) ? strtolower(trim($this->email)) : null,
-            'username'          => trim($this->username),
+            'address'           => strtolower(trim($this->address)) ?: null,
+            'contact_number'    => strtolower(trim($this->contact_number)) ?: null,
+            'email'             => strtolower(trim($this->email)) ?: null,
+            'username'          => strtolower(trim($this->username)),
             'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
         ];
 

@@ -4,9 +4,7 @@ namespace App\Livewire\AssetDetails;
 
 use App\Models\Publisher;
 use Illuminate\Database\QueryException;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -22,7 +20,6 @@ class PublishersTab extends Component
     public ?int $publisherIdBeingDeleted = null;
 
     public string $name = '';
-    public string $address = '';
 
     protected function rules(): array
     {
@@ -30,15 +27,9 @@ class PublishersTab extends Component
             'name' => [
                 'required',
                 'string',
-                'max:50',
-                Rule::unique('publishers', 'name')
-                    ->where('address', $this->address)
-                    ->ignore($this->publisherIdBeingEdited),
-            ],
-            'address' => [
-                'required',
-                'string',
-                'max:100',
+                'min:2',
+                'max:255',
+                Rule::unique('publishers', 'name')->ignore($this->publisherIdBeingEdited),
             ],
         ];
     }
@@ -46,7 +37,9 @@ class PublishersTab extends Component
     protected function messages(): array
     {
         return [
-            'name.unique' => 'A publisher with this exact name and address combination already exists.',
+            'name.unique' => 'A publisher with this name already exists.',
+            'name.min' => 'Publisher name must be at least 2 characters.',
+            'name.max' => 'Publisher name must not exceed 255 characters.',
         ];
     }
 
@@ -58,7 +51,7 @@ class PublishersTab extends Component
     public function openCreateModal(): void
     {
         $this->resetValidation();
-        $this->reset(['name', 'address', 'publisherIdBeingEdited']);
+        $this->reset(['name', 'publisherIdBeingEdited']);
         $this->showModal = true;
     }
 
@@ -67,33 +60,23 @@ class PublishersTab extends Component
         $this->resetValidation();
         $this->publisherIdBeingEdited = $publisher->id;
         $this->name = $publisher->name;
-        $this->address = $publisher->address;
         $this->showModal = true;
     }
 
     public function savePublisher(): void
     {
-        // 1. Clean inputs BEFORE validation so rules test the exact database payload
-        $this->name = trim($this->name);
-        $this->address = trim($this->address);
+        $this->name = strtolower(trim($this->name));
 
         $this->validate();
 
-        try {
-            Publisher::updateOrCreate(
-                ['id' => $this->publisherIdBeingEdited],
-                [
-                    'name' => $this->name,
-                    'address' => $this->address,
-                ]
-            );
-        } catch (UniqueConstraintViolationException $e) {
-            throw ValidationException::withMessages([
-                'name' => 'A publisher with this exact name and address combination already exists.',
-            ]);
-        }
+        Publisher::updateOrCreate(
+            ['id' => $this->publisherIdBeingEdited],
+            ['name' => $this->name]
+        );
 
-        $message = $this->publisherIdBeingEdited ? 'Publisher updated successfully.' : 'Publisher created successfully.';
+        $message = $this->publisherIdBeingEdited
+            ? 'Publisher updated successfully.'
+            : 'Publisher created successfully.';
 
         $this->showModal = false;
         $this->dispatch('toast', message: $message, type: 'success');
@@ -116,7 +99,7 @@ class PublishersTab extends Component
                     $this->dispatch('toast', message: 'Publisher deleted successfully.', type: 'success');
                 }
             } catch (QueryException $e) {
-                // Catches FK foreign key restrictions (e.g., PostgreSQL 23503)
+                // Catches FK foreign key restrictions (e.g., linked asset records)
                 $this->dispatch('toast', message: 'Cannot delete: This publisher is linked to existing asset records.', type: 'error');
             }
         }
@@ -127,13 +110,9 @@ class PublishersTab extends Component
 
     public function render()
     {
-        // Use ilike for PostgreSQL (case-insensitive) or fallback to like for MySQL
-        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
-
         $publishers = Publisher::query()
-            ->when($this->search, function ($query) use ($likeOperator) {
-                $query->where('name', $likeOperator, "%{$this->search}%")
-                      ->orWhere('address', $likeOperator, "%{$this->search}%");
+            ->when($this->search, function ($query) {
+                $query->where('name', 'ilike', "%{$this->search}%");
             })
             ->latest()
             ->paginate(10);

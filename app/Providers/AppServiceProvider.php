@@ -2,19 +2,18 @@
 
 namespace App\Providers;
 
+use App\Models\AuthLog;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Lockout;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
-
-use Illuminate\Auth\Events\Failed;
-use Illuminate\Auth\Events\Login;
-use Illuminate\Auth\Events\Logout;
-use Illuminate\Auth\Events\Lockout;
-use Illuminate\Support\Facades\Event;
-use App\Models\AuthLog;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -41,7 +40,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Login::class, function (Login $event) {
             AuthLog::create([
                 'user_id'    => $event->user->id,
-                'email'      => $event->user->email,
+                'email'      => $event->user->email ?? $event->user->username ?? 'N/A',
                 'event'      => 'login_success',
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
@@ -54,7 +53,11 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Failed::class, function (Failed $event) {
             AuthLog::create([
                 'user_id'    => $event->user?->id,
-                'email'      => $event->credentials['email'] ?? $event->credentials['username'] ?? 'Unknown',
+                'email'      => $event->credentials['email']
+                    ?? $event->credentials['username']
+                    ?? $event->user?->email
+                    ?? $event->user?->username
+                    ?? 'Unknown',
                 'event'      => 'login_failed',
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
@@ -69,7 +72,7 @@ class AppServiceProvider extends ServiceProvider
             if ($event->user) {
                 AuthLog::create([
                     'user_id'    => $event->user->id,
-                    'email'      => $event->user->email,
+                    'email'      => $event->user->email ?? $event->user->username ?? 'N/A',
                     'event'      => 'logout',
                     'ip_address' => request()->ip(),
                     'user_agent' => request()->userAgent(),
@@ -81,14 +84,16 @@ class AppServiceProvider extends ServiceProvider
 
         // Lockout (Too many failed attempts)
         Event::listen(Lockout::class, function (Lockout $event) {
-            // Check standard request input first, fallback to Livewire payload
-            $email = request()->input('email')
+            $identifier = request()->input('email')
+                ?? request()->input('username')
                 ?? request()->input('components.0.snapshot.data.umail')
+                ?? request()->input('components.0.snapshot.data.username')
                 ?? request()->input('serverMemo.data.umail')
+                ?? request()->input('serverMemo.data.username')
                 ?? 'Unknown';
 
             AuthLog::create([
-                'email'      => $email,
+                'email'      => $identifier,
                 'event'      => 'lockout',
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),

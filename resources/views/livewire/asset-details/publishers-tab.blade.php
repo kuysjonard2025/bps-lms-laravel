@@ -30,7 +30,6 @@
             <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[11px]">
                 <tr>
                     <th scope="col" class="px-4 py-3 font-semibold">Publisher Name</th>
-                    <th scope="col" class="px-4 py-3 font-semibold">Address</th>
                     <th scope="col" class="px-4 py-3 text-right font-semibold">Actions</th>
                 </tr>
             </thead>
@@ -38,10 +37,7 @@
                 @forelse($publishers as $publisher)
                     <tr wire:key="publisher-row-{{ $publisher->id }}" class="hover:bg-gray-50/75 transition-colors">
                         <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
-                            {{ $publisher->name }}
-                        </td>
-                        <td class="px-4 py-3 text-gray-500 max-w-md truncate">
-                            {{ $publisher->address }}
+                            {{ ucwords($publisher->name) }}
                         </td>
                         <td class="px-4 py-3 text-right whitespace-nowrap space-x-1">
                             <button
@@ -62,7 +58,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="3" class="px-4 py-8 text-center text-gray-500">
+                        <td colspan="2" class="px-4 py-8 text-center text-gray-500">
                             No publishers found matching your criteria.
                         </td>
                     </tr>
@@ -102,18 +98,6 @@
                             class="mt-1 w-full text-sm rounded-md border-gray-300 border p-2 shadow-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
                         @error('name') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label for="publisher-address" class="block text-xs font-medium text-gray-700">Address *</label>
-                        <input
-                            id="publisher-address"
-                            type="text"
-                            wire:model="address"
-                            maxlength="100"
-                            class="mt-1 w-full text-sm rounded-md border-gray-300 border p-2 shadow-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                        @error('address') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">

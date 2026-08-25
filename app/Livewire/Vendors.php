@@ -31,10 +31,6 @@ class Vendors extends Component
 
     protected function rules(): array
     {
-        $cleanContactPerson = trim($this->contact_person);
-        $cleanContactNumber = trim($this->contact_number);
-        $cleanEmail = trim($this->email);
-
         return [
             'company_name' => [
                 'required',
@@ -45,12 +41,11 @@ class Vendors extends Component
                     ->ignore($this->vendorIdBeingEdited),
             ],
             'contact_person' => [
-                'nullable',
+                'required',
                 'string',
                 'max:100',
                 Rule::unique('vendors', 'contact_person')
-                    ->ignore($this->vendorIdBeingEdited)
-                    ->when(! $cleanContactPerson, fn ($rule) => $rule->whereNull('contact_person')),
+                    ->ignore($this->vendorIdBeingEdited),
             ],
             'address' => [
                 'required',
@@ -58,20 +53,18 @@ class Vendors extends Component
                 'max:100',
             ],
             'contact_number' => [
-                'nullable',
+                'required',
                 'string',
                 'max:20',
                 Rule::unique('vendors', 'contact_number')
-                    ->ignore($this->vendorIdBeingEdited)
-                    ->when(! $cleanContactNumber, fn ($rule) => $rule->whereNull('contact_number')),
+                    ->ignore($this->vendorIdBeingEdited),
             ],
             'email' => [
-                'nullable',
+                'required',
                 'email',
                 'max:50',
                 Rule::unique('vendors', 'email')
-                    ->ignore($this->vendorIdBeingEdited)
-                    ->when(! $cleanEmail, fn ($rule) => $rule->whereNull('email')),
+                    ->ignore($this->vendorIdBeingEdited),
             ],
         ];
     }
@@ -79,10 +72,10 @@ class Vendors extends Component
     protected function messages(): array
     {
         return [
-            'company_name.unique' => 'A vendor with this exact company name and address combination already exists.',
+            'company_name.unique'   => 'A vendor with this exact company name and address combination already exists.',
             'contact_person.unique' => 'This contact person is already assigned to another vendor.',
             'contact_number.unique' => 'This contact number is already registered to another vendor.',
-            'email.unique' => 'This email address is already registered to another vendor.',
+            'email.unique'          => 'This email address is already registered to another vendor.',
         ];
     }
 
@@ -103,10 +96,10 @@ class Vendors extends Component
         $this->resetValidation();
         $this->vendorIdBeingEdited = $vendor->id;
         $this->company_name = $vendor->company_name;
-        $this->contact_person = $vendor->contact_person ?? '';
+        $this->contact_person = $vendor->contact_person;
         $this->address = $vendor->address;
-        $this->contact_number = $vendor->contact_number ?? '';
-        $this->email = $vendor->email ?? '';
+        $this->contact_number = $vendor->contact_number;
+        $this->email = $vendor->email;
         $this->showModal = true;
     }
 
@@ -115,11 +108,11 @@ class Vendors extends Component
         $this->validate();
 
         $payload = [
-            'company_name' => trim($this->company_name),
-            'contact_person' => trim($this->contact_person) ?: null,
-            'address' => trim($this->address),
-            'contact_number' => trim($this->contact_number) ?: null,
-            'email' => trim($this->email) ?: null,
+            'company_name'   => strtolower(trim($this->company_name)),
+            'contact_person' => strtolower(trim($this->contact_person)),
+            'address'        => strtolower(trim($this->address)),
+            'contact_number' => trim($this->contact_number),
+            'email'          => strtolower(trim($this->email)),
         ];
 
         try {
