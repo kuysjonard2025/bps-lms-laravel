@@ -3,7 +3,10 @@
 namespace App\Models;
 
 use App\Livewire\Traits\LogsActivity;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -60,6 +63,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Override default verification notification to use queues.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new QueuedVerifyEmail);
+    }
+
+    /**
      * Get the user's full name
      */
     public function getFullNameAttribute(): string
@@ -83,4 +94,12 @@ class User extends Authenticatable implements MustVerifyEmail
             ->take(2)
             ->implode('');
     }
+}
+
+/**
+ * Queued Email Verification Notification Class
+ */
+class QueuedVerifyEmail extends VerifyEmail implements ShouldQueue
+{
+    use Queueable;
 }

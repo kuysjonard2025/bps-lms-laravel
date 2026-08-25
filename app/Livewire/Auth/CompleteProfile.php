@@ -3,7 +3,6 @@
 namespace App\Livewire\Auth;
 
 use App\Models\User;
-use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -12,6 +11,7 @@ use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Throwable;
 
 class CompleteProfile extends Component
 {
@@ -106,7 +106,7 @@ class CompleteProfile extends Component
                 try {
                     $user->sendEmailVerificationNotification();
                     session()->flash('status', 'Profile updated successfully! Please check your email to verify your account.');
-                } catch (Exception $e) {
+                } catch (Throwable $e) {
                     session()->flash('status', 'Profile updated, but sending verification email failed. Please try again from the verification page.');
                     Log::error('CompleteProfile sendEmailVerificationNotification failed: ' . $e->getMessage());
                 }
