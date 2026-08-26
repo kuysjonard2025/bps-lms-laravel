@@ -2,10 +2,13 @@
 
 namespace App\Livewire;
 
+use App\Exports\AcquisitionsExport;
 use App\Models\Accession;
 use App\Models\Acquisition;
 use App\Models\Catalog;
 use App\Models\Vendor;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +18,8 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class Acquisitions extends Component
 {
@@ -26,7 +31,7 @@ class Acquisitions extends Component
     public ?int $vendor_id = null;
     public ?int $catalog_id = null;
     public int $quantity = 1;
-    public $unit_cost = null;
+    public ?float $unit_cost = null;
     public ?string $received_date = null;
     public ?string $remarks = null;
 
@@ -40,13 +45,14 @@ class Acquisitions extends Component
     protected function rules(): array
     {
         return [
-            'transaction_number' => 'required|string|max:255',
-            'vendor_id'          => 'required|exists:vendors,id',
-            'catalog_id'         => 'required|exists:catalogs,id',
+            'transaction_number' => ['required', 'string', 'max:255', 'regex:/^[\pL\pN\s\/._#-]+$/u'],
+            'vendor_id'          => 'required|integer|exists:vendors,id',
+            'catalog_id'         => 'required|integer|exists:catalogs,id',
             'quantity'           => [
                 'required',
                 'integer',
                 'min:1',
+                'max:100000',
                 function ($attribute, $value, $fail) {
                     if ($this->acquisitionIdBeingEdited) {
                         $accessionedCount = Accession::where('acquisition_id', $this->acquisitionIdBeingEdited)->count();
@@ -56,24 +62,27 @@ class Acquisitions extends Component
                     }
                 },
             ],
-            'unit_cost'          => 'required|numeric|min:0',
-            'received_date'      => 'required|date',
+            'unit_cost'          => 'required|numeric|min:0|max:99999999.99',
+            'received_date'      => 'required|date|before_or_equal:today',
             'remarks'            => 'nullable|string|max:1000',
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'transaction_number.regex' => 'Transaction number may only contain letters, numbers, spaces, and - / . #',
         ];
     }
 
     public function updatedVendorId($value): void
     {
-        if (blank($value)) {
-            $this->vendor_id = null;
-        }
+        $this->vendor_id = blank($value) ? null : (int) $value;
     }
 
     public function updatedCatalogId($value): void
     {
-        if (blank($value)) {
-            $this->catalog_id = null;
-        }
+        $this->catalog_id = blank($value) ? null : (int) $value;
     }
 
     public function updatedSearch(): void
@@ -94,12 +103,34 @@ class Acquisitions extends Component
     }
 
     #[Computed]
+    public function vendors()
+    {
+        return Vendor::orderBy('company_name')
+            ->get(['id', 'company_name'])
+            ->map(function ($vendor) {
+                $vendor->company_name = mb_convert_encoding((string) $vendor->company_name, 'UTF-8', 'UTF-8');
+                return $vendor;
+            });
+    }
+
+    #[Computed]
+    public function catalogs()
+    {
+        return Catalog::orderBy('title')
+            ->get(['id', 'title'])
+            ->map(function ($catalog) {
+                $catalog->title = mb_convert_encoding((string) $catalog->title, 'UTF-8', 'UTF-8');
+                return $catalog;
+            });
+    }
+
+    #[Computed]
     public function calculatedTotalCost(): float
     {
         $qty = (int) ($this->quantity ?? 0);
         $cost = (float) ($this->unit_cost ?? 0);
 
-        return $qty * $cost;
+        return round($qty * $cost, 2);
     }
 
     public function openCreateModal(): void
@@ -115,9 +146,11 @@ class Acquisitions extends Component
     private function generateAcquisitionNumber(): string
     {
         $year = date('Y');
+        $prefix = "ACQ-{$year}-";
 
         $latest = Acquisition::whereYear('created_at', $year)
-            ->where('acquisition_number', 'LIKE', "ACQ-{$year}-%")
+            ->where('acquisition_number', 'LIKE', $prefix . '%')
+            ->lockForUpdate()
             ->orderByDesc('id')
             ->first();
 
@@ -126,9 +159,9 @@ class Acquisitions extends Component
             $baseNum = (int) $matches[1];
         }
 
-        $nextNum = str_pad($baseNum + 1, 4, '0', STR_PAD_LEFT);
+        $nextNum = str_pad((string) ($baseNum + 1), 4, '0', STR_PAD_LEFT);
 
-        return "ACQ-{$year}-{$nextNum}";
+        return $prefix . $nextNum;
     }
 
     public function openEditModal(int $id): void
@@ -138,65 +171,83 @@ class Acquisitions extends Component
 
         $acq = Acquisition::findOrFail($id);
 
-        $this->acquisition_number = $acq->acquisition_number;
-        $this->transaction_number = $acq->transaction_number;
+        $this->acquisition_number = mb_convert_encoding((string) $acq->acquisition_number, 'UTF-8', 'UTF-8');
+        $this->transaction_number = mb_convert_encoding((string) $acq->transaction_number, 'UTF-8', 'UTF-8');
         $this->vendor_id          = $acq->vendor_id;
         $this->catalog_id         = $acq->catalog_id;
         $this->quantity           = $acq->quantity;
         $this->unit_cost          = $acq->unit_cost;
         $this->received_date      = $acq->received_date ? $acq->received_date->format('Y-m-d') : null;
-        $this->remarks            = $acq->remarks;
+        $this->remarks            = $acq->remarks ? mb_convert_encoding((string) $acq->remarks, 'UTF-8', 'UTF-8') : null;
 
         $this->showModal = true;
     }
 
     public function saveAcquisition(): void
     {
-        // Sanitize string inputs before processing
-        $this->transaction_number = trim($this->transaction_number);
-        $this->remarks = trim((string) $this->remarks);
+        $this->transaction_number = mb_convert_encoding(strip_tags(trim($this->transaction_number ?? '')), 'UTF-8', 'UTF-8');
+
+        $remarksTrimmed = mb_convert_encoding(strip_tags(trim((string) $this->remarks)), 'UTF-8', 'UTF-8');
+        $this->remarks = $remarksTrimmed === '' ? null : $remarksTrimmed;
 
         $validated = $this->validate();
+        $validated['transaction_number'] = strtoupper(trim($this->transaction_number));
+        $validated['remarks'] = blank($this->remarks) ? null : strtolower(trim($this->remarks));
 
-        try {
-            DB::transaction(function () use ($validated) {
-                // Check duplicate composite unique key inside locked transaction block
-                $exists = Acquisition::where('transaction_number', $this->transaction_number)
-                    ->where('catalog_id', $this->catalog_id)
-                    ->where('vendor_id', $this->vendor_id)
-                    ->when($this->acquisitionIdBeingEdited, fn ($query) => $query->where('id', '!=', $this->acquisitionIdBeingEdited))
-                    ->lockForUpdate()
-                    ->exists();
+        $isEditing = (bool) $this->acquisitionIdBeingEdited;
+        $maxAttempts = $isEditing ? 1 : 3;
+        $saved = false;
 
-                if ($exists) {
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                DB::transaction(function () use ($validated, $isEditing) {
+                    $exists = Acquisition::where('transaction_number', $this->transaction_number)
+                        ->where('catalog_id', $this->catalog_id)
+                        ->where('vendor_id', $this->vendor_id)
+                        ->when($isEditing, fn ($query) => $query->where('id', '!=', $this->acquisitionIdBeingEdited))
+                        ->lockForUpdate()
+                        ->exists();
+
+                    if ($exists) {
+                        throw ValidationException::withMessages([
+                            'transaction_number' => 'An acquisition record with this Transaction Number, Vendor, and Catalog item already exists.',
+                        ]);
+                    }
+
+                    if ($isEditing) {
+                        $acq = Acquisition::findOrFail($this->acquisitionIdBeingEdited);
+                        $acq->update($validated);
+                    } else {
+                        $validated['acquisition_number'] = $this->generateAcquisitionNumber();
+                        Acquisition::create($validated);
+                    }
+                });
+
+                $saved = true;
+                break;
+            } catch (UniqueConstraintViolationException $e) {
+                if ($isEditing || $attempt >= $maxAttempts) {
                     throw ValidationException::withMessages([
-                        'transaction_number' => 'An acquisition record with this Transaction Number, Vendor, and Catalog item already exists.',
+                        'transaction_number' => 'A database conflict occurred while saving this record. Please try again.',
                     ]);
                 }
+                continue;
+            }
+        }
 
-                if ($this->acquisitionIdBeingEdited) {
-                    $acq = Acquisition::findOrFail($this->acquisitionIdBeingEdited);
-                    $acq->update($validated);
-                } else {
-                    // Generate fresh number right before write to prevent gap/race conditions
-                    $validated['acquisition_number'] = $this->generateAcquisitionNumber();
-                    Acquisition::create($validated);
-                }
-            });
-
-            $message = $this->acquisitionIdBeingEdited
-                ? 'Acquisition record updated successfully.'
-                : 'Acquisition record created successfully.';
-
-            $this->showModal = false;
-            $this->resetForm();
-            $this->dispatch('toast', message: $message, type: 'success');
-
-        } catch (UniqueConstraintViolationException $e) {
+        if (! $saved) {
             throw ValidationException::withMessages([
-                'transaction_number' => 'A database conflict occurred with this transaction number.',
+                'transaction_number' => 'Unable to save this record after multiple attempts. Please try again.',
             ]);
         }
+
+        $message = $isEditing
+            ? 'Acquisition record updated successfully.'
+            : 'Acquisition record created successfully.';
+
+        $this->showModal = false;
+        $this->resetForm();
+        $this->dispatch('toast', message: $message, type: 'success');
     }
 
     public function confirmDelete(int $id): void
@@ -214,25 +265,35 @@ class Acquisitions extends Component
 
     public function deleteAcquisition(): void
     {
-        if ($this->acquisitionIdBeingDeleted) {
-            try {
-                $acq = Acquisition::find($this->acquisitionIdBeingDeleted);
+        if (! $this->acquisitionIdBeingDeleted) {
+            $this->showDeleteModal = false;
+            return;
+        }
 
-                if ($acq) {
-                    // Double check relations prior to final delete
-                    if (Accession::where('acquisition_id', $acq->id)->exists()) {
-                        $this->dispatch('toast', message: 'Deletion blocked: Accession records exist for this acquisition.', type: 'error');
-                        $this->showDeleteModal = false;
-                        $this->acquisitionIdBeingDeleted = null;
-                        return;
-                    }
+        try {
+            DB::transaction(function () {
+                $acq = Acquisition::where('id', $this->acquisitionIdBeingDeleted)
+                    ->lockForUpdate()
+                    ->first();
 
-                    $acq->delete();
-                    $this->dispatch('toast', message: 'Acquisition record deleted successfully.', type: 'success');
+                if (! $acq) {
+                    return;
                 }
-            } catch (QueryException $e) {
-                $this->dispatch('toast', message: 'Cannot delete: Acquisition is referenced by other system records.', type: 'error');
-            }
+
+                if (Accession::where('acquisition_id', $acq->id)->exists()) {
+                    throw ValidationException::withMessages([
+                        'delete' => 'Deletion blocked: Accession records exist for this acquisition.',
+                    ]);
+                }
+
+                $acq->delete();
+            });
+
+            $this->dispatch('toast', message: 'Acquisition record deleted successfully.', type: 'success');
+        } catch (ValidationException $e) {
+            $this->dispatch('toast', message: 'Deletion blocked: Accession records exist for this acquisition.', type: 'error');
+        } catch (QueryException $e) {
+            $this->dispatch('toast', message: 'Cannot delete: Acquisition is referenced by other system records.', type: 'error');
         }
 
         $this->showDeleteModal = false;
@@ -255,28 +316,66 @@ class Acquisitions extends Component
         $this->quantity = 1;
     }
 
+    private function filteredAcquisitionsQuery(): Builder
+    {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        $searchTerm = mb_convert_encoding(addcslashes(trim($this->search), '%_\\'), 'UTF-8', 'UTF-8');
+
+        return Acquisition::with(['catalog.author', 'catalog.assetType', 'vendor'])
+            ->when($searchTerm !== '', function ($query) use ($likeOperator, $searchTerm) {
+                $query->where(function ($q) use ($likeOperator, $searchTerm) {
+                    $q->where('acquisition_number', $likeOperator, "%{$searchTerm}%")
+                      ->orWhere('transaction_number', $likeOperator, "%{$searchTerm}%")
+                      ->orWhereHas('catalog', fn ($sub) => $sub->where('title', $likeOperator, "%{$searchTerm}%"))
+                      ->orWhereHas('vendor', fn ($sub) => $sub->where('company_name', $likeOperator, "%{$searchTerm}%"));
+                });
+            })
+            ->latest();
+    }
+
+    public function exportExcel()
+    {
+        return Excel::download(
+            new AcquisitionsExport(trim($this->search)),
+            'acquisitions-report-' . now()->format('Y-m-d_His') . '.xlsx'
+        );
+    }
+
+    public function exportPdf(): StreamedResponse
+    {
+        $acquisitions = $this->filteredAcquisitionsQuery()->get();
+
+        $pdf = Pdf::loadView('pdf.acquisitions-report', [
+            'acquisitions' => $acquisitions,
+            'searchTerm'   => trim($this->search),
+            'date'         => now(), // Send as Carbon instance
+        ])->setPaper('a4', 'landscape');
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, 'acquisitions-report-' . now()->format('Y-m-d') . '.pdf');
+    }
+
     #[Layout('components.layouts.app')]
     #[Title('Acquisitions')]
     public function render()
     {
-        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        $acquisitions = $this->filteredAcquisitionsQuery()->paginate(10);
 
-        $acquisitions = Acquisition::with(['catalog.author', 'catalog.assetType', 'vendor'])
-            ->when($this->search, function ($query) use ($likeOperator) {
-                $query->where(function ($q) use ($likeOperator) {
-                    $q->where('acquisition_number', $likeOperator, "%{$this->search}%")
-                      ->orWhere('transaction_number', $likeOperator, "%{$this->search}%")
-                      ->orWhereHas('catalog', fn ($sub) => $sub->where('title', $likeOperator, "%{$this->search}%"))
-                      ->orWhereHas('vendor', fn ($sub) => $sub->where('company_name', $likeOperator, "%{$this->search}%"));
-                });
-            })
-            ->latest()
-            ->paginate(10);
+        // Sanitize paginated string items before rendering
+        $acquisitions->getCollection()->transform(function ($acq) {
+            $acq->acquisition_number = mb_convert_encoding((string) $acq->acquisition_number, 'UTF-8', 'UTF-8');
+            $acq->transaction_number = mb_convert_encoding((string) $acq->transaction_number, 'UTF-8', 'UTF-8');
+            if ($acq->remarks) {
+                $acq->remarks = mb_convert_encoding((string) $acq->remarks, 'UTF-8', 'UTF-8');
+            }
+            return $acq;
+        });
 
         return view('livewire.acquisitions', [
             'acquisitions' => $acquisitions,
-            'vendors'      => Vendor::orderBy('company_name')->get(['id', 'company_name']),
-            'catalogs'     => Catalog::orderBy('title')->get(['id', 'title']),
+            'vendors'      => $this->vendors,
+            'catalogs'     => $this->catalogs,
         ]);
     }
 }

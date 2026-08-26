@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Livewire\Traits\LogsActivity;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -42,5 +43,12 @@ class Acquisition extends Model
     public function accessions(): HasMany
     {
         return $this->hasMany(Accession::class);
+    }
+
+    protected function totalCost(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => round(((float) $this->quantity) * ((float) $this->unit_cost), 2),
+        );
     }
 }

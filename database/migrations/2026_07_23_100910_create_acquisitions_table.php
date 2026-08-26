@@ -12,8 +12,8 @@ return new class extends Migration
             $table->id();
 
             // Reference to catalog record
-            $table->foreignId('catalog_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('vendor_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('catalog_id')->constrained()->restrictOnDelete();
+            $table->foreignId('vendor_id')->constrained()->restrictOnDelete();
 
             // Transaction & Log Details
             $table->string('acquisition_number')->unique(); // e.g., ACQ-2026-001

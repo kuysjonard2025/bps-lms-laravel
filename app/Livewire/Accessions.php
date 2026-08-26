@@ -44,7 +44,7 @@ class Accessions extends Component
     public string $condition = 'New';
     public string $status = 'Available';
     public string $acquired_date = '';
-    public string $remarks = '';
+    public ?string $remarks = null;
 
     protected function rules(): array
     {
@@ -218,7 +218,7 @@ class Accessions extends Component
         $this->condition = $accession->condition;
         $this->status = $accession->status;
         $this->acquired_date = $accession->acquired_date ? Carbon::parse($accession->acquired_date)->format('Y-m-d') : '';
-        $this->remarks = $accession->remarks ?? '';
+        $this->remarks = $accession->remarks;
         $this->updateBatchCallNumber = false;
         $this->showModal = true;
     }
@@ -253,7 +253,7 @@ class Accessions extends Component
                         'condition'        => $this->condition,
                         'status'           => $this->status,
                         'acquired_date'    => $this->acquired_date,
-                        'remarks'          => $this->remarks ?: null,
+                        'remarks'          => $this->remarks,
                     ]);
 
                     if ($this->updateBatchCallNumber && $this->batch_number) {
@@ -289,7 +289,7 @@ class Accessions extends Component
                             'condition'        => $this->condition,
                             'status'           => $this->status,
                             'acquired_date'    => $this->acquired_date,
-                            'remarks'          => $this->remarks ?: null,
+                            'remarks'          => $this->remarks,
                         ]);
                     }
                 });
@@ -384,8 +384,8 @@ class Accessions extends Component
                 'search' => $this->search,
                 'status' => $this->statusFilter,
             ],
-            'date' => now()->format('F j, Y g:i A'), // Changed from 'generatedAt' to 'date'
-        ]);
+            'date' => now()->format('F j, Y g:i A'),
+        ])->setPaper('a4', 'landscape');
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
