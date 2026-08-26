@@ -10,6 +10,17 @@ use Livewire\Component;
 
 class VerifyEmail extends Component
 {
+    public function mount()
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Redirect immediately if already verified
+        if ($user && $user->hasVerifiedEmail()) {
+            return $this->redirectRoute('dashboard', navigate: true);
+        }
+    }
+
     public function resendNotification()
     {
         /** @var \App\Models\User $user */
