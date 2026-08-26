@@ -89,12 +89,16 @@
                 @enderror
             </div>
 
-            {{-- Remember Me --}}
+            {{-- Remember Me + Forgot Password --}}
             <div class="flex items-center justify-between pt-1">
                 <label class="flex items-center text-xs text-slate-600 cursor-pointer select-none">
                     <input wire:model="remember" type="checkbox" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20">
                     <span class="ml-2 font-medium">Remember me</span>
                 </label>
+
+                <a href="{{ Route::has('password.request') ? route('password.request') : '#' }}" wire:navigate class="text-xs font-semibold text-blue-600 hover:text-blue-700 transition">
+                    Forgot password?
+                </a>
             </div>
 
             {{-- Submit Button --}}
@@ -107,6 +111,24 @@
                 <span wire:loading class="inline-block">Signing in...</span>
             </button>
         </form>
+    </div>
+
+    {{-- Visitor Quick Access --}}
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide text-center mb-3">
+            Visitor Access
+        </p>
+        <div class="grid grid-cols-2 gap-3">
+            <a href="{{ Route::has('kiosk.login') ? route('kiosk.login') : '#' }}" wire:navigate class="flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-blue-50 hover:border-blue-200 transition-all group">
+                <x-heroicon-o-clipboard-document-list class="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition" />
+                <span class="text-xs font-semibold text-slate-700 group-hover:text-blue-700">Patron Time Logs</span>
+            </a>
+
+            <a href="{{ Route::has('patron.portal') ? route('patron.portal') : '#' }}" wire:navigate class="flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-blue-50 hover:border-blue-200 transition-all group">
+                <x-heroicon-o-identification class="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition" />
+                <span class="text-xs font-semibold text-slate-700 group-hover:text-blue-700">Patron Records Portal</span>
+            </a>
+        </div>
     </div>
 
     {{-- Footer --}}
