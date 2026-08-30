@@ -66,7 +66,7 @@ class CompleteProfile extends Component
             'address'        => 'nullable|string|max:255',
             'contact_number' => 'nullable|string|max:20',
             'email'          => [
-                'nullable', 'email', 'max:100',
+                'required', 'email', 'max:100',
                 Rule::unique('users', 'email')->ignore($user->id)
             ],
             'username'       => [
@@ -76,44 +76,51 @@ class CompleteProfile extends Component
             'password'       => 'nullable|string|min:6|max:20|confirmed',
         ], [
             'first_name.unique' => 'An account with this full name and suffix already exists.',
-            'password.min' => 'The password must be at least 6 characters.',
-            'password.max' => 'The password must not exceed 20 characters.',
+            'password.min'      => 'The password must be at least 6 characters.',
+            'password.max'      => 'The password must not exceed 20 characters.',
         ]);
 
-        $emailChanged = strtolower((string)$user->email) !== strtolower(trim($this->email));
+        $normalizedNewEmail = strtolower(trim($this->email));
+        $normalizedOldEmail = strtolower(trim((string) $user->email));
+
+        $emailChanged = $normalizedOldEmail !== '' && $normalizedNewEmail !== $normalizedOldEmail;
 
         $updateData = [
-            'first_name'        => $firstName ? Str::title($firstName) : null,
-            'middle_name'       => $middleName ? Str::title($middleName) : null,
-            'last_name'         => $lastName ? Str::title($lastName) : null,
-            'suffix'            => $suffix,
-            'address'           => strtolower(trim($this->address)) ?: null,
-            'contact_number'    => strtolower(trim($this->contact_number)) ?: null,
-            'email'             => strtolower(trim($this->email)) ?: null,
-            'username'          => strtolower(trim($this->username)),
-            'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
+            'first_name'     => $firstName ? Str::title($firstName) : null,
+            'middle_name'    => $middleName ? Str::title($middleName) : null,
+            'last_name'      => $lastName ? Str::title($lastName) : null,
+            'suffix'         => $suffix,
+            'address'        => trim($this->address) ?: null,
+            'contact_number' => trim($this->contact_number) ?: null,
+            'email'          => $normalizedNewEmail,
+            'username'       => strtolower(trim($this->username)),
         ];
+
+        if ($emailChanged) {
+            $updateData['email_verified_at'] = null;
+        }
 
         if (!empty($this->password)) {
             $updateData['password'] = Hash::make($this->password);
         }
 
         $user->update($updateData);
+        $user->refresh();
 
-        // Send Email Verification if updated or missing
+        // Send Email Verification only if email actually changed or was never verified
         if ($emailChanged || is_null($user->email_verified_at)) {
-            if ($user->email) {
-                try {
-                    $user->sendEmailVerificationNotification();
-                    session()->flash('status', 'Profile updated successfully! Please check your email to verify your account.');
-                } catch (Throwable $e) {
-                    session()->flash('status', 'Profile updated, but sending verification email failed. Please try again from the verification page.');
-                    Log::error('CompleteProfile sendEmailVerificationNotification failed: ' . $e->getMessage());
-                }
-
-                return $this->redirectRoute('verification.notice', navigate: true);
+            try {
+                $user->sendEmailVerificationNotification();
+                session()->flash('status', 'Profile updated successfully! Please check your email to verify your account.');
+            } catch (Throwable $e) {
+                session()->flash('status', 'Profile updated, but sending verification email failed. Please try again from the verification page.');
+                Log::error('CompleteProfile sendEmailVerificationNotification failed: ' . $e->getMessage());
             }
+
+            return $this->redirectRoute('verification.notice', navigate: true);
         }
+
+        session()->flash('status', 'Profile updated successfully!');
 
         return $this->redirectRoute('dashboard', navigate: true);
     }
