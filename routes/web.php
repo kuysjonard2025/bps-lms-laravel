@@ -53,7 +53,7 @@ Route::prefix('kiosk')->name('kiosk.')->group(function () {
 Route::middleware('auth')->group(function () {
 
     // 1. Force Profile Setup route (Unified route name)
-    Route::get('/complete-profile', CompleteProfile::class)->name('complete-profile');
+    Route::get('/complete-profile', CompleteProfile::class)->name('profile.complete');
 
     // 2. Email Verification Notice Route (Livewire Component)
     Route::get('/email/verify', VerifyEmail::class)->name('verification.notice');
