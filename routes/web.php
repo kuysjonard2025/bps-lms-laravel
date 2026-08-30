@@ -33,7 +33,7 @@ Route::middleware('guest')->group(function () {
     Route::redirect('/login', '/');
 });
 
-Route::prefix('patron')->name('patron.')->group(function () {
+Route::prefix('borrower')->name('patron.')->group(function () {
     Route::get('/login', PatronLogin::class)->name('login');
     Route::get('/portal', PatronPortal::class)->name('portal');
 });
@@ -42,7 +42,7 @@ Route::prefix('kiosk')->name('kiosk.')->group(function () {
     Route::get('/login', KioskLogin::class)->name('login');
 
     Route::middleware(EnsureKioskAuthenticated::class)->group(function () {
-        Route::get('/patron-log', PatronKiosk::class)->name('patron-log');
+        Route::get('/borrower-log', PatronKiosk::class)->name('patron-log');
     });
 });
 
@@ -75,9 +75,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/circulation-policy', CirculationPolicy::class)->name('circulation-policy');
 
         Route::get('/acquisitions', Acquisitions::class)->name('acquisitions');
-        Route::get('/patron-logs', PatronLogs::class)->name('patron-logs');
+        Route::get('/borrower-logs', PatronLogs::class)->name('patron-logs');
         Route::get('/circulations', Circulations::class)->name('circulations');
-        Route::get('/patron-records', PatronRecords::class)->name('patron-records');
+        Route::get('/borrower-records', PatronRecords::class)->name('patron-records');
         Route::get('/inventory-management', InventoryManagement::class)->name('inventory-management');
 
         Route::get('/authentication-logs', AuthenticationLogs::class)->name('authentication-logs');

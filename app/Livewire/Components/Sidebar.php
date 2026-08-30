@@ -62,8 +62,8 @@ class Sidebar extends Component
                     'icon' => 'shopping-cart',
                 ],
                 [
-                    'name' => 'Patron Logs',
-                    'route' => 'patron-logs',
+                    'name' => 'Borrower Logs',
+                    'route' => 'borrower-logs',
                     'icon' => 'clock',
                 ],
                 [
@@ -72,8 +72,8 @@ class Sidebar extends Component
                     'icon' => 'arrow-right',
                 ],
                 [
-                    'name' => 'Patron Records',
-                    'route' => 'patron-records',
+                    'name' => 'Borrower Records',
+                    'route' => 'borrower-records',
                     'icon' => 'identification',
                 ],
                 [
