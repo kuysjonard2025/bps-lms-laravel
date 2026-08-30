@@ -7,12 +7,10 @@ chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 echo "===> Running database migrations..."
 # Safe migration execution without wiping tables
-if [ "$APP_ENV" = "production" ]; then
-    php artisan migrate --force --verbose
+if [ "$APP_ENV" = "local" ] && [ "$RUN_FRESH_LOCAL_MIGRATIONS" = "true" ]; then
+    php artisan migrate:fresh --force --verbose
 else
-    if [ "$RUN_FRESH_LOCAL_MIGRATIONS" = "true" ]; then
-        php artisan migrate:fresh --force --verbose
-    fi
+    php artisan migrate --force --verbose
 fi
 
 # Run seeders conditionally (Optional: pass RUN_SEEDERS=true in docker-compose/env)
