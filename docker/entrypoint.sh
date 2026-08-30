@@ -13,11 +13,9 @@ else
     php artisan migrate --force --verbose
 fi
 
-# Run seeders conditionally (Optional: pass RUN_SEEDERS=true in docker-compose/env)
-if [ "$RUN_SEEDERS" = "true" ]; then
-    echo "===> Running seeders..."
-    php artisan db:seed --force --verbose
-fi
+# Run seeders
+echo "===> Running seeders..."
+php artisan db:seed --force --verbose
 
 echo "===> Caching application configurations..."
 # Optimizing Laravel performance for production

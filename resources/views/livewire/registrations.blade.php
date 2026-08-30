@@ -48,35 +48,45 @@
                 <table class="w-full text-left text-sm text-gray-600">
                     <thead class="bg-gray-50 border-b border-gray-200 text-xs uppercase font-semibold text-gray-500">
                         <tr>
-                            <th class="px-6 py-3">Full Name</th>
-                            <th class="px-6 py-3">Username</th>
-                            <th class="px-6 py-3">Role</th>
-                            <th class="px-6 py-3">Contact Details</th>
-                            <th class="px-6 py-3">Address</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Full Name</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Username</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Role</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Contact Details</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Address</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Is Verified</th>
                             <th class="px-6 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         @forelse($users as $user)
-                            <tr wire:key="user-{{ $user->id }}" class="hover:bg-gray-50 transition">
+                            <tr wire:key="user-{{ $user->id }}" class="hover:bg-gray-50 transition whitespace-nowrap">
                                 <td class="px-6 py-4 font-medium text-gray-900">
                                     {{ $user->last_name }}, {{ $user->first_name }} {{ $user->middle_name }} {{ $user->suffix }}
                                 </td>
-                                <td class="px-6 py-4 font-mono text-xs text-indigo-600 font-medium">
+                                <td class="px-6 py-4 font-mono text-xs text-indigo-600 font-medium whitespace-nowrap">
                                     {{ $user->username }}
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                         {{ ucfirst($user->role) }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-xs text-gray-900 font-medium">{{ $user->email ?? 'N/A' }}</div>
                                     <div class="text-xs text-gray-500">{{ $user->contact_number }}</div>
                                 </td>
-                                <td class="px-6 py-4 text-xs text-gray-700 max-w-xs truncate" title="{{ $user->address }}">
+                                <td class="px-6 py-4 text-xs text-gray-700 max-w-xs whitespace-nowrap" title="{{ $user->address }}">
                                     {{ $user->address ?? 'N/A' }}
                                 </td>
+                                @if($user->email_verified_at)
+                                    <td class="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full text-center whitespace-nowrap">
+                                        Verified
+                                    </td>
+                                @else
+                                    <td class="px-2 py-1 text-xs font-medium text-amber-700 bg-amber-100 rounded-full text-center whitespace-nowrap">
+                                        Unverified
+                                    </td>
+                                @endif
                                 <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                                     <button wire:click="openEditUserModal({{ $user->id }})" class="text-indigo-600 hover:text-indigo-900 font-medium text-xs">Edit</button>
                                     @if(Auth::id() !== $user->id)
@@ -170,12 +180,12 @@
         </div>
     @endif
 
-    <!-- MODAL 1: ASSISTANT USER FORM -->
+    <!-- MODAL 1: SYSTEM USER FORM -->
     @if($showUserModal)
         <div x-data x-on:keydown.escape.window="$wire.set('showUserModal', false)" class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 border border-gray-200 space-y-4">
                 <div class="flex items-center justify-between border-b border-gray-200 pb-3">
-                    <h3 class="text-lg font-bold text-gray-900">{{ $userIdBeingEdited ? 'Edit Assistant User' : 'Register New Assistant User' }}</h3>
+                    <h3 class="text-lg font-bold text-gray-900">{{ $userIdBeingEdited ? 'Edit System User' : 'Register New System User' }}</h3>
                     <button wire:click="$set('showUserModal', false)" class="text-gray-400 hover:text-gray-600">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
