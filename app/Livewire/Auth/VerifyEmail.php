@@ -10,6 +10,8 @@ use Livewire\Component;
 
 class VerifyEmail extends Component
 {
+    public string $userEmail = '';
+
     public function mount()
     {
         /** @var \App\Models\User $user */
@@ -19,6 +21,8 @@ class VerifyEmail extends Component
         if ($user && $user->hasVerifiedEmail()) {
             return $this->redirectRoute('dashboard', navigate: true);
         }
+
+        $this->userEmail = $user?->email ?? '';
     }
 
     public function resendNotification()
@@ -39,6 +43,12 @@ class VerifyEmail extends Component
         }
 
         session()->flash('status', 'verification-link-sent');
+    }
+
+    public function changeEmail()
+    {
+        // Redirect back to complete profile to fix email address
+        return $this->redirectRoute('complete-profile', navigate: true);
     }
 
     public function logout()
