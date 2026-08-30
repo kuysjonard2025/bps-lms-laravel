@@ -154,7 +154,7 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse($sections as $sec)
                             <tr wire:key="sec-row-{{ $sec->id }}" class="hover:bg-slate-50/60 transition-colors">
-                                <td class="p-3 pl-4 font-semibold text-slate-900 whitespace-nowrap">{{ $sec->name }}</td>
+                                <td class="p-3 pl-4 font-semibold text-slate-900 capitalize whitespace-nowrap">{{ $sec->name }}</td>
                                 <td class="p-3 whitespace-nowrap">
                                     <span class="font-bold text-blue-600 font-mono uppercase">{{ $sec->gradeLevel->code ?? 'N/A' }}</span>
                                     <span class="text-slate-500 text-[11px] ml-1 capitalize">({{ $sec->gradeLevel->name ?? 'Unassigned' }})</span>
