@@ -10,7 +10,9 @@ echo "===> Running database migrations..."
 if [ "$APP_ENV" = "production" ]; then
     php artisan migrate --force --verbose
 else
-    php artisan migrate:fresh --force --verbose
+    if [ "$RUN_FRESH_LOCAL_MIGRATIONS" = "true" ]; then
+        php artisan migrate:fresh --force --verbose
+    fi
 fi
 
 # Run seeders conditionally (Optional: pass RUN_SEEDERS=true in docker-compose/env)
