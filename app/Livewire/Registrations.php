@@ -23,7 +23,7 @@ class Registrations extends Component
 {
     use WithPagination;
 
-    // Active Navigation Tab ('users' or 'patrons')
+    // Active Navigation Tab ('users' or 'borrowers')
     public string $activeTab = 'users';
 
     // Global Search Query
@@ -35,7 +35,7 @@ class Registrations extends Component
     public bool $showDeleteModal = false;
 
     // Delete Modal State
-    public ?string $deleteType = null; // 'user' or 'patron'
+    public ?string $deleteType = null; // 'user' or 'borrower'
     public ?int $idBeingDeleted = null;
 
     // ------------------------------------------------------------------
@@ -47,14 +47,14 @@ class Registrations extends Component
     public string $u_last_name = '';
     public string $u_suffix = '';
     public string $u_username = '';
-    public string $u_role = 'assistant'; // Exclusively 'assistant'
+    public string $u_role = 'assistant';
     public string $u_email = '';
     public string $u_contact_number = '';
     public string $u_address = '';
     public string $u_password = '';
 
     // ------------------------------------------------------------------
-    // PATRON FORM PROPERTIES
+    // BORROWER FORM PROPERTIES
     // ------------------------------------------------------------------
     public ?int $patronIdBeingEdited = null;
     public string $p_patron_id = '';
@@ -264,7 +264,7 @@ class Registrations extends Component
     }
 
     // ------------------------------------------------------------------
-    // PATRON MODAL ACTIONS
+    // BORROWER MODAL ACTIONS
     // ------------------------------------------------------------------
     public function openCreatePatronModal(): void
     {
@@ -312,7 +312,7 @@ class Registrations extends Component
         $contactNumber = $this->cleanString($this->p_contact_number);
         $address = $this->cleanString($this->p_address);
 
-        // Dynamic check if selected patron type is student
+        // Dynamic check if selected borrower type is student
         $selectedType = PatronType::find($this->p_patron_type_id);
         $isStudent = $selectedType && strtolower($selectedType->name) === 'student';
 
@@ -355,12 +355,12 @@ class Registrations extends Component
         ];
 
         $this->validate($rules, [
-            'p_first_name.unique' => 'A patron with this identical full name already exists in the system.',
-            'p_patron_id.unique' => 'This Patron ID is already registered.',
-            'p_email.unique' => 'This email is already assigned to another patron.',
-            'p_contact_number.unique' => 'This contact number is already assigned to another patron.',
-            'p_grade_level_id.required' => 'Grade level is required for student patrons.',
-            'p_section_id.required' => 'Section is required for student patrons.',
+            'p_first_name.unique' => 'A borrower with this identical full name already exists in the system.',
+            'p_patron_id.unique' => 'This Borrower ID is already registered.',
+            'p_email.unique' => 'This email is already assigned to another borrower.',
+            'p_contact_number.unique' => 'This contact number is already assigned to another borrower.',
+            'p_grade_level_id.required' => 'Grade level is required for student borrowers.',
+            'p_section_id.required' => 'Section is required for student borrowers.',
         ]);
 
         $payload = [
@@ -386,11 +386,11 @@ class Registrations extends Component
             }
         } catch (UniqueConstraintViolationException $e) {
             throw ValidationException::withMessages([
-                'p_patron_id' => 'A database unique constraint error occurred while saving the patron.',
+                'p_patron_id' => 'A database unique constraint error occurred while saving the borrower.',
             ]);
         }
 
-        $message = $this->patronIdBeingEdited ? 'Patron record updated successfully.' : 'Patron record created successfully.';
+        $message = $this->patronIdBeingEdited ? 'Borrower record updated successfully.' : 'Borrower record created successfully.';
 
         $this->showPatronModal = false;
         $this->resetPatronForm();
@@ -446,9 +446,9 @@ class Registrations extends Component
                 } else {
                     $this->dispatch('toast', message: 'Admin or Librarian accounts cannot be deleted from this view.', type: 'error');
                 }
-            } elseif ($this->deleteType === 'patron') {
+            } elseif ($this->deleteType === 'borrower') {
                 Patron::findOrFail($this->idBeingDeleted)->delete();
-                $this->dispatch('toast', message: 'Patron record deleted successfully.', type: 'success');
+                $this->dispatch('toast', message: 'Borrower record deleted successfully.', type: 'success');
             }
         } catch (QueryException $e) {
             $this->dispatch('toast', message: 'Cannot delete record: It is referenced by active transactions or logs.', type: 'error');
@@ -476,15 +476,16 @@ class Registrations extends Component
                             ->orWhere('first_name', $likeOperator, "%{$this->search}%")
                             ->orWhere('middle_name', $likeOperator, "%{$this->search}%")
                             ->orWhere('last_name', $likeOperator, "%{$this->search}%")
-                            ->orWhere('email', $likeOperator, "%{$this->search}%");
+                            ->orWhere('email', $likeOperator, "%{$this->search}%")
+                            ->orWhere('address', $likeOperator, "%{$this->search}%");
                     });
                 })
                 ->latest()
                 ->paginate(10, ['*'], 'usersPage')
             : new LengthAwarePaginator([], 0, 10);
 
-        // 2. Conditionally fetch Patrons Data
-        $patrons = $this->activeTab === 'patrons'
+        // 2. Conditionally fetch Borrowers Data
+        $patrons = $this->activeTab === 'borrowers'
             ? Patron::with(['patronType', 'gradeLevel', 'section'])
                 ->when($this->search, function ($query) use ($likeOperator) {
                     $query->where(function ($q) use ($likeOperator) {
@@ -492,7 +493,8 @@ class Registrations extends Component
                             ->orWhere('first_name', $likeOperator, "%{$this->search}%")
                             ->orWhere('middle_name', $likeOperator, "%{$this->search}%")
                             ->orWhere('last_name', $likeOperator, "%{$this->search}%")
-                            ->orWhere('email', $likeOperator, "%{$this->search}%");
+                            ->orWhere('email', $likeOperator, "%{$this->search}%")
+                            ->orWhere('address', $likeOperator, "%{$this->search}%");
                     });
                 })
                 ->latest()
@@ -506,7 +508,7 @@ class Registrations extends Component
             ? Section::where('grade_level_id', $this->p_grade_level_id)->orderBy('name')->get(['id', 'name'])
             : collect();
 
-        // 4. Check selected Patron Type
+        // 4. Check selected Borrower Type
         $selectedPatronType = $patronTypes->firstWhere('id', $this->p_patron_type_id);
         $isStudentType = $selectedPatronType && strtolower($selectedPatronType->name) === 'student';
 

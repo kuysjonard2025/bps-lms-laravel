@@ -3,7 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Registrations</h1>
-            <p class="text-sm text-slate-500">Manage system user accounts and library patrons.</p>
+            <p class="text-sm text-slate-500">Manage system user accounts and library borrowers.</p>
         </div>
         <div>
             @if ($activeTab === 'users')
@@ -20,7 +20,7 @@
                     class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg shadow-xs transition duration-150 flex items-center gap-2"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    Register Patron
+                    Register Borrower
                 </button>
             @endif
         </div>
@@ -38,10 +38,10 @@
                     System Users
                 </button>
                 <button
-                    wire:click="$set('activeTab', 'patrons')"
-                    class="px-4 py-1.5 text-xs font-semibold rounded-md transition duration-150 {{ $activeTab === 'patrons' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
+                    wire:click="$set('activeTab', 'borrowers')"
+                    class="px-4 py-1.5 text-xs font-semibold rounded-md transition duration-150 {{ $activeTab === 'borrowers' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
                 >
-                    Library Patrons
+                    Library Borrowers
                 </button>
             </div>
 
@@ -51,7 +51,7 @@
                     <input
                         type="text"
                         wire:model.live.debounce.300ms="search"
-                        placeholder="Search {{ $activeTab === 'users' ? 'users...' : 'patrons...' }}"
+                        placeholder="Search {{ $activeTab === 'users' ? 'users...' : 'borrowers...' }}"
                         class="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
                     />
                     <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,7 +73,8 @@
                             <th class="px-6 py-3.5">Name</th>
                             <th class="px-6 py-3.5">Username</th>
                             <th class="px-6 py-3.5">Role</th>
-                            <th class="px-6 py-3.5">Contact</th>
+                            <th class="px-6 py-3.5">Contact Details</th>
+                            <th class="px-6 py-3.5">Address</th>
                             <th class="px-6 py-3.5 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -90,8 +91,11 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-3.5">
-                                    <div>{{ $user->email ?? 'N/A' }}</div>
-                                    <div class="text-slate-400 text-xs">{{ $user->contact_number }}</div>
+                                    <div class="font-medium text-slate-800">{{ $user->email ?? 'N/A' }}</div>
+                                    <div class="text-slate-500 text-xs">{{ $user->contact_number }}</div>
+                                </td>
+                                <td class="px-6 py-3.5 max-w-xs truncate text-slate-600" title="{{ $user->address }}">
+                                    {{ $user->address ?? 'N/A' }}
                                 </td>
                                 <td class="px-6 py-3.5 text-right space-x-2">
                                     <button wire:click="openEditUserModal({{ $user->id }})" class="text-blue-600 hover:text-blue-900 font-medium">Edit</button>
@@ -102,7 +106,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-slate-400">No users found.</td>
+                                <td colspan="6" class="px-6 py-8 text-center text-slate-400">No users found.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -115,15 +119,17 @@
             @endif
         </div>
     @else
-        {{-- Patrons Table --}}
+        {{-- Borrowers Table --}}
         <div class="bg-white rounded-xl shadow-xs border border-slate-200/80 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                            <th class="px-6 py-3.5">Patron ID</th>
+                            <th class="px-6 py-3.5">Borrower ID</th>
                             <th class="px-6 py-3.5">Name</th>
                             <th class="px-6 py-3.5">Type / Class</th>
+                            <th class="px-6 py-3.5">Contact Details</th>
+                            <th class="px-6 py-3.5">Address</th>
                             <th class="px-6 py-3.5">Status</th>
                             <th class="px-6 py-3.5 text-right">Actions</th>
                         </tr>
@@ -142,18 +148,25 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-3.5">
+                                    <div class="font-medium text-slate-800">{{ $patron->email ?? 'N/A' }}</div>
+                                    <div class="text-slate-500 text-xs">{{ $patron->contact_number }}</div>
+                                </td>
+                                <td class="px-6 py-3.5 max-w-xs truncate text-slate-600" title="{{ $patron->address }}">
+                                    {{ $patron->address ?? 'N/A' }}
+                                </td>
+                                <td class="px-6 py-3.5">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $patron->status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800' }}">
                                         {{ ucfirst($patron->status) }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-3.5 text-right space-x-2">
                                     <button wire:click="openEditPatronModal({{ $patron->id }})" class="text-blue-600 hover:text-blue-900 font-medium">Edit</button>
-                                    <button wire:click="confirmDelete('patron', {{ $patron->id }})" class="text-red-600 hover:text-red-900 font-medium">Delete</button>
+                                    <button wire:click="confirmDelete('borrower', {{ $patron->id }})" class="text-red-600 hover:text-red-900 font-medium">Delete</button>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-slate-400">No patrons found.</td>
+                                <td colspan="7" class="px-6 py-8 text-center text-slate-400">No borrowers found.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -255,19 +268,19 @@
         </div>
     @endif
 
-    {{-- PATRON MODAL --}}
+    {{-- BORROWER MODAL --}}
     @if ($showPatronModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 overflow-y-auto">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200">
                 <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="text-sm font-bold text-slate-800">
-                        {{ $patronIdBeingEdited ? 'Edit Patron Record' : 'Register New Patron' }}
+                        {{ $patronIdBeingEdited ? 'Edit Borrower Record' : 'Register New Borrower' }}
                     </h3>
                     <button wire:click="$set('showPatronModal', false)" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
                 </div>
                 <form wire:submit.prevent="savePatron" class="p-6 space-y-4">
                     <div>
-                        <label class="block text-xs font-medium text-slate-700">Patron ID / Barcode <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-medium text-slate-700">Borrower ID / Barcode <span class="text-red-500">*</span></label>
                         <input type="text" wire:model="p_patron_id" class="mt-1 w-full text-xs rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-blue-500/20" />
                         @error('p_patron_id') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                     </div>
@@ -300,7 +313,7 @@
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-medium text-slate-700">Patron Type <span class="text-red-500">*</span></label>
+                            <label class="block text-xs font-medium text-slate-700">Borrower Type <span class="text-red-500">*</span></label>
                             <select wire:model.live="p_patron_type_id" class="mt-1 w-full text-xs rounded-lg border-slate-300 border p-2 bg-white focus:ring-2 focus:ring-blue-500/20">
                                 <option value="">Select Type</option>
                                 @foreach ($patronTypes as $type)
@@ -366,7 +379,7 @@
 
                     <div class="pt-4 flex justify-end space-x-2 border-t border-slate-100">
                         <button type="button" wire:click="$set('showPatronModal', false)" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium">Save Patron</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium">Save Borrower</button>
                     </div>
                 </form>
             </div>
