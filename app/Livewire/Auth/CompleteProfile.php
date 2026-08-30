@@ -19,8 +19,8 @@ class CompleteProfile extends Component
     public string $middle_name = '';
     public string $last_name = '';
     public ?string $suffix = '';
-    public ?string $address = '';
-    public ?string $contact_number = '';
+    public string $address = '';
+    public string $contact_number = '';
     public string $email = '';
     public string $username = '';
     public string $password = '';
@@ -46,10 +46,10 @@ class CompleteProfile extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        $firstName = strtolower(trim($this->first_name)) ?: null;
-        $middleName = strtolower(trim($this->middle_name)) ?: null;
-        $lastName = strtolower(trim($this->last_name)) ?: null;
-        $suffix = strtolower(trim($this->suffix)) ?: null;
+        $firstName = strtolower(trim($this->first_name));
+        $middleName = strtolower(trim($this->middle_name));
+        $lastName = strtolower(trim($this->last_name));
+        $suffix = strtolower(trim((string) $this->suffix)) ?: null;
 
         // Compound unique rule for [first_name, middle_name, last_name, suffix]
         $fullNameRule = Rule::unique('users', 'first_name')
@@ -59,12 +59,15 @@ class CompleteProfile extends Component
             ->ignore($user->id);
 
         $this->validate([
-            'first_name'     => ['nullable', 'string', 'max:50', $fullNameRule],
-            'middle_name'    => 'nullable|string|max:50',
-            'last_name'      => 'nullable|string|max:50',
+            'first_name'     => ['required', 'string', 'max:50', $fullNameRule],
+            'middle_name'    => 'required|string|max:50',
+            'last_name'      => 'required|string|max:50',
             'suffix'         => 'nullable|string|max:10',
-            'address'        => 'nullable|string|max:255',
-            'contact_number' => 'nullable|string|max:20',
+            'address'        => 'required|string|max:255',
+            'contact_number' => [
+                'required', 'string', 'max:20',
+                Rule::unique('users', 'contact_number')->ignore($user->id)
+            ],
             'email'          => [
                 'required', 'email', 'max:100',
                 Rule::unique('users', 'email')->ignore($user->id)
@@ -76,8 +79,8 @@ class CompleteProfile extends Component
             'password'       => 'nullable|string|min:6|max:20|confirmed',
         ], [
             'first_name.unique' => 'An account with this full name and suffix already exists.',
-            'password.min'      => 'The password must be at least 6 characters.',
-            'password.max'      => 'The password must not exceed 20 characters.',
+            'password.min'       => 'The password must be at least 6 characters.',
+            'password.max'       => 'The password must not exceed 20 characters.',
         ]);
 
         $normalizedNewEmail = strtolower(trim($this->email));
@@ -86,12 +89,12 @@ class CompleteProfile extends Component
         $emailChanged = $normalizedOldEmail !== '' && $normalizedNewEmail !== $normalizedOldEmail;
 
         $updateData = [
-            'first_name'     => $firstName ? Str::title($firstName) : null,
-            'middle_name'    => $middleName ? Str::title($middleName) : null,
-            'last_name'      => $lastName ? Str::title($lastName) : null,
+            'first_name'     => Str::title($firstName),
+            'middle_name'    => Str::title($middleName),
+            'last_name'      => Str::title($lastName),
             'suffix'         => $suffix,
-            'address'        => trim($this->address) ?: null,
-            'contact_number' => trim($this->contact_number) ?: null,
+            'address'        => trim($this->address),
+            'contact_number' => trim($this->contact_number),
             'email'          => $normalizedNewEmail,
             'username'       => strtolower(trim($this->username)),
         ];
@@ -107,7 +110,6 @@ class CompleteProfile extends Component
         $user->update($updateData);
         $user->refresh();
 
-        // Send Email Verification only if email actually changed or was never verified
         if ($emailChanged || is_null($user->email_verified_at)) {
             try {
                 $user->sendEmailVerificationNotification();

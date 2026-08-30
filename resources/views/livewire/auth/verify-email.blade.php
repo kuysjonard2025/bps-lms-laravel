@@ -15,11 +15,11 @@
     </p>
 
     @if (session('status') === 'verification-link-sent')
-        <div class="mb-4 text-sm font-medium text-green-600 bg-green-50 p-3 rounded-lg">
+        <div class="mb-4 text-sm font-medium text-green-600 bg-green-50 p-3 rounded-lg border border-green-200">
             A new verification link has been sent to your email address.
         </div>
     @elseif (session('status'))
-        <div class="mb-4 text-sm font-medium text-blue-600 bg-blue-50 p-3 rounded-lg">
+        <div class="mb-4 text-sm font-medium text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
             {{ session('status') }}
         </div>
     @endif

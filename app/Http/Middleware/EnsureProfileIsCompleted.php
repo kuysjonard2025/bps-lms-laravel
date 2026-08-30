@@ -13,14 +13,13 @@ class EnsureProfileIsCompleted
         $user = $request->user();
 
         if ($user) {
-            // Check if any required field is missing/incomplete
             $isIncomplete = empty($user->first_name) ||
                             empty($user->middle_name) ||
                             empty($user->last_name) ||
                             empty($user->address) ||
                             empty($user->contact_number);
 
-            if ($isIncomplete && !$request->routeIs('profile.complete')) {
+            if ($isIncomplete && ! $request->routeIs('profile.complete')) {
                 return redirect()->route('profile.complete');
             }
         }
