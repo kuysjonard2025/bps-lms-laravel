@@ -287,7 +287,7 @@
                         >
                             <option value="">Select Grade Level</option>
                             @foreach($allGradeLevels as $gl)
-                                <option value="{{ $gl->id }}">{{ $gl->name }}</option>
+                                <option value="{{ $gl->id }}" class="capitalize">{{ $gl->name }}</option>
                             @endforeach
                         </select>
                         @error('sec_grade_level_id') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror

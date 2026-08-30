@@ -16,9 +16,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Safe creation: Only creates the user if 'role' => 'admin' does not exist
+        // Safe creation: Only creates the user if 'role' => 'librarian' does not exist
         User::firstOrCreate(
-            ['role' => 'admin'], // Search criteria: Ensures only 1 admin ever exists
+            ['role' => 'librarian'], // Search criteria: Ensures only 1 librarian ever exists
             [
                 'first_name'        => null,
                 'middle_name'       => null,
