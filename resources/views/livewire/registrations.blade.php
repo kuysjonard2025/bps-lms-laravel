@@ -12,7 +12,7 @@
                     Register Assistant
                 </button>
             @else
-                <button wire:click="openCreateBorrowerModal" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <button wire:click="openCreatePatronModal" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Register Borrower
                 </button>
@@ -116,44 +116,44 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
-                        @forelse($borrowers as $borrower)
-                            <tr wire:key="borrower-{{ $borrower->id }}" class="hover:bg-gray-50 transition">
+                        @forelse($patrons as $patron)
+                            <tr wire:key="patron-{{ $patron->id }}" class="hover:bg-gray-50 transition">
                                 <td class="px-6 py-4 font-mono text-xs font-semibold text-gray-900">
-                                    {{ $borrower->school_id }}
+                                    {{ $patron->school_id }}
                                 </td>
                                 <td class="px-6 py-4 font-mono text-xs text-indigo-600">
                                     <span class="inline-flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded border border-indigo-200">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
-                                        {{ $borrower->rfid_tag }}
+                                        {{ $patron->rfid_tag }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                                    {{ $borrower->last_name }}, {{ $borrower->first_name }} {{ $borrower->middle_name }} {{ $borrower->suffix }}
+                                    {{ $patron->last_name }}, {{ $patron->first_name }} {{ $patron->middle_name }} {{ $patron->suffix }}
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="font-medium text-xs text-gray-900">{{ $borrower->borrowerType->name ?? 'N/A' }}</div>
-                                    @if($borrower->gradeLevel)
-                                        <div class="text-xs text-gray-500">{{ $borrower->gradeLevel->name }} - {{ $borrower->section->name ?? '' }}</div>
+                                    <div class="font-medium text-xs text-gray-900">{{ $patron->patronType->name ?? 'N/A' }}</div>
+                                    @if($patron->gradeLevel)
+                                        <div class="text-xs text-gray-500">{{ $patron->gradeLevel->name }} - {{ $patron->section->name ?? '' }}</div>
                                     @endif
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="text-xs text-gray-900 font-medium">{{ $borrower->email ?? 'N/A' }}</div>
-                                    <div class="text-xs text-gray-500">{{ $borrower->contact_number }}</div>
+                                    <div class="text-xs text-gray-900 font-medium">{{ $patron->email ?? 'N/A' }}</div>
+                                    <div class="text-xs text-gray-500">{{ $patron->contact_number }}</div>
                                 </td>
-                                <td class="px-6 py-4 text-xs text-gray-700 max-w-xs truncate" title="{{ $borrower->address }}">
-                                    {{ $borrower->address ?? 'N/A' }}
+                                <td class="px-6 py-4 text-xs text-gray-700 max-w-xs truncate" title="{{ $patron->address }}">
+                                    {{ $patron->address ?? 'N/A' }}
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                        {{ $borrower->status === 'active' ? 'bg-emerald-100 text-emerald-800' : '' }}
-                                        {{ $borrower->status === 'inactive' ? 'bg-amber-100 text-amber-800' : '' }}
-                                        {{ $borrower->status === 'suspended' ? 'bg-rose-100 text-rose-800' : '' }}">
-                                        {{ ucfirst($borrower->status) }}
+                                        {{ $patron->status === 'active' ? 'bg-emerald-100 text-emerald-800' : '' }}
+                                        {{ $patron->status === 'inactive' ? 'bg-amber-100 text-amber-800' : '' }}
+                                        {{ $patron->status === 'suspended' ? 'bg-rose-100 text-rose-800' : '' }}">
+                                        {{ ucfirst($patron->status) }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
-                                    <button wire:click="openEditBorrowerModal({{ $borrower->id }})" class="text-indigo-600 hover:text-indigo-900 font-medium text-xs">Edit</button>
-                                    <button wire:click="confirmDelete('borrower', {{ $borrower->id }})" class="text-rose-600 hover:text-rose-900 font-medium text-xs">Delete</button>
+                                    <button wire:click="openEditPatronModal({{ $patron->id }})" class="text-indigo-600 hover:text-indigo-900 font-medium text-xs">Edit</button>
+                                    <button wire:click="confirmDelete('borrower', {{ $patron->id }})" class="text-rose-600 hover:text-rose-900 font-medium text-xs">Delete</button>
                                 </td>
                             </tr>
                         @empty
@@ -165,7 +165,7 @@
                 </table>
             </div>
             <div class="p-4 border-t border-gray-200">
-                {{ $borrowers->links() }}
+                {{ $patrons->links() }}
             </div>
         </div>
     @endif
@@ -250,125 +250,125 @@
     @endif
 
     <!-- MODAL 2: BORROWER FORM -->
-    @if($showBorrowerModal)
-        <div x-data x-on:keydown.escape.window="$wire.set('showBorrowerModal', false)" class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    @if($showPatronModal)
+        <div x-data x-on:keydown.escape.window="$wire.set('showPatronModal', false)" class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-xl max-w-3xl w-full p-6 border border-gray-200 space-y-4">
                 <div class="flex items-center justify-between border-b border-gray-200 pb-3">
-                    <h3 class="text-lg font-bold text-gray-900">{{ $borrowerIdBeingEdited ? 'Edit Borrower Record' : 'Register New Borrower' }}</h3>
-                    <button wire:click="$set('showBorrowerModal', false)" class="text-gray-400 hover:text-gray-600">
+                    <h3 class="text-lg font-bold text-gray-900">{{ $patronIdBeingEdited ? 'Edit Borrower Record' : 'Register New Borrower' }}</h3>
+                    <button wire:click="$set('showPatronModal', false)" class="text-gray-400 hover:text-gray-600">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
 
-                <form wire:submit="saveBorrower" class="space-y-4">
+                <form wire:submit="savePatron" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-indigo-50/50 p-3 rounded-lg border border-indigo-100">
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">School / Student ID <span class="text-rose-500">*</span></label>
-                            <input type="text" wire:model="b_school_id" placeholder="e.g. 2026-00123" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900">
-                            @error('b_school_id') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            <input type="text" wire:model="p_school_id" placeholder="e.g. 2026-00123" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900">
+                            @error('p_school_id') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">RFID Tag UID <span class="text-rose-500">* (Scan Card Now)</span></label>
                             <div class="relative">
-                                <input type="text" wire:model="b_rfid_tag" wire:keydown.enter.prevent placeholder="Tap RFID card on scanner..." autofocus class="w-full pl-9 pr-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-mono text-gray-900 focus:ring-2 focus:ring-indigo-500">
+                                <input type="text" wire:model="p_rfid_tag" wire:keydown.enter.prevent placeholder="Tap RFID card on scanner..." autofocus class="w-full pl-9 pr-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-mono text-gray-900 focus:ring-2 focus:ring-indigo-500">
                                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
                                 </span>
                             </div>
-                            @error('b_rfid_tag') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            @error('p_rfid_tag') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">First Name <span class="text-rose-500">*</span></label>
-                            <input type="text" wire:model="b_first_name" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
-                            @error('b_first_name') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            <input type="text" wire:model="p_first_name" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
+                            @error('p_first_name') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Middle Name <span class="text-rose-500">*</span></label>
-                            <input type="text" wire:model="b_middle_name" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
-                            @error('b_middle_name') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            <input type="text" wire:model="p_middle_name" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
+                            @error('p_middle_name') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Last Name <span class="text-rose-500">*</span></label>
-                            <input type="text" wire:model="b_last_name" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
-                            @error('b_last_name') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            <input type="text" wire:model="p_last_name" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
+                            @error('p_last_name') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Suffix</label>
-                            <input type="text" wire:model="b_suffix" placeholder="Jr., III" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
-                            @error('b_suffix') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            <input type="text" wire:model="p_suffix" placeholder="Jr., III" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
+                            @error('p_suffix') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Borrower Type <span class="text-rose-500">*</span></label>
-                            <select wire:model.live="b_borrower_type_id" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
+                            <select wire:model.live="p_patron_type_id" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
                                 <option value="">Select Borrower Type</option>
-                                @foreach($borrowerTypes as $type)
+                                @foreach($patronTypes as $type)
                                     <option value="{{ $type->id }}">{{ $type->name }}</option>
                                 @endforeach
                             </select>
-                            @error('b_borrower_type_id') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            @error('p_patron_type_id') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Grade Level {{ $isStudentType ? '*' : '' }}</label>
-                            <select wire:model.live="b_grade_level_id" {{ !$isStudentType ? 'disabled' : '' }} class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
+                            <select wire:model.live="p_grade_level_id" {{ !$isStudentType ? 'disabled' : '' }} class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
                                 <option value="">Select Grade Level</option>
                                 @foreach($allGradeLevels as $grade)
                                     <option value="{{ $grade->id }}">{{ $grade->name }}</option>
                                 @endforeach
                             </select>
-                            @error('b_grade_level_id') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            @error('p_grade_level_id') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Section {{ $isStudentType ? '*' : '' }}</label>
-                            <select wire:model="b_section_id" {{ !$isStudentType || !$b_grade_level_id ? 'disabled' : '' }} class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
+                            <select wire:model="p_section_id" {{ !$isStudentType || !$p_grade_level_id ? 'disabled' : '' }} class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 disabled:opacity-50">
                                 <option value="">Select Section</option>
                                 @foreach($availableSections as $sec)
                                     <option value="{{ $sec->id }}">{{ $sec->name }}</option>
                                 @endforeach
                             </select>
-                            @error('b_section_id') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            @error('p_section_id') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Email Address <span class="text-rose-500">*</span></label>
-                            <input type="email" wire:model="b_email" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
-                            @error('b_email') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            <input type="email" wire:model="p_email" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
+                            @error('p_email') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Contact Number <span class="text-rose-500">*</span></label>
-                            <input type="text" wire:model="b_contact_number" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
-                            @error('b_contact_number') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            <input type="text" wire:model="p_contact_number" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
+                            @error('p_contact_number') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Account Status <span class="text-rose-500">*</span></label>
-                            <select wire:model="b_status" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
+                            <select wire:model="p_status" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                                 <option value="suspended">Suspended</option>
                             </select>
-                            @error('b_status') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            @error('p_status') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 mb-1">Complete Address <span class="text-rose-500">*</span></label>
-                        <input type="text" wire:model="b_address" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
-                        @error('b_address') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        <input type="text" wire:model="p_address" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 focus:bg-white focus:ring-2 focus:ring-indigo-500">
+                        @error('p_address') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                        <button type="button" wire:click="$set('showBorrowerModal', false)" class="px-4 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
+                        <button type="button" wire:click="$set('showPatronModal', false)" class="px-4 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                         <button type="submit" wire:loading.attr="disabled" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium flex items-center gap-2">
-                            <span wire:loading wire:target="saveBorrower" class="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></span>
+                            <span wire:loading wire:target="savePatron" class="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></span>
                             Save Borrower
                         </button>
                     </div>
