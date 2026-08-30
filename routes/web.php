@@ -52,17 +52,24 @@ Route::prefix('kiosk')->name('kiosk.')->group(function () {
 // Authenticated Routes (Staff / Admins)
 Route::middleware('auth')->group(function () {
 
-    // 1. Force Profile Setup first
-    Route::get('/complete-profile', CompleteProfile::class)->name('profile.complete');
+    // 1. Force Profile Setup route (Unified route name)
+    Route::get('/complete-profile', CompleteProfile::class)->name('complete-profile');
 
     // 2. Email Verification Notice Route (Livewire Component)
     Route::get('/email/verify', VerifyEmail::class)->name('verification.notice');
 
-    // 3. Email Verification Action Handler (Clicked from email)
+    // 3. Email Verification Action Handler (Clicked from email link)
     Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
         $request->fulfill();
 
-        return redirect()->route('dashboard');
+        // Refresh user instance in session state
+        $user = $request->user();
+        if ($user) {
+            $user->refresh();
+        }
+
+        // Redirect to dashboard with status
+        return redirect()->route('dashboard')->with('status', 'Your email address has been verified successfully!');
     })->middleware('signed')->name('verification.verify');
 
     // 4. Protected App Routes (Requires Completed Profile + Verified Email)

@@ -48,7 +48,7 @@ class VerifyEmail extends Component
     public function changeEmail()
     {
         // Redirect back to complete profile to fix email address
-        return $this->redirectRoute('profile.complete', navigate: true);
+        return $this->redirectRoute('complete-profile', navigate: true);
     }
 
     public function logout()
