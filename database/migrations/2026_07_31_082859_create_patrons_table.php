@@ -13,7 +13,11 @@ return new class extends Migration
     {
         Schema::create('patrons', function (Blueprint $table) {
             $table->id();
-            $table->string('patron_id')->unique();
+            $table->string('school_id')->unique();
+
+            // Made nullable in case RFID is assigned later, explicit length for RFID UID
+            $table->string('rfid_tag', 64)->nullable()->unique();
+
             $table->string('first_name', 50);
             $table->string('middle_name', 50);
             $table->string('last_name', 50);
@@ -22,15 +26,19 @@ return new class extends Migration
             $table->string('contact_number', 20)->unique();
             $table->string('email', 100)->unique();
 
-            // Foreign Key to patron_types table
+            // Foreign Keys
             $table->foreignId('patron_type_id')->constrained()->cascadeOnDelete();
-
             $table->foreignId('grade_level_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('section_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('status')->default('active');
 
+            $table->string('status')->default('active'); // e.g., 'active', 'inactive', 'suspended'
+
+            // Name Uniqueness Constraint
             $table->unique(['first_name', 'middle_name', 'last_name', 'suffix'], 'patrons_full_name_unique');
             $table->timestamps();
+
+            // Fast lookup index for RFID scanning during circulation (check-in/check-out)
+            $table->index('rfid_tag');
         });
     }
 

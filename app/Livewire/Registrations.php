@@ -57,7 +57,8 @@ class Registrations extends Component
     // BORROWER FORM PROPERTIES
     // ------------------------------------------------------------------
     public ?int $patronIdBeingEdited = null;
-    public string $p_patron_id = ''; // Stores Borrower RFID / ID Tag
+    public string $p_school_id = '';
+    public string $p_rfid_tag = '';
     public string $p_first_name = '';
     public string $p_middle_name = '';
     public string $p_last_name = '';
@@ -152,7 +153,6 @@ class Registrations extends Component
 
     public function saveUser(): void
     {
-        // 1. Input Sanitization
         $firstName = $this->cleanString($this->u_first_name);
         $middleName = $this->cleanString($this->u_middle_name);
         $lastName = $this->cleanString($this->u_last_name);
@@ -162,7 +162,6 @@ class Registrations extends Component
         $contactNumber = $this->cleanString($this->u_contact_number);
         $address = $this->cleanString($this->u_address);
 
-        // 2. Composite Full-Name Uniqueness Check
         $userFullNameRule = Rule::unique('users', 'first_name')
             ->where('first_name', $firstName)
             ->where('middle_name', $middleName)
@@ -170,7 +169,6 @@ class Registrations extends Component
             ->when($suffix, fn ($q) => $q->where('suffix', $suffix), fn ($q) => $q->whereNull('suffix'))
             ->ignore($this->userIdBeingEdited);
 
-        // 3. Validation Rules
         $rules = [
             'u_first_name' => ['required', 'string', 'max:50', $userFullNameRule],
             'u_middle_name' => 'required|string|max:50',
@@ -204,6 +202,7 @@ class Registrations extends Component
 
         $validated = $this->validate($rules, [
             'u_first_name.unique' => 'A user with this identical full name already exists.',
+            'u_middle_name.required' => 'Middle name is required.',
             'u_username.unique' => 'This username is already taken.',
             'u_email.unique' => 'This email address is already registered.',
             'u_contact_number.unique' => 'This contact number is already registered to another user.',
@@ -284,7 +283,8 @@ class Registrations extends Component
         $patron = Patron::findOrFail($id);
 
         $this->patronIdBeingEdited = $patron->id;
-        $this->p_patron_id = $patron->patron_id;
+        $this->p_school_id = $patron->school_id;
+        $this->p_rfid_tag = $patron->rfid_tag ?? '';
         $this->p_first_name = $patron->first_name;
         $this->p_middle_name = $patron->middle_name;
         $this->p_last_name = $patron->last_name;
@@ -303,7 +303,8 @@ class Registrations extends Component
     public function savePatron(): void
     {
         // 1. Input Sanitization
-        $patronId = $this->cleanString($this->p_patron_id);
+        $schoolId = $this->cleanString($this->p_school_id);
+        $rfidTag = $this->cleanString($this->p_rfid_tag);
         $firstName = $this->cleanString($this->p_first_name);
         $middleName = $this->cleanString($this->p_middle_name);
         $lastName = $this->cleanString($this->p_last_name);
@@ -325,14 +326,20 @@ class Registrations extends Component
             ->ignore($this->patronIdBeingEdited);
 
         $rules = [
-            'p_patron_id' => [
+            'p_school_id' => [
                 'required',
                 'string',
-                'max:255',
-                Rule::unique('patrons', 'patron_id')->ignore($this->patronIdBeingEdited),
+                'max:50',
+                Rule::unique('patrons', 'school_id')->ignore($this->patronIdBeingEdited),
+            ],
+            'p_rfid_tag' => [
+                'required',
+                'string',
+                'max:64',
+                Rule::unique('patrons', 'rfid_tag')->ignore($this->patronIdBeingEdited),
             ],
             'p_first_name' => ['required', 'string', 'max:50', $fullNameUniqueRule],
-            'p_middle_name' => 'required|string|max:50',
+            'p_middle_name' => 'required|string|max:50', // Strictly required
             'p_last_name' => 'required|string|max:50',
             'p_suffix' => 'nullable|string|max:10',
             'p_patron_type_id' => 'required|exists:patron_types,id',
@@ -355,9 +362,12 @@ class Registrations extends Component
         ];
 
         $this->validate($rules, [
+            'p_school_id.required' => 'The School ID / Student Number is required.',
+            'p_school_id.unique' => 'This School ID is already assigned to another borrower.',
+            'p_rfid_tag.required' => 'The RFID Tag UID is required. Please scan the borrower card.',
+            'p_rfid_tag.unique' => 'This RFID Card UID is already registered to another borrower.',
+            'p_middle_name.required' => 'Middle name is strictly required.',
             'p_first_name.unique' => 'A borrower with this identical full name already exists in the system.',
-            'p_patron_id.required' => 'The Borrower RFID / ID is required.',
-            'p_patron_id.unique' => 'This Borrower RFID / ID is already registered to another user.',
             'p_email.unique' => 'This email is already assigned to another borrower.',
             'p_contact_number.unique' => 'This contact number is already assigned to another borrower.',
             'p_grade_level_id.required' => 'Grade level is required for student borrowers.',
@@ -365,7 +375,8 @@ class Registrations extends Component
         ]);
 
         $payload = [
-            'patron_id' => $patronId,
+            'school_id' => $schoolId,
+            'rfid_tag' => $rfidTag,
             'first_name' => $firstName,
             'middle_name' => $middleName,
             'last_name' => $lastName,
@@ -387,7 +398,7 @@ class Registrations extends Component
             }
         } catch (UniqueConstraintViolationException $e) {
             throw ValidationException::withMessages([
-                'p_patron_id' => 'This RFID / ID tag is already assigned to another borrower record.',
+                'p_rfid_tag' => 'A database unique constraint conflict occurred for School ID or RFID Tag.',
             ]);
         }
 
@@ -402,7 +413,8 @@ class Registrations extends Component
     {
         $this->reset([
             'patronIdBeingEdited',
-            'p_patron_id',
+            'p_school_id',
+            'p_rfid_tag',
             'p_first_name',
             'p_middle_name',
             'p_last_name',
@@ -490,7 +502,8 @@ class Registrations extends Component
             ? Patron::with(['patronType', 'gradeLevel', 'section'])
                 ->when($this->search, function ($query) use ($likeOperator) {
                     $query->where(function ($q) use ($likeOperator) {
-                        $q->where('patron_id', $likeOperator, "%{$this->search}%")
+                        $q->where('school_id', $likeOperator, "%{$this->search}%")
+                            ->orWhere('rfid_tag', $likeOperator, "%{$this->search}%")
                             ->orWhere('first_name', $likeOperator, "%{$this->search}%")
                             ->orWhere('middle_name', $likeOperator, "%{$this->search}%")
                             ->orWhere('last_name', $likeOperator, "%{$this->search}%")
