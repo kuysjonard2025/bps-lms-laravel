@@ -7,12 +7,12 @@
         </div>
         <div class="flex items-center gap-3">
             @if($activeTab === 'users')
-                <button wire:click="openCreateUserModal" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm">
+                <button wire:click="openCreateUserModal" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Register Assistant
                 </button>
             @else
-                <button wire:click="openCreatePatronModal" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm">
+                <button wire:click="openCreatePatronModal" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     Register Borrower
                 </button>
@@ -57,7 +57,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                         @forelse($users as $user)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition">
+                            <tr wire:key="user-{{ $user->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition">
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
                                     {{ $user->last_name }}, {{ $user->first_name }} {{ $user->middle_name }} {{ $user->suffix }}
                                 </td>
@@ -111,7 +111,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                         @forelse($patrons as $patron)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition">
+                            <tr wire:key="patron-{{ $patron->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition">
                                 <td class="px-6 py-4 font-mono text-xs font-semibold text-gray-900 dark:text-white">
                                     {{ $patron->school_id }}
                                 </td>
@@ -131,7 +131,10 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $patron->status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' }}">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        {{ $patron->status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : '' }}
+                                        {{ $patron->status === 'inactive' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' : '' }}
+                                        {{ $patron->status === 'suspended' ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300' : '' }}">
                                         {{ ucfirst($patron->status) }}
                                     </span>
                                 </td>
@@ -156,7 +159,7 @@
 
     <!-- MODAL 1: ASSISTANT USER FORM -->
     @if($showUserModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div x-data x-on:keydown.escape.window="$wire.set('showUserModal', false)" class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-6 border border-gray-200 dark:border-gray-700 space-y-4">
                 <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ $userIdBeingEdited ? 'Edit Assistant User' : 'Register New Assistant User' }}</h3>
@@ -223,7 +226,10 @@
 
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <button type="button" wire:click="$set('showUserModal', false)" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium">Save User</button>
+                        <button type="submit" wire:loading.attr="disabled" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium flex items-center gap-2">
+                            <span wire:loading wire:target="saveUser" class="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></span>
+                            Save User
+                        </button>
                     </div>
                 </form>
             </div>
@@ -232,7 +238,7 @@
 
     <!-- MODAL 2: BORROWER (PATRON) FORM -->
     @if($showPatronModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div x-data x-on:keydown.escape.window="$wire.set('showPatronModal', false)" class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-3xl w-full p-6 border border-gray-200 dark:border-gray-700 space-y-4">
                 <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ $patronIdBeingEdited ? 'Edit Borrower Record' : 'Register New Borrower' }}</h3>
@@ -252,7 +258,7 @@
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">RFID Tag UID <span class="text-rose-500">* (Scan Card Now)</span></label>
                             <div class="relative">
-                                <input type="text" wire:model="p_rfid_tag" placeholder="Tap RFID card on scanner..." class="w-full pl-9 pr-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-mono dark:text-white">
+                                <input type="text" wire:model="p_rfid_tag" wire:keydown.enter.prevent placeholder="Tap RFID card on scanner..." autofocus class="w-full pl-9 pr-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-mono dark:text-white focus:ring-2 focus:ring-indigo-500">
                                 <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
                                 </span>
@@ -352,7 +358,10 @@
 
                     <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <button type="button" wire:click="$set('showPatronModal', false)" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium">Save Borrower</button>
+                        <button type="submit" wire:loading.attr="disabled" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium flex items-center gap-2">
+                            <span wire:loading wire:target="savePatron" class="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></span>
+                            Save Borrower
+                        </button>
                     </div>
                 </form>
             </div>
@@ -361,7 +370,7 @@
 
     <!-- MODAL 3: DELETE CONFIRMATION -->
     @if($showDeleteModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div x-data x-on:keydown.escape.window="$wire.set('showDeleteModal', false)" class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700 space-y-4">
                 <div class="text-center space-y-2">
                     <div class="w-12 h-12 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-full flex items-center justify-center mx-auto">
@@ -373,7 +382,10 @@
 
                 <div class="flex justify-center gap-3 pt-2">
                     <button wire:click="$set('showDeleteModal', false)" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
-                    <button wire:click="deleteRecord" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-medium">Delete Permanently</button>
+                    <button wire:click="deleteRecord" wire:loading.attr="disabled" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-medium flex items-center gap-2">
+                        <span wire:loading wire:target="deleteRecord" class="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></span>
+                        Delete Permanently
+                    </button>
                 </div>
             </div>
         </div>

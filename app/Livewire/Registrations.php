@@ -57,8 +57,8 @@ class Registrations extends Component
     // BORROWER FORM PROPERTIES
     // ------------------------------------------------------------------
     public ?int $patronIdBeingEdited = null;
-    public string $p_school_id = '';
-    public string $p_rfid_tag = '';
+    public string $p_school_id = ''; // Borrower School ID
+    public string $p_rfid_tag = '';  // Borrower Hardcoded RFID Tag
     public string $p_first_name = '';
     public string $p_middle_name = '';
     public string $p_last_name = '';
@@ -153,6 +153,7 @@ class Registrations extends Component
 
     public function saveUser(): void
     {
+        // 1. Input Sanitization
         $firstName = $this->cleanString($this->u_first_name);
         $middleName = $this->cleanString($this->u_middle_name);
         $lastName = $this->cleanString($this->u_last_name);
@@ -162,6 +163,7 @@ class Registrations extends Component
         $contactNumber = $this->cleanString($this->u_contact_number);
         $address = $this->cleanString($this->u_address);
 
+        // 2. Composite Full-Name Uniqueness Check
         $userFullNameRule = Rule::unique('users', 'first_name')
             ->where('first_name', $firstName)
             ->where('middle_name', $middleName)
@@ -169,9 +171,10 @@ class Registrations extends Component
             ->when($suffix, fn ($q) => $q->where('suffix', $suffix), fn ($q) => $q->whereNull('suffix'))
             ->ignore($this->userIdBeingEdited);
 
+        // 3. Validation Rules
         $rules = [
             'u_first_name' => ['required', 'string', 'max:50', $userFullNameRule],
-            'u_middle_name' => 'required|string|max:50',
+            'u_middle_name' => 'required|string|max:50', // Strictly required
             'u_last_name' => 'required|string|max:50',
             'u_suffix' => 'nullable|string|max:10',
             'u_username' => [
@@ -284,7 +287,7 @@ class Registrations extends Component
 
         $this->patronIdBeingEdited = $patron->id;
         $this->p_school_id = $patron->school_id;
-        $this->p_rfid_tag = $patron->rfid_tag ?? '';
+        $this->p_rfid_tag = $patron->rfid_tag;
         $this->p_first_name = $patron->first_name;
         $this->p_middle_name = $patron->middle_name;
         $this->p_last_name = $patron->last_name;
@@ -329,13 +332,13 @@ class Registrations extends Component
             'p_school_id' => [
                 'required',
                 'string',
-                'max:50',
+                'max:255',
                 Rule::unique('patrons', 'school_id')->ignore($this->patronIdBeingEdited),
             ],
             'p_rfid_tag' => [
                 'required',
                 'string',
-                'max:64',
+                'max:255',
                 Rule::unique('patrons', 'rfid_tag')->ignore($this->patronIdBeingEdited),
             ],
             'p_first_name' => ['required', 'string', 'max:50', $fullNameUniqueRule],
@@ -362,12 +365,12 @@ class Registrations extends Component
         ];
 
         $this->validate($rules, [
-            'p_school_id.required' => 'The School ID / Student Number is required.',
-            'p_school_id.unique' => 'This School ID is already assigned to another borrower.',
-            'p_rfid_tag.required' => 'The RFID Tag UID is required. Please scan the borrower card.',
-            'p_rfid_tag.unique' => 'This RFID Card UID is already registered to another borrower.',
-            'p_middle_name.required' => 'Middle name is strictly required.',
             'p_first_name.unique' => 'A borrower with this identical full name already exists in the system.',
+            'p_middle_name.required' => 'Middle name is strictly required.',
+            'p_school_id.required' => 'The School ID is required.',
+            'p_school_id.unique' => 'This School ID is already assigned to another borrower.',
+            'p_rfid_tag.required' => 'The RFID Tag UID is required.',
+            'p_rfid_tag.unique' => 'This RFID Tag UID is already registered to another borrower.',
             'p_email.unique' => 'This email is already assigned to another borrower.',
             'p_contact_number.unique' => 'This contact number is already assigned to another borrower.',
             'p_grade_level_id.required' => 'Grade level is required for student borrowers.',
@@ -398,7 +401,7 @@ class Registrations extends Component
             }
         } catch (UniqueConstraintViolationException $e) {
             throw ValidationException::withMessages([
-                'p_rfid_tag' => 'A database unique constraint conflict occurred for School ID or RFID Tag.',
+                'p_rfid_tag' => 'This RFID tag or School ID is already assigned to another borrower record.',
             ]);
         }
 
