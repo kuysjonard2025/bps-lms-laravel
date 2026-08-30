@@ -9,7 +9,7 @@
 
         {{-- Tab Switcher & Action Button --}}
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-            <div class="inline-flex rounded-xl border border-slate-200/80 bg-slate-100/80 p-1 shadow-2xs">
+            <div class="inline-flex rounded-xl border border-slate-200/80 bg-slate-100/80 p-1 shadow-xs">
                 <button
                     wire:click="$set('activeTab', 'grade_levels')"
                     type="button"
