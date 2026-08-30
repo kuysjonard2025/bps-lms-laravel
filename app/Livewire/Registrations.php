@@ -57,7 +57,7 @@ class Registrations extends Component
     // BORROWER FORM PROPERTIES
     // ------------------------------------------------------------------
     public ?int $patronIdBeingEdited = null;
-    public string $p_patron_id = '';
+    public string $p_patron_id = ''; // Stores Borrower RFID / ID Tag
     public string $p_first_name = '';
     public string $p_middle_name = '';
     public string $p_last_name = '';
@@ -356,7 +356,8 @@ class Registrations extends Component
 
         $this->validate($rules, [
             'p_first_name.unique' => 'A borrower with this identical full name already exists in the system.',
-            'p_patron_id.unique' => 'This Borrower ID is already registered.',
+            'p_patron_id.required' => 'The Borrower RFID / ID is required.',
+            'p_patron_id.unique' => 'This Borrower RFID / ID is already registered to another user.',
             'p_email.unique' => 'This email is already assigned to another borrower.',
             'p_contact_number.unique' => 'This contact number is already assigned to another borrower.',
             'p_grade_level_id.required' => 'Grade level is required for student borrowers.',
@@ -386,7 +387,7 @@ class Registrations extends Component
             }
         } catch (UniqueConstraintViolationException $e) {
             throw ValidationException::withMessages([
-                'p_patron_id' => 'A database unique constraint error occurred while saving the borrower.',
+                'p_patron_id' => 'This RFID / ID tag is already assigned to another borrower record.',
             ]);
         }
 
@@ -451,7 +452,7 @@ class Registrations extends Component
                 $this->dispatch('toast', message: 'Borrower record deleted successfully.', type: 'success');
             }
         } catch (QueryException $e) {
-            $this->dispatch('toast', message: 'Cannot delete record: It is referenced by active transactions or logs.', type: 'error');
+            $this->dispatch('toast', message: 'Cannot delete record: It is referenced by active transactions or borrower logs.', type: 'error');
         }
 
         $this->showDeleteModal = false;

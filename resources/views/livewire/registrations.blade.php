@@ -51,7 +51,7 @@
                     <input
                         type="text"
                         wire:model.live.debounce.300ms="search"
-                        placeholder="Search {{ $activeTab === 'users' ? 'users...' : 'borrowers...' }}"
+                        placeholder="Search {{ $activeTab === 'users' ? 'users...' : 'borrowers by RFID, name...' }}"
                         class="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
                     />
                     <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,7 +125,7 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                            <th class="px-6 py-3.5">Borrower ID</th>
+                            <th class="px-6 py-3.5">Borrower RFID / ID</th>
                             <th class="px-6 py-3.5">Name</th>
                             <th class="px-6 py-3.5">Type / Class</th>
                             <th class="px-6 py-3.5">Contact Details</th>
@@ -280,8 +280,8 @@
                 </div>
                 <form wire:submit.prevent="savePatron" class="p-6 space-y-4">
                     <div>
-                        <label class="block text-xs font-medium text-slate-700">Borrower ID / Barcode <span class="text-red-500">*</span></label>
-                        <input type="text" wire:model="p_patron_id" class="mt-1 w-full text-xs rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-blue-500/20" />
+                        <label class="block text-xs font-medium text-slate-700">Borrower RFID / ID Tag <span class="text-red-500">*</span></label>
+                        <input type="text" wire:model="p_patron_id" placeholder="Scan RFID card or type ID number" class="mt-1 w-full text-xs rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-blue-500/20" autofocus />
                         @error('p_patron_id') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                     </div>
 
