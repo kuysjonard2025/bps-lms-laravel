@@ -40,7 +40,7 @@ class Registrations extends Component
     public ?int $idBeingDeleted = null;
 
     // ------------------------------------------------------------------
-    // USER FORM PROPERTIES
+    // USER FORM PROPERTIES (Strictly Assistant Role)
     // ------------------------------------------------------------------
     public ?int $userIdBeingEdited = null;
     public string $u_first_name = '';
@@ -48,7 +48,7 @@ class Registrations extends Component
     public string $u_last_name = '';
     public string $u_suffix = '';
     public string $u_username = '';
-    public string $u_role = 'librarian';
+    public string $u_role = 'assistant'; // Default to assistant
     public string $u_email = '';
     public string $u_contact_number = '';
     public string $u_address = '';
@@ -72,21 +72,22 @@ class Registrations extends Component
     public string $p_status = 'active';
 
     // ------------------------------------------------------------------
-    // COMPUTED PROPERTIES
+    // SANITIZATION HELPER
     // ------------------------------------------------------------------
-    #[Computed]
-    public function isEditingAdmin(): bool
+    private function cleanString(?string $value): ?string
     {
-        if (! $this->userIdBeingEdited) {
-            return false;
+        if (is_null($value)) {
+            return null;
         }
 
-        $user = User::find($this->userIdBeingEdited);
+        $trimmed = trim(preg_replace('/\s+/', ' ', $value));
 
-        return $user && $user->role === 'admin';
+        return $trimmed === '' ? null : $trimmed;
     }
 
-    // Empty String Normalizers for FK Dropdowns
+    // ------------------------------------------------------------------
+    // LISTENERS & UPDATERS
+    // ------------------------------------------------------------------
     public function updatedPPatronTypeId($value): void
     {
         if (blank($value)) {
@@ -109,7 +110,6 @@ class Registrations extends Component
         }
     }
 
-    // Reset pagination when searching or switching tabs
     public function updatedSearch(): void
     {
         $this->resetPage('usersPage');
@@ -143,7 +143,7 @@ class Registrations extends Component
         $this->u_last_name = $user->last_name ?? '';
         $this->u_suffix = $user->suffix ?? '';
         $this->u_username = $user->username;
-        $this->u_role = $user->role;
+        $this->u_role = 'assistant';
         $this->u_email = $user->email ?? '';
         $this->u_contact_number = $user->contact_number ?? '';
         $this->u_address = $user->address ?? '';
@@ -153,16 +153,25 @@ class Registrations extends Component
 
     public function saveUser(): void
     {
-        $cleanSuffix = trim($this->u_suffix) ?: null;
+        // 1. Input Sanitization
+        $firstName = $this->cleanString($this->u_first_name);
+        $middleName = $this->cleanString($this->u_middle_name);
+        $lastName = $this->cleanString($this->u_last_name);
+        $suffix = $this->cleanString($this->u_suffix);
+        $username = $this->cleanString($this->u_username);
+        $email = $this->cleanString(strtolower($this->u_email));
+        $contactNumber = $this->cleanString($this->u_contact_number);
+        $address = $this->cleanString($this->u_address);
 
-        // Composite full-name check matching user schema unique index
+        // 2. Composite Full-Name Uniqueness Check
         $userFullNameRule = Rule::unique('users', 'first_name')
-            ->where('first_name', trim($this->u_first_name))
-            ->where('middle_name', trim($this->u_middle_name))
-            ->where('last_name', trim($this->u_last_name))
-            ->when($cleanSuffix, fn ($q) => $q->where('suffix', $cleanSuffix), fn ($q) => $q->whereNull('suffix'))
+            ->where('first_name', $firstName)
+            ->where('middle_name', $middleName)
+            ->where('last_name', $lastName)
+            ->when($suffix, fn ($q) => $q->where('suffix', $suffix), fn ($q) => $q->whereNull('suffix'))
             ->ignore($this->userIdBeingEdited);
 
+        // 3. Validation Rules
         $rules = [
             'u_first_name' => ['required', 'string', 'max:50', $userFullNameRule],
             'u_middle_name' => 'required|string|max:50',
@@ -172,23 +181,23 @@ class Registrations extends Component
                 'required',
                 'string',
                 'max:20',
+                'alpha_dash',
                 Rule::unique('users', 'username')->ignore($this->userIdBeingEdited),
             ],
-            'u_role' => 'required|in:admin,librarian,assistant',
+            'u_role' => 'required|in:assistant', // Restrict exclusively to librarian assistant
             'u_email' => [
                 'nullable',
                 'email',
                 'max:100',
                 Rule::unique('users', 'email')
                     ->ignore($this->userIdBeingEdited)
-                    ->when(! trim($this->u_email), fn ($rule) => $rule->whereNull('email')),
+                    ->when(! $email, fn ($rule) => $rule->whereNull('email')),
             ],
             'u_contact_number' => [
                 'required',
                 'string',
                 'max:20',
-                Rule::unique('users', 'contact_number')
-                    ->ignore($this->userIdBeingEdited),
+                Rule::unique('users', 'contact_number')->ignore($this->userIdBeingEdited),
             ],
             'u_address' => 'required|string|max:255',
             'u_password' => $this->userIdBeingEdited ? 'nullable|min:6' : 'required|min:6',
@@ -199,31 +208,19 @@ class Registrations extends Component
             'u_username.unique' => 'This username is already taken.',
             'u_email.unique' => 'This email address is already registered.',
             'u_contact_number.unique' => 'This contact number is already registered to another user.',
+            'u_role.in' => 'System accounts registered here must be assigned as Librarian Assistant.',
         ]);
 
-        // Security check: Only Admins can set or alter user roles to 'admin'
-        $currentUser = Auth::user();
-        $assignedRole = $validated['u_role'];
-
-        if ($this->userIdBeingEdited) {
-            $existingUser = User::findOrFail($this->userIdBeingEdited);
-            if ($currentUser->role !== 'admin' && ($validated['u_role'] === 'admin' || $existingUser->role === 'admin')) {
-                $assignedRole = $existingUser->role; // Maintain original role if non-admin attempts edit
-            }
-        } elseif ($currentUser->role !== 'admin' && $validated['u_role'] === 'admin') {
-            $assignedRole = 'librarian'; // Prevent non-admins from creating admin users
-        }
-
         $data = [
-            'first_name' => trim($validated['u_first_name']),
-            'middle_name' => trim($validated['u_middle_name']),
-            'last_name' => trim($validated['u_last_name']),
-            'suffix' => $cleanSuffix,
-            'username' => trim($validated['u_username']),
-            'role' => $assignedRole,
-            'email' => trim($validated['u_email']) ?: null,
-            'contact_number' => trim($validated['u_contact_number']),
-            'address' => trim($validated['u_address']),
+            'first_name' => $firstName,
+            'middle_name' => $middleName,
+            'last_name' => $lastName,
+            'suffix' => $suffix,
+            'username' => $username,
+            'role' => 'assistant',
+            'email' => $email,
+            'contact_number' => $contactNumber,
+            'address' => $address,
         ];
 
         if (! empty($validated['u_password'])) {
@@ -242,7 +239,7 @@ class Registrations extends Component
             ]);
         }
 
-        $message = $this->userIdBeingEdited ? 'User updated successfully.' : 'User created successfully.';
+        $message = $this->userIdBeingEdited ? 'Assistant user updated successfully.' : 'Assistant user created successfully.';
 
         $this->showUserModal = false;
         $this->resetUserForm();
@@ -258,12 +255,12 @@ class Registrations extends Component
             'u_last_name',
             'u_suffix',
             'u_username',
-            'u_role',
             'u_email',
             'u_contact_number',
             'u_address',
             'u_password',
         ]);
+        $this->u_role = 'assistant';
         $this->resetValidation();
     }
 
@@ -274,7 +271,6 @@ class Registrations extends Component
     {
         $this->resetPatronForm();
 
-        // Default to first available patron type
         $firstType = PatronType::first();
         if ($firstType) {
             $this->p_patron_type_id = $firstType->id;
@@ -307,18 +303,26 @@ class Registrations extends Component
 
     public function savePatron(): void
     {
-        $cleanSuffix = trim($this->p_suffix) ?: null;
+        // 1. Input Sanitization
+        $patronId = $this->cleanString($this->p_patron_id);
+        $firstName = $this->cleanString($this->p_first_name);
+        $middleName = $this->cleanString($this->p_middle_name);
+        $lastName = $this->cleanString($this->p_last_name);
+        $suffix = $this->cleanString($this->p_suffix);
+        $email = $this->cleanString(strtolower($this->p_email));
+        $contactNumber = $this->cleanString($this->p_contact_number);
+        $address = $this->cleanString($this->p_address);
 
-        // Dynamic check if selected patron type is student to apply conditional validation
+        // Dynamic check if selected patron type is student
         $selectedType = PatronType::find($this->p_patron_type_id);
         $isStudent = $selectedType && strtolower($selectedType->name) === 'student';
 
-        // Composite full-name check evaluating NULL suffix state correctly
+        // Composite full-name check
         $fullNameUniqueRule = Rule::unique('patrons', 'first_name')
-            ->where('first_name', trim($this->p_first_name))
-            ->where('middle_name', trim($this->p_middle_name))
-            ->where('last_name', trim($this->p_last_name))
-            ->when($cleanSuffix, fn ($q) => $q->where('suffix', $cleanSuffix), fn ($q) => $q->whereNull('suffix'))
+            ->where('first_name', $firstName)
+            ->where('middle_name', $middleName)
+            ->where('last_name', $lastName)
+            ->when($suffix, fn ($q) => $q->where('suffix', $suffix), fn ($q) => $q->whereNull('suffix'))
             ->ignore($this->patronIdBeingEdited);
 
         $rules = [
@@ -361,17 +365,17 @@ class Registrations extends Component
         ]);
 
         $payload = [
-            'patron_id' => trim($this->p_patron_id),
-            'first_name' => trim($this->p_first_name),
-            'middle_name' => trim($this->p_middle_name),
-            'last_name' => trim($this->p_last_name),
-            'suffix' => $cleanSuffix,
+            'patron_id' => $patronId,
+            'first_name' => $firstName,
+            'middle_name' => $middleName,
+            'last_name' => $lastName,
+            'suffix' => $suffix,
             'patron_type_id' => $this->p_patron_type_id,
             'grade_level_id' => $isStudent ? $this->p_grade_level_id : null,
             'section_id' => $isStudent ? $this->p_section_id : null,
-            'email' => trim($this->p_email),
-            'contact_number' => trim($this->p_contact_number),
-            'address' => trim($this->p_address),
+            'email' => $email,
+            'contact_number' => $contactNumber,
+            'address' => $address,
             'status' => $this->p_status,
         ];
 
@@ -409,8 +413,8 @@ class Registrations extends Component
             'p_email',
             'p_contact_number',
             'p_address',
-            'p_status',
         ]);
+        $this->p_status = 'active';
         $this->resetValidation();
     }
 
@@ -430,7 +434,6 @@ class Registrations extends Component
             if ($this->deleteType === 'user') {
                 $user = User::findOrFail($this->idBeingDeleted);
 
-                // Prevent user from deleting themselves
                 if ($user->id === Auth::id()) {
                     $this->dispatch('toast', message: 'You cannot delete your own account.', type: 'error');
                     $this->showDeleteModal = false;
@@ -465,7 +468,7 @@ class Registrations extends Component
     {
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
-        // 1. Conditionally fetch Users Data only when active
+        // 1. Conditionally fetch Users Data
         $users = $this->activeTab === 'users'
             ? User::query()
                 ->when($this->search, function ($query) use ($likeOperator) {
@@ -481,7 +484,7 @@ class Registrations extends Component
                 ->paginate(10, ['*'], 'usersPage')
             : new LengthAwarePaginator([], 0, 10);
 
-        // 2. Conditionally fetch Patrons Data only when active
+        // 2. Conditionally fetch Patrons Data
         $patrons = $this->activeTab === 'patrons'
             ? Patron::with(['patronType', 'gradeLevel', 'section'])
                 ->when($this->search, function ($query) use ($likeOperator) {
@@ -497,14 +500,14 @@ class Registrations extends Component
                 ->paginate(10, ['*'], 'patronsPage')
             : new LengthAwarePaginator([], 0, 10);
 
-        // 3. Dropdown Datasets (Lightweight projections)
+        // 3. Dropdown Datasets
         $patronTypes = PatronType::orderBy('name')->get(['id', 'name']);
         $allGradeLevels = GradeLevel::orderBy('name')->get(['id', 'name', 'code']);
         $availableSections = $this->p_grade_level_id
             ? Section::where('grade_level_id', $this->p_grade_level_id)->orderBy('name')->get(['id', 'name'])
             : collect();
 
-        // 4. Check if currently selected Patron Type is "Student"
+        // 4. Check selected Patron Type
         $selectedPatronType = $patronTypes->firstWhere('id', $this->p_patron_type_id);
         $isStudentType = $selectedPatronType && strtolower($selectedPatronType->name) === 'student';
 
@@ -515,7 +518,6 @@ class Registrations extends Component
             'allGradeLevels' => $allGradeLevels,
             'availableSections' => $availableSections,
             'isStudentType' => $isStudentType,
-            'isEditingAdmin' => $this->isEditingAdmin,
         ]);
     }
 }

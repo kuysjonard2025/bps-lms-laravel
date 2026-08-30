@@ -1,4 +1,4 @@
-<div class="p-4 sm:p-6 space-y-4 max-w-full">
+<div class="space-y-6">
     {{-- Header Container --}}
     <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
@@ -232,7 +232,7 @@
 
     {{-- USER MODAL --}}
     @if ($showUserModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="user-modal-title" @keydown.escape.window="$wire.set('showUserModal', false)">
             <div wire:click.self="$set('showUserModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
             <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-lg z-10 overflow-hidden my-auto flex flex-col max-h-[90vh]">
                 <div class="bg-gray-50 px-5 py-3.5 border-b border-gray-200 flex justify-between items-center shrink-0">
@@ -247,17 +247,17 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-700">First Name <span class="text-red-500">*</span></label>
                             <input type="text" wire:model="u_first_name" placeholder="John" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('u_first_name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('u_first_name') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Middle Name</label>
                             <input type="text" wire:model="u_middle_name" placeholder="Doe" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('u_middle_name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('u_middle_name') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Last Name <span class="text-red-500">*</span></label>
                             <input type="text" wire:model="u_last_name" placeholder="Smith" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('u_last_name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('u_last_name') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
@@ -269,7 +269,7 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Username <span class="text-red-500">*</span></label>
                             <input type="text" wire:model="u_username" placeholder="johnsmith" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('u_username') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('u_username') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Role <span class="text-red-500">*</span></label>
@@ -284,7 +284,7 @@
                                 <option value="librarian">Librarian</option>
                                 <option value="assistant">Librarian Assistant</option>
                             </select>
-                            @error('u_role') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('u_role') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
@@ -292,19 +292,19 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Email Address</label>
                             <input type="email" wire:model="u_email" placeholder="john@example.com" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('u_email') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('u_email') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Contact Number <span class="text-red-500">*</span></label>
                             <input type="text" wire:model="u_contact_number" placeholder="09123456789" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('u_contact_number') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('u_contact_number') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-xs font-medium text-gray-700">Address <span class="text-red-500">*</span></label>
                         <input type="text" wire:model="u_address" placeholder="123 Street Name, City" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                        @error('u_address') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                        @error('u_address') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
@@ -312,7 +312,7 @@
                             Password {{ $userIdBeingEdited ? '(Leave blank to keep unchanged)' : '*' }}
                         </label>
                         <input type="password" wire:model="u_password" placeholder="••••••••" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                        @error('u_password') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                        @error('u_password') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="pt-3 border-t border-gray-200 flex justify-end gap-2">
@@ -330,7 +330,7 @@
 
     {{-- PATRON MODAL --}}
     @if ($showPatronModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="patron-modal-title">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="patron-modal-title" @keydown.escape.window="$wire.set('showPatronModal', false)">
             <div wire:click.self="$set('showPatronModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
             <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-xl z-10 overflow-hidden my-auto flex flex-col max-h-[90vh]">
                 <div class="bg-gray-50 px-5 py-3.5 border-b border-gray-200 flex justify-between items-center shrink-0">
@@ -345,7 +345,7 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Patron ID <span class="text-red-500">*</span></label>
                             <input type="text" wire:model="p_patron_id" placeholder="PAT-2026-0001" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('p_patron_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('p_patron_id') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Patron Type <span class="text-red-500">*</span></label>
@@ -355,7 +355,7 @@
                                     <option value="{{ $type->id }}">{{ $type->name }}</option>
                                 @endforeach
                             </select>
-                            @error('p_patron_type_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('p_patron_type_id') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
@@ -363,17 +363,17 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-700">First Name <span class="text-red-500">*</span></label>
                             <input type="text" wire:model="p_first_name" placeholder="John" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('p_first_name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('p_first_name') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Middle Name</label>
                             <input type="text" wire:model="p_middle_name" placeholder="Doe" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('p_middle_name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('p_middle_name') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Last Name <span class="text-red-500">*</span></label>
                             <input type="text" wire:model="p_last_name" placeholder="Smith" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('p_last_name') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('p_last_name') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
@@ -385,12 +385,12 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Email Address <span class="text-red-500">*</span></label>
                             <input type="email" wire:model="p_email" placeholder="patron@example.com" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('p_email') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('p_email') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Contact Number <span class="text-red-500">*</span></label>
                             <input type="text" wire:model="p_contact_number" placeholder="09123456789" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('p_contact_number') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('p_contact_number') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
@@ -404,7 +404,7 @@
                                         <option value="{{ $level->id }}">{{ $level->name }} ({{ $level->code }})</option>
                                     @endforeach
                                 </select>
-                                @error('p_grade_level_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                                @error('p_grade_level_id') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-blue-900">Section</label>
@@ -414,7 +414,7 @@
                                         <option value="{{ $section->id }}">{{ $section->name }}</option>
                                     @endforeach
                                 </select>
-                                @error('p_section_id') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                                @error('p_section_id') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                             </div>
                         </div>
                     @endif
@@ -423,7 +423,7 @@
                         <div class="sm:col-span-2">
                             <label class="block text-xs font-medium text-gray-700">Address <span class="text-red-500">*</span></label>
                             <input type="text" wire:model="p_address" placeholder="123 Home Address" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                            @error('p_address') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('p_address') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Account Status <span class="text-red-500">*</span></label>
@@ -432,7 +432,7 @@
                                 <option value="inactive">Inactive</option>
                                 <option value="suspended">Suspended</option>
                             </select>
-                            @error('p_status') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
+                            @error('p_status') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
@@ -451,34 +451,34 @@
 
     {{-- DELETE CONFIRMATION MODAL --}}
     @if ($showDeleteModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" @keydown.escape.window="$wire.set('showDeleteModal', false)">
             <div wire:click.self="$set('showDeleteModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
-            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-sm z-10 p-5 text-center my-auto">
-                <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3">
+            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md z-10 overflow-hidden my-auto p-6 text-center">
+                <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 mx-auto flex items-center justify-center mb-4">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-3 0-3z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
                 </div>
-
-                <h3 id="delete-modal-title" class="text-sm font-bold text-gray-900">Confirm Deletion</h3>
-                <p class="text-xs text-gray-500 mt-1">
-                    Are you sure you want to delete this {{ $itemTypeToDelete ?? 'record' }}? This action cannot be undone.
+                <h3 id="delete-modal-title" class="text-sm sm:text-base font-bold text-gray-900 mb-2">
+                    Confirm Deletion
+                </h3>
+                <p class="text-xs text-gray-500 mb-6">
+                    Are you sure you want to delete this {{ $itemTypeToDelete }} record? This action cannot be undone.
                 </p>
-
-                <div class="mt-4 flex justify-center gap-2">
+                <div class="flex justify-center gap-3">
                     <button
                         type="button"
                         wire:click="$set('showDeleteModal', false)"
-                        class="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-md transition cursor-pointer"
+                        class="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition cursor-pointer"
                     >
                         Cancel
                     </button>
                     <button
                         type="button"
                         wire:click="deleteRecord"
-                        class="px-4 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md shadow-xs transition cursor-pointer"
+                        class="px-4 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-xs transition cursor-pointer"
                     >
-                        Delete
+                        Delete Record
                     </button>
                 </div>
             </div>
