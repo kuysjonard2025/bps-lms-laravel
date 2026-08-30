@@ -63,7 +63,7 @@ class Sidebar extends Component
                 ],
                 [
                     'name' => 'Borrower Logs',
-                    'route' => 'borrower-logs',
+                    'route' => 'patron-logs',
                     'icon' => 'clock',
                 ],
                 [
@@ -73,7 +73,7 @@ class Sidebar extends Component
                 ],
                 [
                     'name' => 'Borrower Records',
-                    'route' => 'borrower-records',
+                    'route' => 'patron-records',
                     'icon' => 'identification',
                 ],
                 [
