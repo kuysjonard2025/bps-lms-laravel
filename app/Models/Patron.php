@@ -12,7 +12,8 @@ class Patron extends Model
     use LogsActivity;
 
     protected $fillable = [
-        'patron_id',
+        'school_id',
+        'rfid_tag',
         'first_name',
         'middle_name',
         'last_name',
