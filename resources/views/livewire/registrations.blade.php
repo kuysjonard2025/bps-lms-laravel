@@ -60,7 +60,7 @@
                     <tbody class="divide-y divide-gray-200">
                         @forelse($users as $user)
                             <tr wire:key="user-{{ $user->id }}" class="hover:bg-gray-50 transition whitespace-nowrap">
-                                <td class="px-6 py-4 font-medium text-gray-900">
+                                <td class="px-6 py-4 font-medium text-gray-900 capitalize whitespace-nowrap">
                                     {{ $user->last_name }}, {{ $user->first_name }} {{ $user->middle_name }} {{ $user->suffix }}
                                 </td>
                                 <td class="px-6 py-4 font-mono text-xs text-indigo-600 font-medium whitespace-nowrap">
@@ -75,7 +75,7 @@
                                     <div class="text-xs text-gray-900 font-medium">{{ $user->email ?? 'N/A' }}</div>
                                     <div class="text-xs text-gray-500">{{ $user->contact_number }}</div>
                                 </td>
-                                <td class="px-6 py-4 text-xs text-gray-700 max-w-xs whitespace-nowrap" title="{{ $user->address }}">
+                                <td class="px-6 py-4 text-xs text-gray-700 max-w-xs capitalize whitespace-nowrap" title="{{ $user->address }}">
                                     {{ $user->address ?? 'N/A' }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -130,32 +130,32 @@
                     <tbody class="divide-y divide-gray-200">
                         @forelse($patrons as $patron)
                             <tr wire:key="patron-{{ $patron->id }}" class="hover:bg-gray-50 transition">
-                                <td class="px-6 py-4 font-mono text-xs font-semibold text-gray-900">
+                                <td class="px-6 py-4 font-mono text-xs font-semibold text-gray-900 whitespace-nowrap">
                                     {{ $patron->school_id }}
                                 </td>
-                                <td class="px-6 py-4 font-mono text-xs text-indigo-600">
+                                <td class="px-6 py-4 font-mono text-xs text-indigo-600 whitespace-nowrap">
                                     <span class="inline-flex items-center gap-1.5 bg-indigo-50 px-2 py-1 rounded border border-indigo-200">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
                                         {{ $patron->rfid_tag }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                                <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap capitalize">
                                     {{ $patron->last_name }}, {{ $patron->first_name }} {{ $patron->middle_name }} {{ $patron->suffix }}
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 capitalize whitespace-nowrap">
                                     <div class="font-medium text-xs text-gray-900">{{ $patron->patronType->name ?? 'N/A' }}</div>
                                     @if($patron->gradeLevel)
                                         <div class="text-xs text-gray-500">{{ $patron->gradeLevel->name }} - {{ $patron->section->name ?? '' }}</div>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-xs text-gray-900 font-medium">{{ $patron->email ?? 'N/A' }}</div>
                                     <div class="text-xs text-gray-500">{{ $patron->contact_number }}</div>
                                 </td>
-                                <td class="px-6 py-4 text-xs text-gray-700 max-w-xs truncate" title="{{ $patron->address }}">
+                                <td class="px-6 py-4 text-xs text-gray-700 max-w-xs capitalize whitespace-nowrap" title="{{ $patron->address }}">
                                     {{ $patron->address ?? 'N/A' }}
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 capitalize whitespace-nowrap">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                         {{ $patron->status === 'active' ? 'bg-emerald-100 text-emerald-800' : '' }}
                                         {{ $patron->status === 'inactive' ? 'bg-amber-100 text-amber-800' : '' }}
