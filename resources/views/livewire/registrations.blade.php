@@ -78,15 +78,17 @@
                                 <td class="px-6 py-4 text-xs text-gray-700 max-w-xs whitespace-nowrap" title="{{ $user->address }}">
                                     {{ $user->address ?? 'N/A' }}
                                 </td>
-                                @if($user->email_verified_at)
-                                    <td class="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full text-center whitespace-nowrap">
-                                        Verified
-                                    </td>
-                                @else
-                                    <td class="px-2 py-1 text-xs font-medium text-amber-700 bg-amber-100 rounded-full text-center whitespace-nowrap">
-                                        Unverified
-                                    </td>
-                                @endif
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    @if($user->email_verified_at)
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                            Verified
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                            Unverified
+                                        </span>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 text-right space-x-2 whitespace-nowrap">
                                     <button wire:click="openEditUserModal({{ $user->id }})" class="text-indigo-600 hover:text-indigo-900 font-medium text-xs">Edit</button>
                                     @if(Auth::id() !== $user->id)
