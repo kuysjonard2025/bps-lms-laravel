@@ -95,8 +95,8 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse($gradeLevels as $gl)
                             <tr wire:key="gl-row-{{ $gl->id }}" class="hover:bg-slate-50/60 transition-colors">
-                                <td class="p-3 pl-4 font-mono font-bold text-blue-600 whitespace-nowrap">{{ $gl->code }}</td>
-                                <td class="p-3 font-semibold text-slate-900 whitespace-nowrap">{{ $gl->name }}</td>
+                                <td class="p-3 pl-4 font-mono font-bold text-blue-600 capitalize whitespace-nowrap">{{ $gl->code }}</td>
+                                <td class="p-3 font-semibold text-slate-900 capitalize whitespace-nowrap">{{ $gl->name }}</td>
                                 <td class="p-3 text-center whitespace-nowrap">
                                     <span class="px-2.5 py-1 text-[10px] font-bold rounded-full bg-blue-50 text-blue-700 border border-blue-200/80">
                                         {{ $gl->sections_count }} {{ Str::plural('section', $gl->sections_count) }}
@@ -156,8 +156,8 @@
                             <tr wire:key="sec-row-{{ $sec->id }}" class="hover:bg-slate-50/60 transition-colors">
                                 <td class="p-3 pl-4 font-semibold text-slate-900 whitespace-nowrap">{{ $sec->name }}</td>
                                 <td class="p-3 whitespace-nowrap">
-                                    <span class="font-bold text-blue-600 font-mono">{{ $sec->gradeLevel->code ?? 'N/A' }}</span>
-                                    <span class="text-slate-500 text-[11px] ml-1">({{ $sec->gradeLevel->name ?? 'Unassigned' }})</span>
+                                    <span class="font-bold text-blue-600 font-mono capitalize">{{ $sec->gradeLevel->code ?? 'N/A' }}</span>
+                                    <span class="text-slate-500 text-[11px] ml-1 capitalize">({{ $sec->gradeLevel->name ?? 'Unassigned' }})</span>
                                 </td>
                                 <td class="p-3 pr-4 text-right whitespace-nowrap space-x-1">
                                     <button

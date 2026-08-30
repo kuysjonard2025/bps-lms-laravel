@@ -81,14 +81,14 @@ class AcademicInfo extends Component
 
     public function saveGradeLevel(): void
     {
-        $this->gl_name = trim($this->gl_name);
-        $this->gl_code = strtoupper(trim($this->gl_code));
+        $this->gl_name = strtolower(trim($this->gl_name));
+        $this->gl_code = strtolower(trim($this->gl_code));
 
         $validated = $this->validate([
             'gl_name' => [
                 'required',
                 'string',
-                'max:100',
+                'max:50',
                 Rule::unique('grade_levels', 'name')->ignore($this->gradeLevelIdBeingEdited),
             ],
             'gl_code' => [
