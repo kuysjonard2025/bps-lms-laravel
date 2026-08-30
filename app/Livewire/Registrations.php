@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -48,7 +47,7 @@ class Registrations extends Component
     public string $u_last_name = '';
     public string $u_suffix = '';
     public string $u_username = '';
-    public string $u_role = 'assistant'; // Default to assistant
+    public string $u_role = 'assistant'; // Exclusively 'assistant'
     public string $u_email = '';
     public string $u_contact_number = '';
     public string $u_address = '';
@@ -184,7 +183,7 @@ class Registrations extends Component
                 'alpha_dash',
                 Rule::unique('users', 'username')->ignore($this->userIdBeingEdited),
             ],
-            'u_role' => 'required|in:assistant', // Restrict exclusively to librarian assistant
+            'u_role' => 'required|in:assistant',
             'u_email' => [
                 'nullable',
                 'email',
@@ -441,11 +440,11 @@ class Registrations extends Component
                     return;
                 }
 
-                if ($user->role !== 'admin') {
+                if ($user->role !== 'admin' && $user->role !== 'librarian') {
                     $user->delete();
                     $this->dispatch('toast', message: 'User account deleted successfully.', type: 'success');
                 } else {
-                    $this->dispatch('toast', message: 'Admin accounts cannot be deleted.', type: 'error');
+                    $this->dispatch('toast', message: 'Admin or Librarian accounts cannot be deleted from this view.', type: 'error');
                 }
             } elseif ($this->deleteType === 'patron') {
                 Patron::findOrFail($this->idBeingDeleted)->delete();
