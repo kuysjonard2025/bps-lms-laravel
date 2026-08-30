@@ -393,7 +393,7 @@
                     <button wire:click="$set('showDeleteModal', false)" class="px-4 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50">Cancel</button>
                     <button wire:click="deleteRecord" wire:loading.attr="disabled" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-medium flex items-center gap-2">
                         <span wire:loading wire:target="deleteRecord" class="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full"></span>
-                        Delete Permanently
+                        Delete Record
                     </button>
                 </div>
             </div>

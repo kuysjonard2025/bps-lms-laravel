@@ -57,8 +57,8 @@ class Registrations extends Component
     // BORROWER FORM PROPERTIES
     // ------------------------------------------------------------------
     public ?int $patronIdBeingEdited = null;
-    public string $p_school_id = ''; // Borrower School ID
-    public string $p_rfid_tag = '';  // Borrower Hardcoded RFID Tag
+    public string $p_school_id = '';
+    public string $p_rfid_tag = '';
     public string $p_first_name = '';
     public string $p_middle_name = '';
     public string $p_last_name = '';
@@ -174,7 +174,7 @@ class Registrations extends Component
         // 3. Validation Rules
         $rules = [
             'u_first_name' => ['required', 'string', 'max:50', $userFullNameRule],
-            'u_middle_name' => 'required|string|max:50', // Strictly required
+            'u_middle_name' => 'required|string|max:50',
             'u_last_name' => 'required|string|max:50',
             'u_suffix' => 'nullable|string|max:10',
             'u_username' => [
@@ -186,12 +186,10 @@ class Registrations extends Component
             ],
             'u_role' => 'required|in:assistant',
             'u_email' => [
-                'nullable',
+                'required', // Required to receive verification email
                 'email',
                 'max:100',
-                Rule::unique('users', 'email')
-                    ->ignore($this->userIdBeingEdited)
-                    ->when(! $email, fn ($rule) => $rule->whereNull('email')),
+                Rule::unique('users', 'email')->ignore($this->userIdBeingEdited),
             ],
             'u_contact_number' => [
                 'required',
@@ -207,6 +205,7 @@ class Registrations extends Component
             'u_first_name.unique' => 'A user with this identical full name already exists.',
             'u_middle_name.required' => 'Middle name is required.',
             'u_username.unique' => 'This username is already taken.',
+            'u_email.required' => 'An email address is required for user verification.',
             'u_email.unique' => 'This email address is already registered.',
             'u_contact_number.unique' => 'This contact number is already registered to another user.',
             'u_role.in' => 'System accounts registered here must be assigned as Librarian Assistant.',
@@ -231,16 +230,20 @@ class Registrations extends Component
         try {
             if ($this->userIdBeingEdited) {
                 User::findOrFail($this->userIdBeingEdited)->update($data);
+                $message = 'Assistant user updated successfully.';
             } else {
-                User::create($data);
+                $user = User::create($data);
+
+                // Triggers queued email verification notification upon creation
+                $user->sendEmailVerificationNotification();
+
+                $message = 'Assistant user created successfully. Verification email dispatched.';
             }
         } catch (UniqueConstraintViolationException $e) {
             throw ValidationException::withMessages([
                 'u_username' => 'A database unique constraint error occurred while saving this user.',
             ]);
         }
-
-        $message = $this->userIdBeingEdited ? 'Assistant user updated successfully.' : 'Assistant user created successfully.';
 
         $this->showUserModal = false;
         $this->resetUserForm();
@@ -316,11 +319,9 @@ class Registrations extends Component
         $contactNumber = $this->cleanString($this->p_contact_number);
         $address = $this->cleanString($this->p_address);
 
-        // Dynamic check if selected borrower type is student
         $selectedType = PatronType::find($this->p_patron_type_id);
         $isStudent = $selectedType && strtolower($selectedType->name) === 'student';
 
-        // Composite full-name check
         $fullNameUniqueRule = Rule::unique('patrons', 'first_name')
             ->where('first_name', $firstName)
             ->where('middle_name', $middleName)
@@ -342,7 +343,7 @@ class Registrations extends Component
                 Rule::unique('patrons', 'rfid_tag')->ignore($this->patronIdBeingEdited),
             ],
             'p_first_name' => ['required', 'string', 'max:50', $fullNameUniqueRule],
-            'p_middle_name' => 'required|string|max:50', // Strictly required
+            'p_middle_name' => 'required|string|max:50',
             'p_last_name' => 'required|string|max:50',
             'p_suffix' => 'nullable|string|max:10',
             'p_patron_type_id' => 'required|exists:patron_types,id',
@@ -483,7 +484,6 @@ class Registrations extends Component
     {
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
-        // 1. Conditionally fetch Users Data
         $users = $this->activeTab === 'users'
             ? User::query()
                 ->when($this->search, function ($query) use ($likeOperator) {
@@ -500,7 +500,6 @@ class Registrations extends Component
                 ->paginate(10, ['*'], 'usersPage')
             : new LengthAwarePaginator([], 0, 10);
 
-        // 2. Conditionally fetch Borrowers Data
         $patrons = $this->activeTab === 'borrowers'
             ? Patron::with(['patronType', 'gradeLevel', 'section'])
                 ->when($this->search, function ($query) use ($likeOperator) {
@@ -518,14 +517,12 @@ class Registrations extends Component
                 ->paginate(10, ['*'], 'patronsPage')
             : new LengthAwarePaginator([], 0, 10);
 
-        // 3. Dropdown Datasets
         $patronTypes = PatronType::orderBy('name')->get(['id', 'name']);
         $allGradeLevels = GradeLevel::orderBy('name')->get(['id', 'name', 'code']);
         $availableSections = $this->p_grade_level_id
             ? Section::where('grade_level_id', $this->p_grade_level_id)->orderBy('name')->get(['id', 'name'])
             : collect();
 
-        // 4. Check selected Borrower Type
         $selectedPatronType = $patronTypes->firstWhere('id', $this->p_patron_type_id);
         $isStudentType = $selectedPatronType && strtolower($selectedPatronType->name) === 'student';
 
