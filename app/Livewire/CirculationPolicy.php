@@ -31,6 +31,9 @@ class CirculationPolicy extends Component
     public ?float $max_fine_amount = 100.00;
     public bool $is_active = true;
 
+    // Display property for read-only badge
+    public string $studentTypeName = 'Student';
+
     // UI state
     public bool $showModal = false;
     public bool $isEditing = false;
@@ -38,10 +41,15 @@ class CirculationPolicy extends Component
 
     public function mount(): void
     {
-        // Auto-select Student patron type if only 1 student type exists
+        $this->resolveStudentPatronType();
+    }
+
+    private function resolveStudentPatronType(): void
+    {
         $studentType = PatronType::where('name', 'like', '%Student%')->first();
         if ($studentType) {
             $this->patron_type_id = $studentType->id;
+            $this->studentTypeName = $studentType->name;
         }
     }
 
@@ -57,7 +65,6 @@ class CirculationPolicy extends Component
             'patron_type_id' => [
                 'required',
                 'integer',
-                // Guarantees patron_type_id exists AND belongs to a Student patron type
                 Rule::exists('patron_types', 'id')->where(function ($query) {
                     $query->where('name', 'like', '%Student%');
                 }),
@@ -89,9 +96,9 @@ class CirculationPolicy extends Component
     protected function messages(): array
     {
         return [
-            'patron_type_id.required' => 'The Student patron type is required.',
-            'patron_type_id.exists' => 'The selected patron type must be a valid Student type.',
-            'patron_type_id.unique' => 'A policy rule already exists for this Student Patron Type and Asset Type pair.',
+            'patron_type_id.required' => 'The Student borrower type is required.',
+            'patron_type_id.exists' => 'The selected borrower type must be a valid Student type.',
+            'patron_type_id.unique' => 'A policy rule already exists for this Student Borrower Type and Asset Type pair.',
             'asset_type_id.required' => 'The asset type is required.',
             'asset_type_id.exists' => 'The selected asset type is invalid.',
             'max_fine_amount.gte' => 'The maximum fine amount must be greater than or equal to the daily fine.',
@@ -127,6 +134,9 @@ class CirculationPolicy extends Component
 
     public function save(): void
     {
+        // Ensure patron_type_id is locked to Student before validation
+        $this->resolveStudentPatronType();
+
         $validated = $this->validate();
 
         $payload = [
@@ -152,7 +162,7 @@ class CirculationPolicy extends Component
             }
         } catch (UniqueConstraintViolationException $e) {
             throw ValidationException::withMessages([
-                'patron_type_id' => 'A policy rule already exists for this Student Patron Type and Asset Type pair.',
+                'patron_type_id' => 'A policy rule already exists for this Student Borrower Type and Asset Type pair.',
             ]);
         }
 
@@ -191,9 +201,7 @@ class CirculationPolicy extends Component
     private function resetForm(): void
     {
         $this->reset(['policy_id', 'asset_type_id', 'isEditing']);
-
-        $studentType = PatronType::where('name', 'like', '%Student%')->first();
-        $this->patron_type_id = $studentType?->id;
+        $this->resolveStudentPatronType();
 
         $this->max_borrow_limit = 3;
         $this->loan_duration_days = 7;
@@ -212,7 +220,6 @@ class CirculationPolicy extends Component
         $searchTerm = trim(strip_tags($this->search));
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
-        // Filters policies exclusively belonging to student patron types
         $policies = PolicyModel::with(['patronType', 'assetType'])
             ->whereHas('patronType', fn ($q) => $q->where('name', $likeOperator, '%Student%'))
             ->when($searchTerm !== '', function ($query) use ($searchTerm, $likeOperator) {
@@ -221,14 +228,8 @@ class CirculationPolicy extends Component
             ->latest()
             ->paginate(10);
 
-        // Retrieve only student-related patron types
-        $studentPatronTypes = PatronType::where('name', $likeOperator, '%Student%')
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
         return view('livewire.circulation-policy', [
             'policies' => $policies,
-            'patronTypes' => $studentPatronTypes,
             'assetTypes' => AssetType::orderBy('name')->get(['id', 'name']),
         ]);
     }

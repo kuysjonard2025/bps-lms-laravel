@@ -3,7 +3,7 @@
     <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
             <h2 class="text-base sm:text-lg font-bold text-gray-900">Student Circulation Policy</h2>
-            <p class="text-xs text-gray-500">Configure borrowing limits, durations, and fines specifically for Student patron types.</p>
+            <p class="text-xs text-gray-500">Configure borrowing limits, durations, and fines specifically for Student borrower types.</p>
         </div>
 
         <button
@@ -60,7 +60,7 @@
         <table class="w-full text-left text-xs text-gray-700">
             <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[11px] border-b border-gray-200">
                 <tr>
-                    <th scope="col" class="px-4 py-3 whitespace-nowrap">Patron Type</th>
+                    <th scope="col" class="px-4 py-3 whitespace-nowrap">Borrower Type</th>
                     <th scope="col" class="px-4 py-3 whitespace-nowrap">Asset Type</th>
                     <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Max Limit</th>
                     <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Duration</th>
@@ -77,7 +77,7 @@
                     <tr wire:key="policy-row-{{ $policy->id }}" class="hover:bg-gray-50/50 transition">
                         <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                {{ $policy->patronType?->name ?? 'N/A' }}
+                                {{ $policy->patronType?->name ?? 'Student' }}
                             </span>
                         </td>
                         <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
@@ -157,14 +157,14 @@
 
                 <form wire:submit.prevent="save" class="p-4 sm:p-6 space-y-4 overflow-y-auto">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {{-- Read-Only Student Borrower Type Field --}}
                         <div>
-                            <label for="patron_type_id" class="block text-xs font-medium text-gray-700">Student Patron Type <span class="text-red-500">*</span></label>
-                            <select id="patron_type_id" wire:model.number="patron_type_id" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs bg-white">
-                                <option value="">Select Patron Type</option>
-                                @foreach($patronTypes as $type)
-                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
-                                @endforeach
-                            </select>
+                            <label class="block text-xs font-medium text-gray-700">Borrower Type</label>
+                            <div class="mt-1 w-full text-xs rounded-md border border-gray-200 bg-gray-100 p-2 text-gray-600 font-semibold flex items-center justify-between cursor-not-allowed">
+                                <span>{{ $studentTypeName }}</span>
+                                <span class="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-normal">Fixed</span>
+                            </div>
+                            <input type="hidden" wire:model="patron_type_id" />
                             @error('patron_type_id') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
 
