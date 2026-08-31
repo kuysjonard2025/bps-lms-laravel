@@ -9,6 +9,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -18,40 +19,35 @@ class CirculationPolicy extends Component
 {
     use WithPagination;
 
-    // Form inputs
+    // Form attributes
     public ?int $policy_id = null;
     public ?int $patron_type_id = null;
     public ?int $asset_type_id = null;
-    public int $max_borrow_limit = 3;
-    public int $loan_duration_days = 7;
-    public int $max_renewals = 1;
-    public int $grace_period_days = 0;
-    public float|string $fine_per_day = 5.00;
-    public float|string $max_fine_amount = 100.00;
+    public ?int $max_borrow_limit = 3;
+    public ?int $loan_duration_days = 7;
+    public ?int $max_renewals = 1;
+    public ?int $grace_period_days = 0;
+    public ?float $fine_per_day = 5.00;
+    public ?float $max_fine_amount = 100.00;
     public bool $is_active = true;
 
-    // UI Controls
+    // UI state
     public bool $showModal = false;
     public bool $isEditing = false;
     public string $search = '';
 
-    // Empty String Normalizers for FK Dropdowns
-    public function updatedPatronTypeId($value): void
+    public function mount(): void
     {
-        if (blank($value)) {
-            $this->patron_type_id = null;
-        }
-    }
-
-    public function updatedAssetTypeId($value): void
-    {
-        if (blank($value)) {
-            $this->asset_type_id = null;
+        // Auto-select Student patron type if only 1 student type exists
+        $studentType = PatronType::where('name', 'like', '%Student%')->first();
+        if ($studentType) {
+            $this->patron_type_id = $studentType->id;
         }
     }
 
     public function updatedSearch(): void
     {
+        $this->search = trim(strip_tags($this->search));
         $this->resetPage();
     }
 
@@ -60,35 +56,45 @@ class CirculationPolicy extends Component
         return [
             'patron_type_id' => [
                 'required',
-                'exists:patron_types,id',
+                'integer',
+                // Guarantees patron_type_id exists AND belongs to a Student patron type
+                Rule::exists('patron_types', 'id')->where(function ($query) {
+                    $query->where('name', 'like', '%Student%');
+                }),
                 Rule::unique('circulation_policies', 'patron_type_id')
                     ->where(fn ($query) => $query->where('asset_type_id', $this->asset_type_id))
                     ->ignore($this->policy_id),
             ],
-            'asset_type_id'      => 'required|exists:asset_types,id',
-            'max_borrow_limit'   => 'required|integer|min:1|max:100',
+            'asset_type_id' => [
+                'required',
+                'integer',
+                'exists:asset_types,id',
+            ],
+            'max_borrow_limit' => 'required|integer|min:1|max:100',
             'loan_duration_days' => 'required|integer|min:1|max:365',
-            'max_renewals'       => 'required|integer|min:0|max:10',
-            'grace_period_days'  => 'required|integer|min:0|max:30',
-            'fine_per_day'       => 'required|numeric|min:0|max:9999.99',
-            'max_fine_amount'    => [
+            'max_renewals' => 'required|integer|min:0|max:10',
+            'grace_period_days' => 'required|integer|min:0|max:30',
+            'fine_per_day' => 'required|numeric|min:0|max:9999.99',
+            'max_fine_amount' => [
                 'required',
                 'numeric',
                 'min:0',
                 'max:99999.99',
-                'gte:fine_per_day', // Ensured max fine is at least 1 day's fine
+                'gte:fine_per_day',
             ],
-            'is_active'          => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 
     protected function messages(): array
     {
         return [
-            'patron_type_id.required' => 'The patron type is required.',
-            'patron_type_id.unique'   => 'A policy rule already exists for this Patron Type and Asset Type pair.',
-            'asset_type_id.required'  => 'The asset type is required.',
-            'max_fine_amount.gte'     => 'The maximum fine amount must be greater than or equal to the daily fine.',
+            'patron_type_id.required' => 'The Student patron type is required.',
+            'patron_type_id.exists' => 'The selected patron type must be a valid Student type.',
+            'patron_type_id.unique' => 'A policy rule already exists for this Student Patron Type and Asset Type pair.',
+            'asset_type_id.required' => 'The asset type is required.',
+            'asset_type_id.exists' => 'The selected asset type is invalid.',
+            'max_fine_amount.gte' => 'The maximum fine amount must be greater than or equal to the daily fine.',
         ];
     }
 
@@ -104,16 +110,16 @@ class CirculationPolicy extends Component
         $this->resetValidation();
         $policy = PolicyModel::findOrFail($id);
 
-        $this->policy_id          = $policy->id;
-        $this->patron_type_id     = $policy->patron_type_id;
-        $this->asset_type_id      = $policy->asset_type_id;
-        $this->max_borrow_limit   = $policy->max_borrow_limit;
+        $this->policy_id = $policy->id;
+        $this->patron_type_id = $policy->patron_type_id;
+        $this->asset_type_id = $policy->asset_type_id;
+        $this->max_borrow_limit = $policy->max_borrow_limit;
         $this->loan_duration_days = $policy->loan_duration_days;
-        $this->max_renewals       = $policy->max_renewals;
-        $this->grace_period_days  = $policy->grace_period_days;
-        $this->fine_per_day       = (float) $policy->fine_per_day;
-        $this->max_fine_amount    = (float) $policy->max_fine_amount;
-        $this->is_active          = (bool) $policy->is_active;
+        $this->max_renewals = $policy->max_renewals;
+        $this->grace_period_days = $policy->grace_period_days;
+        $this->fine_per_day = (float) $policy->fine_per_day;
+        $this->max_fine_amount = (float) $policy->max_fine_amount;
+        $this->is_active = (bool) $policy->is_active;
 
         $this->isEditing = true;
         $this->showModal = true;
@@ -124,29 +130,29 @@ class CirculationPolicy extends Component
         $validated = $this->validate();
 
         $payload = [
-            'patron_type_id'     => $validated['patron_type_id'],
-            'asset_type_id'      => $validated['asset_type_id'],
-            'max_borrow_limit'   => $validated['max_borrow_limit'],
-            'loan_duration_days' => $validated['loan_duration_days'],
-            'max_renewals'       => $validated['max_renewals'],
-            'grace_period_days'  => $validated['grace_period_days'],
-            'fine_per_day'       => (float) $validated['fine_per_day'],
-            'max_fine_amount'    => (float) $validated['max_fine_amount'],
-            'is_active'          => $this->is_active,
+            'patron_type_id' => (int) $validated['patron_type_id'],
+            'asset_type_id' => (int) $validated['asset_type_id'],
+            'max_borrow_limit' => (int) $validated['max_borrow_limit'],
+            'loan_duration_days' => (int) $validated['loan_duration_days'],
+            'max_renewals' => (int) $validated['max_renewals'],
+            'grace_period_days' => (int) $validated['grace_period_days'],
+            'fine_per_day' => round((float) $validated['fine_per_day'], 2),
+            'max_fine_amount' => round((float) $validated['max_fine_amount'], 2),
+            'is_active' => (bool) $validated['is_active'],
         ];
 
         try {
             if ($this->policy_id) {
                 $policy = PolicyModel::findOrFail($this->policy_id);
                 $policy->update($payload);
-                $message = 'Policy updated successfully.';
+                $message = 'Student circulation policy updated successfully.';
             } else {
                 PolicyModel::create($payload);
-                $message = 'Policy rule created successfully.';
+                $message = 'Student circulation policy created successfully.';
             }
         } catch (UniqueConstraintViolationException $e) {
             throw ValidationException::withMessages([
-                'patron_type_id' => 'A policy rule already exists for this Patron Type and Asset Type pair.',
+                'patron_type_id' => 'A policy rule already exists for this Student Patron Type and Asset Type pair.',
             ]);
         }
 
@@ -169,10 +175,10 @@ class CirculationPolicy extends Component
 
             if ($policy) {
                 $policy->delete();
-                $this->dispatch('toast', message: 'Policy rule deleted.', type: 'success');
+                $this->dispatch('toast', message: 'Student policy rule deleted successfully.', type: 'success');
             }
         } catch (QueryException $e) {
-            $this->dispatch('toast', message: 'Cannot delete: This policy is linked to existing transactions or records.', type: 'error');
+            $this->dispatch('toast', message: 'Cannot delete: This policy is linked to existing transactions.', type: 'error');
         }
     }
 
@@ -184,7 +190,11 @@ class CirculationPolicy extends Component
 
     private function resetForm(): void
     {
-        $this->reset(['policy_id', 'patron_type_id', 'asset_type_id', 'isEditing']);
+        $this->reset(['policy_id', 'asset_type_id', 'isEditing']);
+
+        $studentType = PatronType::where('name', 'like', '%Student%')->first();
+        $this->patron_type_id = $studentType?->id;
+
         $this->max_borrow_limit = 3;
         $this->loan_duration_days = 7;
         $this->max_renewals = 1;
@@ -196,23 +206,30 @@ class CirculationPolicy extends Component
     }
 
     #[Layout('components.layouts.app')]
-    #[Title('Circulation Policy')]
-    public function render()
+    #[Title('Student Circulation Policy')]
+    public function render(): View
     {
+        $searchTerm = trim(strip_tags($this->search));
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
+        // Filters policies exclusively belonging to student patron types
         $policies = PolicyModel::with(['patronType', 'assetType'])
-            ->when($this->search, function ($query) use ($likeOperator) {
-                $query->whereHas('patronType', fn ($q) => $q->where('name', $likeOperator, "%{$this->search}%"))
-                      ->orWhereHas('assetType', fn ($q) => $q->where('name', $likeOperator, "%{$this->search}%"));
+            ->whereHas('patronType', fn ($q) => $q->where('name', $likeOperator, '%Student%'))
+            ->when($searchTerm !== '', function ($query) use ($searchTerm, $likeOperator) {
+                $query->whereHas('assetType', fn ($q) => $q->where('name', $likeOperator, "%{$searchTerm}%"));
             })
             ->latest()
             ->paginate(10);
 
+        // Retrieve only student-related patron types
+        $studentPatronTypes = PatronType::where('name', $likeOperator, '%Student%')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return view('livewire.circulation-policy', [
-            'policies'    => $policies,
-            'patronTypes' => PatronType::orderBy('name')->get(['id', 'name']),
-            'assetTypes'  => AssetType::orderBy('name')->get(['id', 'name']),
+            'policies' => $policies,
+            'patronTypes' => $studentPatronTypes,
+            'assetTypes' => AssetType::orderBy('name')->get(['id', 'name']),
         ]);
     }
 }

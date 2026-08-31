@@ -6,17 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('circulation_policies', function (Blueprint $table) {
             $table->id();
 
-            // FKs to patron_types and asset_types
-            $table->foreignId('patron_type_id')->constrained('patron_types')->cascadeOnDelete();
-            $table->foreignId('asset_type_id')->constrained('asset_types')->cascadeOnDelete();
+            // Foreign Key to Patron Types (Filtered to Student in app logic)
+            $table->foreignId('patron_type_id')->constrained('patron_types')->restrictOnDelete();
+            $table->foreignId('asset_type_id')->constrained('asset_types')->restrictOnDelete();
 
             // Policy Rule Matrix
             $table->unsignedInteger('max_borrow_limit')->default(3);
@@ -31,14 +28,11 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
-            // Unique combination constraint
+            // Unique matrix pair constraint
             $table->unique(['patron_type_id', 'asset_type_id']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('circulation_policies');

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Livewire\Traits\LogsActivity;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -45,11 +46,14 @@ class CirculationPolicy extends Model
         return $this->belongsTo(AssetType::class);
     }
 
-    public function scopeActive($query)
+    public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }
 
+    /**
+     * Find active policy rule by Patron Type ID and Asset Type ID.
+     */
     public static function findPolicy(int $patronTypeId, int $assetTypeId): ?self
     {
         return static::query()

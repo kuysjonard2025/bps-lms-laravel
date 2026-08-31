@@ -1,9 +1,9 @@
-<div class="p-4 sm:p-6 space-y-4 max-w-full">
+<div class="space-y-6">
     {{-- Header Container --}}
     <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-            <h2 class="text-base sm:text-lg font-bold text-gray-900">Circulation Policy</h2>
-            <p class="text-xs text-gray-500">Set borrowing rules, durations, and fine structures per patron and asset combination.</p>
+            <h2 class="text-base sm:text-lg font-bold text-gray-900">Student Circulation Policy</h2>
+            <p class="text-xs text-gray-500">Configure borrowing limits, durations, and fines specifically for Student patron types.</p>
         </div>
 
         <button
@@ -14,7 +14,7 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
-            <span>New Policy Rule</span>
+            <span>New Student Policy</span>
         </button>
     </div>
 
@@ -36,14 +36,19 @@
             <input
                 wire:model.live.debounce.300ms="search"
                 type="text"
-                placeholder="Filter by Patron or Asset Type..."
+                placeholder="Filter by Asset Type..."
                 class="w-full pl-9 pr-8 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
             <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
             @if(!empty($search))
-                <button wire:click="$set('search', '')" type="button" class="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 text-xs cursor-pointer" aria-label="Clear search">
+                <button
+                    type="button"
+                    wire:click="$set('search', '')"
+                    class="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 text-xs cursor-pointer"
+                    aria-label="Clear search"
+                >
                     ✕
                 </button>
             @endif
@@ -71,10 +76,12 @@
                 @forelse($policies as $policy)
                     <tr wire:key="policy-row-{{ $policy->id }}" class="hover:bg-gray-50/50 transition">
                         <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
-                            {{ $policy->patronType->name ?? 'N/A' }}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                {{ $policy->patronType?->name ?? 'N/A' }}
+                            </span>
                         </td>
                         <td class="px-4 py-3 text-gray-600 whitespace-nowrap">
-                            {{ $policy->assetType->name ?? 'N/A' }}
+                            {{ $policy->assetType?->name ?? 'N/A' }}
                         </td>
                         <td class="px-4 py-3 text-center text-gray-700 whitespace-nowrap">
                             {{ $policy->max_borrow_limit }} item(s)
@@ -124,7 +131,7 @@
                 @empty
                     <tr>
                         <td colspan="10" class="px-4 py-8 text-center text-gray-500">
-                            No circulation policy rules found matching your criteria.
+                            No student circulation policy rules found.
                         </td>
                     </tr>
                 @endforelse
@@ -143,7 +150,7 @@
             <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-xl z-10 overflow-hidden my-auto flex flex-col max-h-[90vh]">
                 <div class="bg-gray-50 px-5 py-3.5 border-b border-gray-200 flex justify-between items-center shrink-0">
                     <h3 id="policy-modal-title" class="text-xs sm:text-sm font-bold text-gray-900">
-                        {{ $isEditing ? 'Edit Circulation Policy' : 'Create Circulation Policy' }}
+                        {{ $isEditing ? 'Edit Student Policy Rule' : 'Create Student Policy Rule' }}
                     </h3>
                     <button type="button" wire:click="closeModal" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
                 </div>
@@ -151,8 +158,8 @@
                 <form wire:submit.prevent="save" class="p-4 sm:p-6 space-y-4 overflow-y-auto">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-medium text-gray-700">Patron Type <span class="text-red-500">*</span></label>
-                            <select wire:model="patron_type_id" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs bg-white">
+                            <label for="patron_type_id" class="block text-xs font-medium text-gray-700">Student Patron Type <span class="text-red-500">*</span></label>
+                            <select id="patron_type_id" wire:model.number="patron_type_id" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs bg-white">
                                 <option value="">Select Patron Type</option>
                                 @foreach($patronTypes as $type)
                                     <option value="{{ $type->id }}">{{ $type->name }}</option>
@@ -162,8 +169,8 @@
                         </div>
 
                         <div>
-                            <label class="block text-xs font-medium text-gray-700">Asset Type <span class="text-red-500">*</span></label>
-                            <select wire:model="asset_type_id" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs bg-white">
+                            <label for="asset_type_id" class="block text-xs font-medium text-gray-700">Asset Type <span class="text-red-500">*</span></label>
+                            <select id="asset_type_id" wire:model.number="asset_type_id" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs bg-white">
                                 <option value="">Select Asset Type</option>
                                 @foreach($assetTypes as $type)
                                     <option value="{{ $type->id }}">{{ $type->name }}</option>
@@ -175,40 +182,40 @@
 
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div>
-                            <label class="block text-xs font-medium text-gray-700">Max Limit <span class="text-red-500">*</span></label>
-                            <input type="number" wire:model="max_borrow_limit" min="1" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs" placeholder="e.g. 3">
+                            <label for="max_borrow_limit" class="block text-xs font-medium text-gray-700">Max Limit <span class="text-red-500">*</span></label>
+                            <input id="max_borrow_limit" type="number" wire:model.number="max_borrow_limit" min="1" max="100" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs" placeholder="e.g. 3">
                             @error('max_borrow_limit') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
 
                         <div>
-                            <label class="block text-xs font-medium text-gray-700">Loan Days <span class="text-red-500">*</span></label>
-                            <input type="number" wire:model="loan_duration_days" min="1" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs" placeholder="e.g. 7">
+                            <label for="loan_duration_days" class="block text-xs font-medium text-gray-700">Loan Days <span class="text-red-500">*</span></label>
+                            <input id="loan_duration_days" type="number" wire:model.number="loan_duration_days" min="1" max="365" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs" placeholder="e.g. 7">
                             @error('loan_duration_days') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
 
                         <div>
-                            <label class="block text-xs font-medium text-gray-700">Max Renewals</label>
-                            <input type="number" wire:model="max_renewals" min="0" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs" placeholder="e.g. 2">
+                            <label for="max_renewals" class="block text-xs font-medium text-gray-700">Max Renewals</label>
+                            <input id="max_renewals" type="number" wire:model.number="max_renewals" min="0" max="10" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs" placeholder="e.g. 2">
                             @error('max_renewals') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
 
                         <div>
-                            <label class="block text-xs font-medium text-gray-700">Grace Days</label>
-                            <input type="number" wire:model="grace_period_days" min="0" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs" placeholder="e.g. 0">
+                            <label for="grace_period_days" class="block text-xs font-medium text-gray-700">Grace Days</label>
+                            <input id="grace_period_days" type="number" wire:model.number="grace_period_days" min="0" max="30" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs" placeholder="e.g. 0">
                             @error('grace_period_days') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-medium text-gray-700">Fine Per Day (₱)</label>
-                            <input type="number" step="0.01" wire:model="fine_per_day" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs" placeholder="0.00">
+                            <label for="fine_per_day" class="block text-xs font-medium text-gray-700">Fine Per Day (₱)</label>
+                            <input id="fine_per_day" type="number" step="0.01" min="0" max="9999.99" wire:model.number="fine_per_day" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs" placeholder="0.00">
                             @error('fine_per_day') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
 
                         <div>
-                            <label class="block text-xs font-medium text-gray-700">Max Fine Cap (₱)</label>
-                            <input type="number" step="0.01" wire:model="max_fine_amount" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs" placeholder="0.00">
+                            <label for="max_fine_amount" class="block text-xs font-medium text-gray-700">Max Fine Cap (₱)</label>
+                            <input id="max_fine_amount" type="number" step="0.01" min="0" max="99999.99" wire:model.number="max_fine_amount" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs" placeholder="0.00">
                             @error('max_fine_amount') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                     </div>

@@ -27,9 +27,9 @@ return new class extends Migration
             $table->string('email', 100)->unique();
 
             // Foreign Keys
-            $table->foreignId('patron_type_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('grade_level_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('section_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('patron_type_id')->constrained()->restrictOnDelete();
+            $table->foreignId('grade_level_id')->nullable()->constrained()->restrictOnDelete();
+            $table->foreignId('section_id')->nullable()->constrained()->restrictOnDelete();
 
             $table->string('status')->default('active'); // e.g., 'active', 'inactive', 'suspended'
 
