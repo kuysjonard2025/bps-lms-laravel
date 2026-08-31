@@ -13,11 +13,17 @@ return new class extends Migration
     {
         Schema::create('patron_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('patron_id')->constrained('patrons')->cascadeOnDelete();
+
+            // Foreign key pointing to patrons.id
+            $table->foreignId('patron_id')->constrained('patrons')->restrictOnDelete();
+
             $table->timestamp('time_in');
             $table->timestamp('time_out')->nullable();
             $table->date('log_date'); // Helpful for querying today's active logs
             $table->timestamps();
+
+            // Index for faster log lookups during kiosk scanning
+            $table->index(['patron_id', 'log_date']);
         });
     }
 

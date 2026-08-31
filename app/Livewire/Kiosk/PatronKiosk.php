@@ -17,10 +17,24 @@ class PatronKiosk extends Component
     public string $actionStatus = '';
     public string $actionTime = '';
 
+    // Define operating hours
+    private string $startTime = '09:00';
+    private string $endTime = '17:00';
+
     #[Layout('components.layouts.kiosk')]
-    #[Title('Patron RFID Kiosk')]
+    #[Title('Borrower RFID Kiosk')]
     public function scanRfid(?string $rfid = null): void
     {
+        // 1. Time Restriction Check (9:00 AM to 5:00 PM)
+        $now = now();
+        $start = now()->setTimeFromTimeString($this->startTime);
+        $end = now()->setTimeFromTimeString($this->endTime);
+
+        if (! $now->between($start, $end)) {
+            session()->flash('kiosk_error', 'Kiosk is out of operating hours (9:00 AM - 5:00 PM).');
+            return;
+        }
+
         $targetRfid = $rfid ?? $this->rfid_number;
         $trimmedRfid = trim($targetRfid);
 
@@ -30,17 +44,19 @@ class PatronKiosk extends Component
             return;
         }
 
+        // Search by rfid_tag or school_id
         $patron = Patron::with(['patronType', 'gradeLevel', 'section'])
-            ->where('patron_id', $trimmedRfid)
+            ->where('rfid_tag', $trimmedRfid)
+            ->orWhere('school_id', $trimmedRfid)
             ->first();
 
-        if (!$patron) {
+        if (! $patron) {
             session()->flash('kiosk_error', 'Invalid or unregistered RFID card scanned.');
             return;
         }
 
         if ($patron->status !== 'active') {
-            session()->flash('kiosk_error', 'Patron account is currently inactive.');
+            session()->flash('kiosk_error', 'Borrower account is currently inactive.');
             return;
         }
 

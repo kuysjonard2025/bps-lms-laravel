@@ -2,7 +2,7 @@
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Registrations & Accounts</h1>
+            <h1 class="text-2xl font-bold text-gray-900">Users & Borrowers Registration</h1>
             <p class="text-sm text-gray-500">Manage library assistant staff and borrower registrations.</p>
         </div>
         <div class="flex items-center gap-3">
@@ -54,7 +54,7 @@
                             <th class="px-6 py-3 whitespace-nowrap">Contact Details</th>
                             <th class="px-6 py-3 whitespace-nowrap">Address</th>
                             <th class="px-6 py-3 whitespace-nowrap">Is Verified</th>
-                            <th class="px-6 py-3 text-right">Actions</th>
+                            <th class="px-6 py-3 text-right whitespace-nowrap">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
@@ -117,14 +117,14 @@
                 <table class="w-full text-left text-sm text-gray-600">
                     <thead class="bg-gray-50 border-b border-gray-200 text-xs uppercase font-semibold text-gray-500">
                         <tr>
-                            <th class="px-6 py-3">School ID</th>
-                            <th class="px-6 py-3">RFID Tag</th>
-                            <th class="px-6 py-3">Full Name</th>
-                            <th class="px-6 py-3">Type / Grade & Sec</th>
-                            <th class="px-6 py-3">Contact Details</th>
-                            <th class="px-6 py-3">Address</th>
-                            <th class="px-6 py-3">Status</th>
-                            <th class="px-6 py-3 text-right">Actions</th>
+                            <th class="px-6 py-3 whitespace-nowrap">School ID</th>
+                            <th class="px-6 py-3 whitespace-nowrap">RFID Tag</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Full Name</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Type / Grade & Sec</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Contact Details</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Address</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Status</th>
+                            <th class="px-6 py-3 text-right whitespace-nowrap">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
@@ -139,7 +139,7 @@
                                         {{ $patron->rfid_tag }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap capitalize">
+                                <td class="px-6 py-4 font-medium text-gray-900 capitalize whitespace-nowrap">
                                     {{ $patron->last_name }}, {{ $patron->first_name }} {{ $patron->middle_name }} {{ $patron->suffix }}
                                 </td>
                                 <td class="px-6 py-4 capitalize whitespace-nowrap">

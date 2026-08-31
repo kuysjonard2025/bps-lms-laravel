@@ -21,7 +21,7 @@
             clearTimeout(this.timer);
             this.timer = setTimeout(() => {
                 $wire.closeResultModal();
-            }, 4000);
+            }, 3000);
         }
     }"
     @window.keydown="handleGlobalKey($event)"
@@ -46,6 +46,14 @@
         <!-- Top Navy Accent Line -->
         <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-sky-500 via-sky-700 to-sky-900"></div>
 
+        <!-- Operating Hours Badge -->
+        <div class="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/80 border border-sky-200 text-sky-800 text-medium font-semibold">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Active Hours: 9:00 AM – 5:00 PM</span>
+        </div>
+
         <!-- Animated Light Blue Scanner Icon -->
         <div class="mb-8 p-6 bg-sky-50 border border-sky-200/60 rounded-full shadow-inner">
             <svg class="w-20 h-20 text-sky-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,13 +64,13 @@
         <h1 class="text-4xl font-extrabold text-sky-950 tracking-tight mb-3">Please Tap Your Card</h1>
         <p class="text-slate-500 text-base mb-6">Hold your ID badge near the scanner to log in or out.</p>
 
-        <!-- Development Testing Input Box -->
+        <!-- Manual Input / Testing Box -->
         <div class="w-full max-w-xs mt-2">
             <form wire:submit.prevent="scanRfid">
                 <input
                     type="text"
                     wire:model="rfid_number"
-                    placeholder="[Dev Test] Type Patron ID & hit Enter..."
+                    placeholder="Type School ID / RFID & hit Enter..."
                     class="w-full px-3 py-2 text-xs bg-sky-50/50 text-slate-700 border border-sky-200 rounded-xl text-center focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 transition"
                     autofocus
                 >
@@ -81,7 +89,7 @@
         @endif
     </div>
 
-    <!-- Patron Tap Details Overlay Popup -->
+    <!-- Borrower Tap Details Overlay Popup -->
     @if ($showResultModal && $scannedPatron)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-6">
             <div class="bg-white border border-sky-100 rounded-3xl p-10 max-w-lg w-full text-center shadow-2xl relative overflow-hidden">
@@ -91,28 +99,28 @@
                     Successfully {{ $actionStatus }}
                 </div>
 
-                <!-- Patron Name -->
-                <h2 class="text-3xl font-extrabold text-sky-950 mb-1">
-                    {{ $scannedPatron->first_name }} {{ $scannedPatron->last_name }} {{ $scannedPatron->suffix }}
+                <!-- Borrower Name -->
+                <h2 class="text-3xl font-extrabold text-sky-950 mb-1 capitalize">
+                    {{ $scannedPatron->first_name }} {{ $scannedPatron->middle_name ? $scannedPatron->middle_name[0] . '.' : '' }} {{ $scannedPatron->last_name }} {{ $scannedPatron->suffix }}
                 </h2>
-                <p class="text-base text-sky-600 font-semibold mb-8">
-                    {{ $scannedPatron->patronType->name ?? 'Patron' }}
+                <p class="text-base text-sky-600 font-semibold mb-8 capitalize">
+                    {{ $scannedPatron->patronType->name ?? 'Borrower' }}
                 </p>
 
-                <!-- Patron Information Details Card -->
+                <!-- Borrower Information Details Card -->
                 <div class="bg-sky-50/60 rounded-2xl p-6 border border-sky-100 space-y-3 text-left text-sm mb-4">
                     <div class="flex justify-between border-b border-sky-200/50 pb-2">
-                        <span class="text-slate-500">Patron ID:</span>
-                        <span class="font-mono font-bold text-sky-950">{{ $scannedPatron->patron_id }}</span>
+                        <span class="text-slate-500">School ID:</span>
+                        <span class="font-mono font-bold text-sky-950">{{ $scannedPatron->school_id }}</span>
                     </div>
                     @if ($scannedPatron->gradeLevel)
-                        <div class="flex justify-between border-b border-sky-200/50 pb-2">
+                        <div class="flex justify-between border-b border-sky-200/50 pb-2 capitalize">
                             <span class="text-slate-500">Grade Level:</span>
                             <span class="font-semibold text-slate-800">{{ $scannedPatron->gradeLevel->name ?? '-' }}</span>
                         </div>
                     @endif
                     @if ($scannedPatron->section)
-                        <div class="flex justify-between border-b border-sky-200/50 pb-2">
+                        <div class="flex justify-between border-b border-sky-200/50 pb-2 capitalize">
                             <span class="text-slate-500">Section:</span>
                             <span class="font-semibold text-slate-800">{{ $scannedPatron->section->name ?? '-' }}</span>
                         </div>
@@ -124,7 +132,7 @@
                 </div>
 
                 <div class="text-xs text-sky-800/60 font-medium animate-pulse mt-4">
-                    Next patron can scan immediately to continue...
+                    Next borrower can scan immediately to continue...
                 </div>
             </div>
         </div>

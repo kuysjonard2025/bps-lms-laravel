@@ -13,12 +13,11 @@ class CirculationPolicy extends Model
     use HasFactory, LogsActivity;
 
     protected $fillable = [
+        'name',
         'patron_type_id',
         'asset_type_id',
         'max_borrow_limit',
         'loan_duration_days',
-        'max_renewals',
-        'grace_period_days',
         'fine_per_day',
         'max_fine_amount',
         'is_active',
@@ -29,8 +28,6 @@ class CirculationPolicy extends Model
         'asset_type_id' => 'integer',
         'max_borrow_limit' => 'integer',
         'loan_duration_days' => 'integer',
-        'max_renewals' => 'integer',
-        'grace_period_days' => 'integer',
         'fine_per_day' => 'decimal:2',
         'max_fine_amount' => 'decimal:2',
         'is_active' => 'boolean',
@@ -52,14 +49,10 @@ class CirculationPolicy extends Model
     }
 
     /**
-     * Find active policy rule by Patron Type ID and Asset Type ID.
+     * Get descriptive dropdown label for Circulation Process
      */
-    public static function findPolicy(int $patronTypeId, int $assetTypeId): ?self
+    public function getDisplayLabelAttribute(): string
     {
-        return static::query()
-            ->active()
-            ->where('patron_type_id', $patronTypeId)
-            ->where('asset_type_id', $assetTypeId)
-            ->first();
+        return "{$this->name} ({$this->loan_duration_days} days / Max {$this->max_borrow_limit} items)";
     }
 }

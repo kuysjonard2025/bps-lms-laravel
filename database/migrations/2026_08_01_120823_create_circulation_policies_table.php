@@ -11,15 +11,16 @@ return new class extends Migration
         Schema::create('circulation_policies', function (Blueprint $table) {
             $table->id();
 
-            // Foreign Key to Patron Types (Filtered to Student in app logic)
+            // Unique descriptive name for clarity
+            $table->string('name')->unique();
+
+            // Foreign Keys
             $table->foreignId('patron_type_id')->constrained('patron_types')->restrictOnDelete();
             $table->foreignId('asset_type_id')->constrained('asset_types')->restrictOnDelete();
 
-            // Policy Rule Matrix
+            // Policy Rules
             $table->unsignedInteger('max_borrow_limit')->default(3);
             $table->unsignedInteger('loan_duration_days')->default(7);
-            $table->unsignedInteger('max_renewals')->default(1);
-            $table->unsignedInteger('grace_period_days')->default(0);
 
             // Financials
             $table->decimal('fine_per_day', 8, 2)->default(5.00);
@@ -28,8 +29,8 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
-            // Unique matrix pair constraint
-            $table->unique(['patron_type_id', 'asset_type_id']);
+            // Index for active policy resolution
+            $table->index(['patron_type_id', 'asset_type_id', 'is_active']);
         });
     }
 
