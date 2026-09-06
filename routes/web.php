@@ -6,7 +6,9 @@ use App\Livewire\Accessions;
 use App\Livewire\Acquisitions;
 use App\Livewire\AssetDetails\Index as AssetDetails;
 use App\Livewire\Auth\CompleteProfile;
+use App\Livewire\Auth\ForgotPassword;
 use App\Livewire\Auth\Login as LoginComponent;
+use App\Livewire\Auth\ResetPassword;
 use App\Livewire\Auth\VerifyEmail;
 use App\Livewire\AuthenticationLogs;
 use App\Livewire\Catalogs;
@@ -31,6 +33,10 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::get('/', LoginComponent::class)->name('login');
     Route::redirect('/login', '/');
+
+    // Password Reset Routes
+    Route::get('/forgot-password', ForgotPassword::class)->name('password.request');
+    Route::get('/reset-password/{token}', ResetPassword::class)->name('password.reset');
 });
 
 Route::prefix('borrower')->name('patron.')->group(function () {
