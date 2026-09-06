@@ -6,38 +6,40 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('circulations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('patron_id')->constrained('patrons')->cascadeOnDelete();
-            $table->foreignId('accession_id')->constrained('accessions')->cascadeOnDelete();
-            $table->foreignId('processed_by')->nullable()->constrained('users')->nullOnDelete();
 
+            // Foreign Keys
+            $table->foreignId('patron_id')->constrained('patrons')->restrictOnDelete();
+            $table->foreignId('accession_id')->constrained('accessions')->restrictOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+
+            // Dates & Timestamps
             $table->timestamp('borrowed_at');
             $table->timestamp('due_at');
             $table->timestamp('returned_at')->nullable();
 
-            $table->unsignedInteger('renewal_count')->default(0);
+            // Financials & Payment Tracking
+            $table->decimal('fine_amount', 8, 2)->default(0.00); // Penalty fee
+            $table->boolean('is_paid')->default(true); // Default true (zero fines are paid)
+            $table->string('receipt_number', 50)->nullable()->index();
 
-            // Need this if the Patron/Borrower have penalty to pay
-            $table->string('transaction_number', 50)->nullable();
-
-            $table->decimal('fine_amount', 8, 2)->default(0.00);
-            $table->enum('status', ['borrowed', 'returned', 'overdue', 'lost'])->default('borrowed');
-
-            $table->unique(['patron_id', 'accession_id', 'transaction_number']);
+            // Status & Item State
+            $table->string('status')->default('borrowed'); // 'borrowed', 'returned'
+            $table->string('condition')->default('good');  // 'good', 'damaged', 'lost'
 
             $table->timestamps();
+
+            // Indexes
+            $table->index(['patron_id', 'status']);
+            $table->index(['accession_id', 'status']);
+            $table->index(['status', 'due_at']);
+            $table->index('is_paid');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('circulations');

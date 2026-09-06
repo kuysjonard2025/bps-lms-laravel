@@ -8,7 +8,6 @@ use App\Models\Acquisition;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -41,9 +40,8 @@ class Accessions extends Component
     public int $batch_qty = 1;
     public string $call_number = '';
     public bool $updateBatchCallNumber = false;
-    public string $condition = 'New';
-    public string $status = 'Available';
-    public string $acquired_date = '';
+    public string $condition = 'new';
+    public string $status = 'available';
     public ?string $remarks = null;
 
     protected function rules(): array
@@ -57,9 +55,8 @@ class Accessions extends Component
             'catalog_id'     => 'required|exists:catalogs,id',
             'batch_number'   => 'required|string|max:50',
             'call_number'    => 'required|string|max:50',
-            'condition'      => 'required|string|in:New,Good,Fair,Damaged',
-            'status'         => ['required', 'string', 'in:Available,On Loan,Reserved,Under Maintenance,Lost,Withdrawn'],
-            'acquired_date'  => 'required|date',
+            'condition'      => 'required|string|in:new,good,fair,damaged,lost,missing',
+            'status'         => ['required', 'string', 'in:available,on loan,reserved,under maintenance,dumped'],
             'remarks'        => 'nullable|string|max:1000',
         ];
 
@@ -73,7 +70,7 @@ class Accessions extends Component
 
             $rules['status'][] = function ($attribute, $value, $fail) {
                 $accession = Accession::find($this->accessionIdBeingEdited);
-                if ($accession && in_array($accession->status, ['On Loan', 'Reserved']) && $value !== $accession->status) {
+                if ($accession && in_array($accession->status, ['on loan', 'reserved']) && $value !== $accession->status) {
                     $fail("Cannot change status directly while item state is '{$accession->status}'.");
                 }
             };
@@ -146,7 +143,6 @@ class Accessions extends Component
                     $this->batch_qty = $remainingQty > 0 ? $remainingQty : 1;
                     $this->batch_number = 'B-' . date('Ymd-Hi');
                     $this->accession_number = $this->generateAccessionNumber();
-                    $this->acquired_date = $acquisition->received_date ? Carbon::parse($acquisition->received_date)->format('Y-m-d') : Carbon::now()->format('Y-m-d');
                 }
             }
         } else {
@@ -169,14 +165,13 @@ class Accessions extends Component
         $this->resetValidation();
         $this->reset([
             'acquisition_id', 'catalog_id', 'accession_number', 'batch_number',
-            'call_number', 'condition', 'status', 'acquired_date',
+            'call_number', 'condition', 'status',
             'remarks', 'accessionIdBeingEdited', 'updateBatchCallNumber',
         ]);
 
         $this->batch_qty = 1;
-        $this->condition = 'New';
-        $this->status = 'Available';
-        $this->acquired_date = now()->format('Y-m-d');
+        $this->condition = 'new';
+        $this->status = 'available';
         $this->batch_number = 'B-' . date('Ymd-Hi');
         $this->accession_number = $this->generateAccessionNumber();
         $this->showModal = true;
@@ -202,8 +197,8 @@ class Accessions extends Component
 
     public function openEditModal(Accession $accession): void
     {
-        if (in_array($accession->status, ['On Loan', 'Reserved'])) {
-            $actionWord = $accession->status === 'On Loan' ? 'on loan' : 'reserved';
+        if (in_array($accession->status, ['on loan', 'reserved'])) {
+            $actionWord = $accession->status === 'on loan' ? 'on loan' : 'reserved';
             $this->dispatch('toast', message: "Items currently {$actionWord} cannot be modified.", type: 'error');
             return;
         }
@@ -217,7 +212,6 @@ class Accessions extends Component
         $this->call_number = $accession->call_number;
         $this->condition = $accession->condition;
         $this->status = $accession->status;
-        $this->acquired_date = $accession->acquired_date ? Carbon::parse($accession->acquired_date)->format('Y-m-d') : '';
         $this->remarks = $accession->remarks;
         $this->updateBatchCallNumber = false;
         $this->showModal = true;
@@ -236,8 +230,8 @@ class Accessions extends Component
             if ($this->accessionIdBeingEdited) {
                 $accession = Accession::findOrFail($this->accessionIdBeingEdited);
 
-                if (in_array($accession->status, ['On Loan', 'Reserved'])) {
-                    $actionWord = $accession->status === 'On Loan' ? 'on loan' : 'reserved';
+                if (in_array($accession->status, ['on loan', 'reserved'])) {
+                    $actionWord = $accession->status === 'on loan' ? 'on loan' : 'reserved';
                     $this->dispatch('toast', message: "Cannot edit an accession while it is currently {$actionWord}.", type: 'error');
                     $this->showModal = false;
                     return;
@@ -252,14 +246,13 @@ class Accessions extends Component
                         'call_number'      => $this->call_number,
                         'condition'        => $this->condition,
                         'status'           => $this->status,
-                        'acquired_date'    => $this->acquired_date,
                         'remarks'          => $this->remarks,
                     ]);
 
                     if ($this->updateBatchCallNumber && $this->batch_number) {
                         Accession::where('batch_number', $this->batch_number)
                             ->where('id', '!=', $accession->id)
-                            ->whereNotIn('status', ['On Loan', 'Reserved'])
+                            ->whereNotIn('status', ['on loan', 'reserved'])
                             ->update(['call_number' => $this->call_number]);
                     }
                 });
@@ -288,7 +281,6 @@ class Accessions extends Component
                             'call_number'      => $this->call_number,
                             'condition'        => $this->condition,
                             'status'           => $this->status,
-                            'acquired_date'    => $this->acquired_date,
                             'remarks'          => $this->remarks,
                         ]);
                     }
@@ -310,8 +302,8 @@ class Accessions extends Component
     {
         $accession = Accession::find($id);
 
-        if ($accession && in_array($accession->status, ['On Loan', 'Reserved'])) {
-            $actionWord = $accession->status === 'On Loan' ? 'on loan' : 'reserved';
+        if ($accession && in_array($accession->status, ['on loan', 'reserved'])) {
+            $actionWord = $accession->status === 'on loan' ? 'on loan' : 'reserved';
             $this->dispatch('toast', message: "Cannot delete an item that is currently {$actionWord}.", type: 'error');
             return;
         }
@@ -327,8 +319,8 @@ class Accessions extends Component
                 $accession = Accession::find($this->accessionIdBeingDeleted);
 
                 if ($accession) {
-                    if (in_array($accession->status, ['On Loan', 'Reserved'])) {
-                        $actionWord = $accession->status === 'On Loan' ? 'checked out' : 'reserved';
+                    if (in_array($accession->status, ['on loan', 'reserved'])) {
+                        $actionWord = $accession->status === 'on loan' ? 'checked out' : 'reserved';
                         $this->dispatch('toast', message: "Deletion blocked: Item is currently {$actionWord}.", type: 'error');
                         $this->showDeleteModal = false;
                         $this->accessionIdBeingDeleted = null;
@@ -389,7 +381,7 @@ class Accessions extends Component
 
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
-        }, 'accessions-report-' . now()->format('Y-m-d') . '.pdf');
+        }, 'accessions-report-' . now()->format('Y-m-d_His') . '.pdf');
     }
 
     #[Layout('components.layouts.app')]

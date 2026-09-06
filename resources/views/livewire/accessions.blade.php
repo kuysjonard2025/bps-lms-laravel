@@ -116,7 +116,12 @@
                     <tr class="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase text-[11px] tracking-wider">
                         <th scope="col" class="p-3 pl-4 whitespace-nowrap">Accession #</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Batch #</th>
-                        <th scope="col" class="p-3 whitespace-nowrap">Catalog Item & ACQ #</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">Acquisition #</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">Catalog Title</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">Author</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">Publisher</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">General Reference</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">Asset Type</th>
                         <th scope="col" class="hidden md:table-cell p-3 text-center whitespace-nowrap">Call Number</th>
                         <th scope="col" class="hidden sm:table-cell p-3 text-center whitespace-nowrap">Condition</th>
                         <th scope="col" class="p-3 text-center whitespace-nowrap">Status</th>
@@ -132,12 +137,25 @@
                             <td class="p-3 font-mono text-slate-600 whitespace-nowrap">
                                 {{ ucwords($item->batch_number) }}
                             </td>
-                            <td class="p-3 max-w-[220px] sm:max-w-none">
-                                <div class="font-bold text-slate-900 truncate">{{ ucwords($item->catalog->title) ?? '—' }}</div>
-                                <div class="text-[11px] text-slate-500 truncate mt-0.5">
-                                    <span class="font-mono text-blue-600 font-semibold">{{ ucwords($item->acquisition->acquisition_number) ?? 'N/A' }}</span>
-                                    <span class="hidden sm:inline"> &bull; Author: <span class="text-slate-700">{{ ucwords($item->catalog->author->name) ?? 'N/A' }}</span></span>
-                                </div>
+                            <td class="p-3 font-mono font-semibold text-blue-600 whitespace-nowrap">
+                                {{ ucwords($item->acquisition->acquisition_number) ?? 'N/A' }}
+                            </td>
+                            <td class="p-3 font-bold text-slate-900 whitespace-nowrap">
+                                {{ ucwords($item->catalog->title) ?? '—' }}
+                            </td>
+                            <td class="p-3 text-slate-700 whitespace-nowrap">
+                                {{ ucwords($item->catalog->author->name) ?? 'N/A' }}
+                            </td>
+                            <td class="p-3 text-slate-700 whitespace-nowrap">
+                                {{ ucwords($item->catalog->publisher->name) ?? 'N/A' }}
+                            </td>
+                            <td class="p-3 text-slate-700 whitespace-nowrap">
+                                {{ ucwords($item->catalog->generalReference->name) ?? 'N/A' }}
+                            </td>
+                            <td class="p-3 whitespace-nowrap">
+                                <span class="px-2 py-0.5 text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/80 rounded-full">
+                                    {{ ucwords($item->catalog->assetType->name) ?? 'N/A' }}
+                                </span>
                             </td>
                             <td class="hidden md:table-cell p-3 text-center font-mono text-slate-800 whitespace-nowrap">
                                 {{ ucwords($item->call_number) }}
@@ -192,7 +210,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-10 text-slate-400">
+                            <td colspan="12" class="text-center py-10 text-slate-400 whitespace-nowrap">
                                 No accession records found matching your criteria.
                             </td>
                         </tr>
@@ -452,22 +470,27 @@
                     </div>
 
                     {{-- Modal Actions --}}
-                    <div class="pt-4 border-t border-slate-200/80 flex justify-end gap-2">
+                    <div class="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 shrink-0">
                         <button
                             wire:click="$set('showModal', false)"
                             type="button"
-                            class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition cursor-pointer"
+                            class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 active:bg-slate-100 rounded-xl transition cursor-pointer"
                         >
                             Cancel
                         </button>
+
                         <button
                             type="submit"
-                            class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition cursor-pointer flex items-center gap-2"
+                            wire:loading.attr="disabled"
+                            class="w-full sm:w-auto px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <span wire:loading.remove wire:target="saveAccession">
-                                {{ $accessionIdBeingEdited ? 'Update Accession' : 'Generate Accession Copies' }}
-                            </span>
-                            <span wire:loading wire:target="saveAccession">Processing...</span>
+                            {{-- Loading Spinner --}}
+                            <svg wire:loading wire:target="saveAccession" class="animate-spin w-3.5 h-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+
+                            <span>{{ $accessionIdBeingEdited ? 'Update Accession' : 'Generate Accession Copies' }}</span>
                         </button>
                     </div>
                 </form>
@@ -486,36 +509,41 @@
         >
             <div wire:click="$set('showDeleteModal', false)" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"></div>
 
-            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md z-10 p-6 border border-slate-100">
-                <div class="flex items-center gap-3 text-rose-600 mb-3">
-                    <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md z-10 p-6 my-auto overflow-hidden border border-slate-100 text-center">
+                {{-- Centered Warning Icon Badge --}}
+                <div class="w-12 h-12 rounded-full bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
-                    <h3 class="text-base font-bold text-slate-900">Confirm Deletion</h3>
                 </div>
 
-                <p class="text-xs text-slate-600">
+                <h3 class="text-base font-bold text-slate-900">Confirm Deletion</h3>
+                <p class="text-xs text-slate-500 mt-1">
                     Are you sure you want to delete this accession record? This action cannot be undone.
                 </p>
 
-                <div class="mt-6 flex justify-end gap-2">
+                <div class="mt-6 flex flex-col-reverse sm:flex-row items-center justify-center gap-2">
                     <button
                         wire:click="$set('showDeleteModal', false)"
                         type="button"
-                        class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition cursor-pointer"
+                        class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 active:bg-slate-100 rounded-xl transition cursor-pointer"
                     >
                         Cancel
                     </button>
                     <button
                         wire:click="deleteAccession"
+                        wire:loading.attr="disabled"
                         type="button"
-                        class="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition cursor-pointer"
+                        class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Delete Record
+                        <svg wire:loading wire:target="deleteAccession" class="animate-spin w-3.5 h-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Delete Record</span>
                     </button>
                 </div>
             </div>
         </div>
     @endif
-
 </div>

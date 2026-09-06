@@ -27,6 +27,7 @@
 
     <div
         x-data="accessionTrendChart(@js($chartData))"
+        x-effect="updateChart(@js($chartData))"
         wire:ignore
     >
         <div x-ref="lineChartCanvas"></div>
@@ -72,6 +73,14 @@ window.accessionTrendChart = function(initialData) {
                 this.chart = new ApexCharts(container, options);
                 this.chart.render();
             });
+        },
+        updateChart(newData) {
+            if (this.chart && newData) {
+                this.chart.updateOptions({
+                    xaxis: { categories: newData.categories || [] },
+                    series: [{ name: 'Accessions', data: newData.series || [] }]
+                });
+            }
         }
     };
 };

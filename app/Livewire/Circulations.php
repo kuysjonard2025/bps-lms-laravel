@@ -2,17 +2,22 @@
 
 namespace App\Livewire;
 
+use App\Exports\CirculationsExport;
 use App\Models\Accession;
 use App\Models\Circulation;
 use App\Models\CirculationPolicy;
 use App\Models\Patron;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class Circulations extends Component
 {
@@ -20,25 +25,51 @@ class Circulations extends Component
 
     public string $activeMode = 'checkout'; // 'checkout', 'checkin', 'active_loans'
 
-    // Checkout Form Inputs
+    // Modal Control State
+    public bool $showPaymentModal = false;
+    public bool $showEditPaymentModal = false;
+
+    // Checkout Form Inputs & Selected State
     public string $patronInput = '';
     public string $accessionInput = '';
-
-    // Selected Entities State (Checkout)
     public ?Patron $selectedPatron = null;
     public ?Accession $selectedAccession = null;
+    public bool $isTimedIn = true; // Kiosk check-in verification flag
 
-    // Checkin Inspection State
+    // Checkin / Inspection State
     public string $returnAccessionInput = '';
     public ?Circulation $inspectedLoan = null;
-    public string $returnCondition = 'Good'; // 'New', 'Good', 'Fair', 'Damaged', 'Missing' (or 'Lost' from UI)
+    public string $returnCondition = 'good'; // 'good', 'damaged', 'lost'
     public float $overdueFineAmount = 0.00;
     public float $manualFineAmount = 0.00;
-    public string $fineReason = '';
+    public bool $isPaidNow = false;
+    public string $checkinReceiptNumber = '';
+
+    // Payment Edit State (For Returned, Unpaid & Damaged/Lost records)
+    public ?int $editingLoanId = null;
+    public float $editFineAmount = 0.00;
+    public ?string $editReceiptNumber = '';
+    public bool $isEditPaid = false;
 
     // Active Loans / History Search & Filters
     public string $search = '';
     public string $filterStatus = 'borrowed'; // 'all', 'borrowed', 'returned', 'overdue'
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterStatus(): void
+    {
+        $this->resetPage();
+    }
+
+    public function switchMode(string $mode): void
+    {
+        $this->activeMode = $mode;
+        $this->resetErrorBag();
+    }
 
     public function updatedPatronInput(): void
     {
@@ -48,8 +79,9 @@ class Circulations extends Component
             return;
         }
 
-        $this->selectedPatron = Patron::with(['patronType', 'gradeLevel', 'section'])
-            ->where('patron_id', $code)
+        $this->selectedPatron = Patron::with(['patronType'])
+            ->where('school_id', $code)
+            ->orWhere('rfid_tag', $code)
             ->first();
     }
 
@@ -61,17 +93,110 @@ class Circulations extends Component
             return;
         }
 
-        $this->selectedAccession = Accession::with(['catalog.assetType', 'catalog.author'])
+        $this->selectedAccession = Accession::with(['catalog.author'])
             ->where('accession_number', $code)
             ->first();
     }
 
-    /**
-     * Helper to generate unique transaction numbers for payments / penalties
-     */
-    private function generateTransactionNumber(): string
+    public function updatedReturnCondition(): void
     {
-        return 'TRX-' . strtoupper(Str::random(8)) . '-' . now()->format('Ymd');
+        if ($this->returnCondition === 'good') {
+            $this->manualFineAmount = 0.00;
+        }
+    }
+
+    public function openPaymentModal(): void
+    {
+        $this->showPaymentModal = true;
+    }
+
+    public function closePaymentModal(): void
+    {
+        $this->showPaymentModal = false;
+    }
+
+    // ------------------------------------------------------------------
+    // EDIT PAYMENT MODAL METHODS & ACTION HANDLERS
+    // Restricted strictly to: Returned + Unpaid + (Damaged OR Lost)
+    // ------------------------------------------------------------------
+
+    /**
+     * Action called by the Blade template button: wire:click="payFine('ACC_NUM')"
+     */
+    public function payFine(string $accessionNumber): void
+    {
+        $loan = Circulation::whereHas('accession', fn ($q) => $q->where('accession_number', $accessionNumber))
+            ->where('status', 'returned')
+            ->where('is_paid', false)
+            ->whereIn('condition', ['damaged', 'lost'])
+            ->latest('borrowed_at')
+            ->first();
+
+        if (! $loan) {
+            $this->dispatch('toast', message: 'No unpaid returned record with damaged or lost condition found for this item.', type: 'error');
+            return;
+        }
+
+        $this->openEditPaymentModal($loan->id);
+    }
+
+    public function openEditPaymentModal(int $loanId): void
+    {
+        $loan = Circulation::where('id', $loanId)
+            ->where('status', 'returned')
+            ->where('is_paid', false)
+            ->whereIn('condition', ['damaged', 'lost'])
+            ->first();
+
+        if (! $loan) {
+            $this->dispatch('toast', message: 'Only returned items with unpaid fines and damaged/lost condition can be edited.', type: 'error');
+            return;
+        }
+
+        $this->editingLoanId = $loan->id;
+        $this->editFineAmount = (float) $loan->fine_amount;
+        $this->editReceiptNumber = $loan->receipt_number ?? '';
+        $this->isEditPaid = (bool) $loan->is_paid;
+        $this->showEditPaymentModal = true;
+    }
+
+    public function closeEditPaymentModal(): void
+    {
+        $this->showEditPaymentModal = false;
+        $this->reset(['editingLoanId', 'editFineAmount', 'editReceiptNumber', 'isEditPaid']);
+        $this->resetErrorBag();
+    }
+
+    public function updatePayment(): void
+    {
+        if (! $this->editingLoanId) {
+            return;
+        }
+
+        $this->validate([
+            'editFineAmount' => 'required|numeric|min:0',
+            'editReceiptNumber' => $this->isEditPaid ? 'required|string|max:50' : 'nullable|string|max:50',
+        ]);
+
+        $loan = Circulation::where('id', $this->editingLoanId)
+            ->where('status', 'returned')
+            ->where('is_paid', false)
+            ->whereIn('condition', ['damaged', 'lost'])
+            ->first();
+
+        if ($loan) {
+            $loan->update([
+                'fine_amount' => $this->editFineAmount,
+                'is_paid' => $this->editFineAmount > 0 ? $this->isEditPaid : true,
+                'receipt_number' => $this->isEditPaid ? $this->editReceiptNumber : null,
+            ]);
+
+            $this->dispatch('toast', message: 'Payment details updated successfully.', type: 'success');
+        } else {
+            $this->dispatch('toast', message: 'Unable to update. Record does not meet the specified criteria.', type: 'error');
+        }
+
+        $this->closeEditPaymentModal();
     }
 
     // ------------------------------------------------------------------
@@ -80,17 +205,20 @@ class Circulations extends Component
     public function processCheckout(): void
     {
         $this->validate([
-            'patronInput'    => 'required|string',
+            'patronInput' => 'required|string',
             'accessionInput' => 'required|string',
         ]);
 
-        $patron = Patron::where('patron_id', trim($this->patronInput))->first();
+        $patron = Patron::where('school_id', trim($this->patronInput))
+            ->orWhere('rfid_tag', trim($this->patronInput))
+            ->first();
+
         if (! $patron) {
             $this->dispatch('toast', message: 'Patron not found.', type: 'error');
             return;
         }
 
-        if ($patron->status !== 'active') {
+        if (strtolower($patron->status ?? '') !== 'active') {
             $this->dispatch('toast', message: 'Patron account is not active.', type: 'error');
             return;
         }
@@ -101,14 +229,14 @@ class Circulations extends Component
             return;
         }
 
-        if ($accession->status !== 'Available') {
+        if (strtolower($accession->status ?? '') !== 'available') {
             $this->dispatch('toast', message: "Item is currently {$accession->status}.", type: 'error');
             return;
         }
 
         // Fetch Circulation Policy
         $policy = CirculationPolicy::where('patron_type_id', $patron->patron_type_id)
-            ->where('asset_type_id', $accession->catalog->asset_type_id)
+            ->where('asset_type_id', $accession->catalog?->asset_type_id)
             ->where('is_active', true)
             ->first();
 
@@ -117,7 +245,7 @@ class Circulations extends Component
 
         // Check active borrowings limit
         $activeBorrowCount = Circulation::where('patron_id', $patron->id)
-            ->whereIn('status', ['borrowed', 'overdue'])
+            ->where('status', 'borrowed')
             ->count();
 
         if ($activeBorrowCount >= $maxBorrowLimit) {
@@ -130,14 +258,16 @@ class Circulations extends Component
             $dueDate = $now->copy()->addDays($loanDays);
 
             Circulation::create([
-                'patron_id'          => $patron->id,
-                'accession_id'       => $accession->id,
-                'processed_by'       => auth()->id(),
-                'borrowed_at'        => $now,
-                'due_at'             => $dueDate,
-                'transaction_number' => null,
-                'fine_amount'        => 0.00,
-                'status'             => 'borrowed',
+                'patron_id' => $patron->id,
+                'accession_id' => $accession->id,
+                'user_id' => auth()->id(),
+                'borrowed_at' => $now,
+                'due_at' => $dueDate,
+                'fine_amount' => 0.00,
+                'is_paid' => true,
+                'receipt_number' => null,
+                'status' => 'borrowed',
+                'condition' => 'good',
             ]);
 
             $accession->update(['status' => 'On Loan']);
@@ -145,12 +275,22 @@ class Circulations extends Component
 
         $this->reset(['accessionInput', 'selectedAccession']);
         $this->dispatch('toast', message: 'Book issued successfully!', type: 'success');
-        $this->dispatch('play-sound', type: 'out');
     }
 
     // ------------------------------------------------------------------
     // RETURN / CHECKIN INSPECTION PROCESS
     // ------------------------------------------------------------------
+
+    /**
+     * Action called by the Blade template button: wire:click="quickInspect('ACC_NUM')"
+     */
+    public function quickInspect(string $accessionNumber): void
+    {
+        $this->activeMode = 'checkin';
+        $this->returnAccessionInput = $accessionNumber;
+        $this->inspectReturn();
+    }
+
     public function inspectReturn(): void
     {
         $code = trim($this->returnAccessionInput);
@@ -165,9 +305,9 @@ class Circulations extends Component
             return;
         }
 
-        $activeLoan = Circulation::with(['patron.patronType', 'accession.catalog.assetType'])
+        $activeLoan = Circulation::with(['patron.patronType', 'accession.catalog', 'accession.acquisition'])
             ->where('accession_id', $accession->id)
-            ->whereIn('status', ['borrowed', 'overdue'])
+            ->where('status', 'borrowed')
             ->first();
 
         if (! $activeLoan) {
@@ -177,16 +317,18 @@ class Circulations extends Component
         }
 
         $this->inspectedLoan = $activeLoan;
-        $this->returnCondition = $accession->condition ?? 'Good';
+        $this->returnCondition = 'good';
         $this->manualFineAmount = 0.00;
+        $this->isPaidNow = false;
+        $this->checkinReceiptNumber = '';
 
         // Calculate Overdue Fine from policy
         $now = now();
         $this->overdueFineAmount = 0.00;
 
         if ($now->greaterThan($activeLoan->due_at)) {
-            $policy = CirculationPolicy::where('patron_type_id', $activeLoan->patron->patron_type_id)
-                ->where('asset_type_id', $activeLoan->accession->catalog->asset_type_id)
+            $policy = CirculationPolicy::where('patron_type_id', $activeLoan->patron?->patron_type_id)
+                ->where('asset_type_id', $activeLoan->accession?->catalog?->asset_type_id)
                 ->first();
 
             $graceDays = $policy ? $policy->grace_period_days : 0;
@@ -204,52 +346,134 @@ class Circulations extends Component
             return;
         }
 
+        $totalFine = (float) $this->overdueFineAmount + (float) $this->manualFineAmount;
+
+        if ($totalFine > 0 && $this->isPaidNow) {
+            $this->validate([
+                'checkinReceiptNumber' => 'required|string|max:50',
+            ]);
+        }
+
         $loan = $this->inspectedLoan;
         $accession = $loan->accession;
 
-        DB::transaction(function () use ($loan, $accession) {
+        DB::transaction(function () use ($loan, $accession, $totalFine) {
             $now = now();
-            $totalFine = (float)$this->overdueFineAmount + (float)$this->manualFineAmount;
-            $transactionNumber = $totalFine > 0 ? $this->generateTransactionNumber() : null;
-
-            // Default Check-In Statuses
-            $circulationStatus = 'returned';
             $accessionStatus = 'Available';
 
-            // Valid DB Enum values for condition: ['New', 'Good', 'Fair', 'Damaged', 'Missing']
-            $conditionValue = in_array($this->returnCondition, ['New', 'Good', 'Fair', 'Damaged', 'Missing'])
-                ? $this->returnCondition
-                : 'Good';
-
-            if ($this->returnCondition === 'Damaged') {
+            if ($this->returnCondition === 'damaged') {
                 $accessionStatus = 'Damaged';
-            } elseif ($this->returnCondition === 'Lost' || $this->returnCondition === 'Missing') {
-                $circulationStatus = 'lost';
-                $accessionStatus = 'Lost';      // Valid accession status enum option
-                $conditionValue = 'Missing';   // Valid accession condition enum option
+            } elseif ($this->returnCondition === 'lost') {
+                $accessionStatus = 'Lost';
             }
 
             $loan->update([
-                'returned_at'        => $now,
-                'fine_amount'        => $totalFine,
-                'transaction_number' => $transactionNumber,
-                'status'             => $circulationStatus,
+                'returned_at' => $now,
+                'fine_amount' => $totalFine,
+                'is_paid' => $totalFine > 0 ? $this->isPaidNow : true,
+                'receipt_number' => $this->isPaidNow ? $this->checkinReceiptNumber : null,
+                'status' => 'returned',
+                'condition' => $this->returnCondition,
             ]);
 
             $accession->update([
-                'status'    => $accessionStatus,
-                'condition' => $conditionValue,
+                'status' => $accessionStatus,
+                'condition' => ucfirst($this->returnCondition),
             ]);
         });
 
-        $this->reset(['returnAccessionInput', 'inspectedLoan', 'overdueFineAmount', 'manualFineAmount', 'returnCondition', 'fineReason']);
-        $this->dispatch('toast', message: 'Item checked in and condition recorded successfully.', type: 'success');
-        $this->dispatch('play-sound', type: 'in');
+        $this->cancelInspection();
+        $this->dispatch('toast', message: 'Item checked in successfully.', type: 'success');
+    }
+
+    /**
+     * Accepts string $accessionNumber from blade wire:click="quickCheckin('...')"
+     */
+    public function quickCheckin(string $accessionNumber): void
+    {
+        $loan = Circulation::with('accession')
+            ->whereHas('accession', fn ($q) => $q->where('accession_number', $accessionNumber))
+            ->where('status', 'borrowed')
+            ->latest('borrowed_at')
+            ->first();
+
+        if (! $loan) {
+            $this->dispatch('toast', message: 'Active loan item not found.', type: 'error');
+            return;
+        }
+
+        DB::transaction(function () use ($loan) {
+            $loan->update([
+                'returned_at' => now(),
+                'status' => 'returned',
+            ]);
+
+            $loan->accession?->update(['status' => 'Available']);
+        });
+
+        $this->dispatch('toast', message: 'Item returned directly.', type: 'success');
     }
 
     public function cancelInspection(): void
     {
-        $this->reset(['returnAccessionInput', 'inspectedLoan', 'overdueFineAmount', 'manualFineAmount', 'returnCondition', 'fineReason']);
+        $this->reset([
+            'returnAccessionInput',
+            'inspectedLoan',
+            'overdueFineAmount',
+            'manualFineAmount',
+            'returnCondition',
+            'isPaidNow',
+            'checkinReceiptNumber',
+            'showPaymentModal',
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    // EXPORT HANDLERS & QUERY HELPER
+    // ------------------------------------------------------------------
+    protected function getFilteredLoansQuery(): Builder
+    {
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+
+        return Circulation::with(['patron', 'accession.catalog', 'user'])
+            ->when($this->filterStatus === 'borrowed', fn ($q) => $q->where('status', 'borrowed'))
+            ->when($this->filterStatus === 'returned', fn ($q) => $q->where('status', 'returned'))
+            ->when($this->filterStatus === 'overdue', fn ($q) => $q->where('status', 'borrowed')->where('due_at', '<', now()))
+            ->when($this->search, function ($q) use ($likeOperator) {
+                $q->where(function ($query) use ($likeOperator) {
+                    $query->where('receipt_number', $likeOperator, "%{$this->search}%")
+                        ->orWhereHas('patron', function ($patronQ) use ($likeOperator) {
+                            $patronQ->where('school_id', $likeOperator, "%{$this->search}%")
+                                ->orWhere('first_name', $likeOperator, "%{$this->search}%")
+                                ->orWhere('last_name', $likeOperator, "%{$this->search}%");
+                        })->orWhereHas('accession', function ($accQ) use ($likeOperator) {
+                            $accQ->where('accession_number', $likeOperator, "%{$this->search}%")
+                                ->orWhereHas('catalog', fn ($catQ) => $catQ->where('title', $likeOperator, "%{$this->search}%"));
+                        });
+                });
+            })
+            ->latest('borrowed_at');
+    }
+
+    public function exportExcel(): BinaryFileResponse
+    {
+        $fileName = 'circulation_report_' . now()->format('Y_m_d_His') . '.xlsx';
+
+        return Excel::download(new CirculationsExport($this->search, $this->filterStatus), $fileName);
+    }
+
+    public function exportPdf(): StreamedResponse
+    {
+        $loans = $this->getFilteredLoansQuery()->get();
+
+        $pdf = Pdf::loadView('pdf.circulations-report', [
+            'activeLoans'  => $loans,
+            'filterStatus' => $this->filterStatus,
+        ])->setPaper('a4', 'landscape');
+
+        $fileName = 'circulation_report_' . now()->format('Y_m_d_His') . '.pdf';
+
+        return response()->streamDownload(fn () => print($pdf->output()), $fileName);
     }
 
     // ------------------------------------------------------------------
@@ -259,31 +483,8 @@ class Circulations extends Component
     #[Title('Circulation Desk')]
     public function render()
     {
-        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
-
-        $loans = Circulation::with(['patron', 'accession.catalog'])
-            ->when($this->filterStatus === 'borrowed', fn ($q) => $q->whereIn('status', ['borrowed', 'overdue']))
-            ->when($this->filterStatus === 'returned', fn ($q) => $q->whereIn('status', ['returned', 'lost']))
-            ->when($this->filterStatus === 'overdue', fn ($q) => $q->where('status', 'overdue')->orWhere(function ($sub) {
-                $sub->whereNull('returned_at')->where('due_at', '<', now());
-            }))
-            ->when($this->search, function ($q) use ($likeOperator) {
-                $q->where(function ($query) use ($likeOperator) {
-                    $query->whereHas('patron', function ($patronQ) use ($likeOperator) {
-                        $patronQ->where('patron_id', $likeOperator, "%{$this->search}%")
-                            ->orWhere('first_name', $likeOperator, "%{$this->search}%")
-                            ->orWhere('last_name', $likeOperator, "%{$this->search}%");
-                    })->orWhereHas('accession', function ($accQ) use ($likeOperator) {
-                        $accQ->where('accession_number', $likeOperator, "%{$this->search}%")
-                            ->orWhereHas('catalog', fn ($catQ) => $catQ->where('title', $likeOperator, "%{$this->search}%"));
-                    });
-                });
-            })
-            ->latest('borrowed_at')
-            ->paginate(10);
-
         return view('livewire.circulations', [
-            'activeLoans' => $loans,
+            'activeLoans' => $this->getFilteredLoansQuery()->paginate(10),
         ]);
     }
 }

@@ -13,9 +13,9 @@ return new class extends Migration
 
             // Foreign Key Relationships
             $table->foreignId('author_id')->constrained()->restrictOnDelete();
-            $table->foreignId('asset_type_id')->constrained()->restrictOnDelete();
             $table->foreignId('publisher_id')->constrained()->restrictOnDelete();
             $table->foreignId('general_reference_id')->constrained()->restrictOnDelete();
+            $table->foreignId('asset_type_id')->constrained()->restrictOnDelete();
 
             // Bibliographic Details
             $table->string('title')->index();

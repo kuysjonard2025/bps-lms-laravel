@@ -4,26 +4,36 @@ namespace App\Exports;
 
 use App\Models\PatronLog;
 use Carbon\Carbon;
-use Maatwebsite\Excel\Concerns\FromQuery;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-
-use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Query\Builder;
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithCustomStartCell;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class BorrowerLogsExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize
+class BorrowerLogsExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize, WithCustomStartCell, WithStyles, WithEvents
 {
     protected string $search;
-    protected string $filterDate;
+    protected ?string $filterDate;
     protected string $filterStatus;
+    protected string $generatedByName;
+    protected string $generatedByRole;
 
-    public function __construct(string $search = '', string $filterDate = '', string $filterStatus = 'all')
+    public function __construct(string $search = '', ?string $filterDate = null, string $filterStatus = 'all')
     {
-        $this->search = $search;
-        $this->filterDate = $filterDate;
+        $this->search = trim(strip_tags($search));
+        $this->filterDate = ! empty($filterDate) ? $filterDate : null;
         $this->filterStatus = $filterStatus;
+
+        $user = auth()->user();
+        $this->generatedByName = $user ? $user->getFullNameAttribute() : 'System Administrator';
+        $this->generatedByRole = $user ? ($user->role ?? 'Staff') : 'Admin';
     }
 
     public function query(): Builder|EloquentBuilder|Relation
@@ -31,7 +41,7 @@ class BorrowerLogsExport implements FromQuery, WithHeadings, WithMapping, Should
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
         return PatronLog::with(['patron.patronType', 'patron.gradeLevel', 'patron.section'])
-            ->when($this->filterDate, fn ($q) => $q->whereDate('log_date', $this->filterDate))
+            ->when(! empty($this->filterDate), fn ($q) => $q->whereDate('log_date', $this->filterDate))
             ->when($this->filterStatus === 'inside', fn ($q) => $q->whereNull('time_out'))
             ->when($this->filterStatus === 'logged_out', fn ($q) => $q->whereNotNull('time_out'))
             ->when($this->search !== '', function ($query) use ($likeOperator) {
@@ -45,11 +55,19 @@ class BorrowerLogsExport implements FromQuery, WithHeadings, WithMapping, Should
             ->latest('id');
     }
 
+    /**
+     * Start data table from row 7 to leave room for metadata header rows.
+     */
+    public function startCell(): string
+    {
+        return 'A7';
+    }
+
     public function headings(): array
     {
         return [
             'Log Date',
-            'School ID',
+            'Student/Employee #',
             'Borrower Name',
             'Borrower Type',
             'Grade & Section',
@@ -61,26 +79,75 @@ class BorrowerLogsExport implements FromQuery, WithHeadings, WithMapping, Should
 
     public function map($log): array
     {
-        $fullName = implode(' ', array_filter([
-            $log->patron->first_name ?? '',
-            $log->patron->middle_name ?? '',
-            $log->patron->last_name ?? 'Deleted Borrower',
-            $log->patron->suffix ?? '',
-        ]));
+        if ($log->patron) {
+            $fullName = implode(' ', array_filter([
+                $log->patron->first_name ?? '',
+                $log->patron->middle_name ?? '',
+                $log->patron->last_name ?? '',
+                $log->patron->suffix ?? '',
+            ]));
+        } else {
+            $fullName = 'Deleted Borrower';
+        }
 
-        $gradeSection = ($log->patron && $log->patron->gradeLevel)
-            ? (ucwords($log->patron->gradeLevel->name) . ' - ' . (ucwords($log->patron->section->name) ?? ''))
+        $gradeSection = optional($log->patron)->gradeLevel
+            ? (ucwords($log->patron->gradeLevel->name) . (optional($log->patron->section)->name ? ' - ' . ucwords($log->patron->section->name) : ''))
             : 'N/A';
 
         return [
-            Carbon::parse($log->log_date)->format('M d, Y'),
+            $log->log_date ? Carbon::parse($log->log_date)->format('M d, Y') : '',
             $log->patron->school_id ?? 'N/A',
             $fullName,
             $log->patron->patronType->name ?? 'N/A',
             $gradeSection,
-            Carbon::parse($log->time_in)->format('h:i:s A'),
+            $log->time_in ? Carbon::parse($log->time_in)->format('h:i:s A') : '--:--:--',
             $log->time_out ? Carbon::parse($log->time_out)->format('h:i:s A') : '--:--:--',
             $log->time_out ? 'Logged Out' : 'Inside Library',
+        ];
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                $sheet = $event->sheet->getDelegate();
+
+                // Prepend Custom Metadata Header
+                $systemName = config('app.name', 'LIBRARY MANAGEMENT SYSTEM');
+                $dateText = $this->filterDate ? Carbon::parse($this->filterDate)->format('M d, Y') : 'All Dates (Unfiltered)';
+                $statusText = ucfirst(str_replace('_', ' ', $this->filterStatus));
+                $searchText = $this->search !== '' ? '"' . $this->search . '"' : 'None';
+
+                $sheet->setCellValue('A1', strtoupper($systemName) . ' - ATTENDANCE LOGS REPORT');
+                $sheet->setCellValue('A2', 'Generated By: ' . $this->generatedByName . ' (' . $this->generatedByRole . ')');
+                $sheet->setCellValue('A3', 'Generated On: ' . now()->format('F d, Y h:i A'));
+                $sheet->setCellValue('A4', 'Filter Date: ' . $dateText . ' | Status: ' . $statusText . ' | Search: ' . $searchText);
+            },
+        ];
+    }
+
+    public function styles(Worksheet $sheet): array
+    {
+        return [
+            // Title formatting
+            1 => ['font' => ['bold' => true, 'size' => 14, 'color' => ['argb' => '1E293B']]],
+            // Metadata info styling
+            2 => ['font' => ['italic' => true, 'size' => 10]],
+            3 => ['font' => ['italic' => true, 'size' => 10]],
+            4 => ['font' => ['bold' => true, 'size' => 10, 'color' => ['argb' => '2563EB']]],
+            // Table Header Row
+            7 => [
+                'font' => ['bold' => true, 'color' => ['argb' => 'FF000000']], // Black color
+                'fill' => [
+                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                ],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                        'color' => ['argb' => 'FF000000'],
+                    ],
+                ],
+            ],
         ];
     }
 }

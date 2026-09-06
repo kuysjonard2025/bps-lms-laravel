@@ -28,47 +28,52 @@ class Dashboard extends Component
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
         // 1. Key Metrics
-        $totalBooks    = Accession::count();
-        $activeBorrows = Circulation::where('status', 'borrowed')->count();
-        $overdueBooks  = Circulation::where(function ($q) {
-                            $q->where('status', 'overdue')
-                              ->orWhere(function ($sub) {
-                                  $sub->where('status', 'borrowed')
-                                      ->where('due_at', '<', now());
-                              });
-                        })->count();
-        $totalPatrons  = Patron::count();
+        $totalBooks = Accession::count();
 
-        // 2. Overdue Alerts (Top urgent items)
+        // Active borrows are items with no return date
+        $activeBorrows = Circulation::whereNull('returned_at')->count();
+
+        // Overdue books are active borrows past their due date
+        $overdueBooks = Circulation::whereNull('returned_at')
+            ->where('due_at', '<', now())
+            ->count();
+
+        $totalPatrons = Patron::count();
+
+        // 2. Urgent Overdue Alerts
         $overdueAlerts = Circulation::with(['patron', 'accession.catalog'])
-            ->where(function ($q) {
-                $q->where('status', 'overdue')
-                  ->orWhere(function ($sub) {
-                      $sub->where('status', 'borrowed')
-                          ->where('due_at', '<', now());
-                  });
-            })
+            ->whereNull('returned_at')
+            ->where('due_at', '<', now())
             ->orderBy('due_at', 'asc')
             ->take(10)
             ->get();
 
-        // 3. Recent Transactions (Paginated)
-        $recentTransactions = Circulation::with(['patron', 'accession.catalog', 'processedBy'])
-            ->when($this->search, function ($q) use ($likeOperator) {
-                $q->where(function ($sub) use ($likeOperator) {
-                    $sub->whereHas('patron', function ($p) use ($likeOperator) {
-                        $p->where('first_name', $likeOperator, "%{$this->search}%")
-                          ->orWhere('last_name', $likeOperator, "%{$this->search}%")
-                          ->orWhere('card_number', $likeOperator, "%{$this->search}%");
-                    })
-                    ->orWhereHas('accession.catalog', function ($c) use ($likeOperator) {
-                        $c->where('title', $likeOperator, "%{$this->search}%");
-                    })
-                    ->orWhere('transaction_number', $likeOperator, "%{$this->search}%");
+        // 3. Recent Transactions List
+        $recentTransactions = Circulation::with([
+            'patron',
+            'accession.catalog.author',
+            'user'
+        ])
+        ->when($this->search, function ($q) use ($likeOperator) {
+            $q->where(function ($sub) use ($likeOperator) {
+                $sub->whereHas('patron', function ($p) use ($likeOperator) {
+                    $p->where('first_name', $likeOperator, "%{$this->search}%")
+                      ->orWhere('last_name', $likeOperator, "%{$this->search}%")
+                      ->orWhere('school_id', $likeOperator, "%{$this->search}%");
+                })
+                ->orWhereHas('accession', function ($a) use ($likeOperator) {
+                    $a->where('accession_number', $likeOperator, "%{$this->search}%")
+                      ->orWhereHas('catalog', function ($c) use ($likeOperator) {
+                          $c->where('title', $likeOperator, "%{$this->search}%")
+                            ->orWhereHas('author', function ($auth) use ($likeOperator) {
+                                $auth->where('name', $likeOperator, "%{$this->search}%");
+                            });
+                      });
                 });
-            })
-            ->latest()
-            ->paginate(10);
+            });
+        })
+        ->latest()
+        ->paginate(10);
 
         return view('livewire.dashboard', [
             'totalBooks'         => $totalBooks,

@@ -1,13 +1,5 @@
 <div class="space-y-6">
 
-    {{-- Header & Quick Actions --}}
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
-            <p class="text-xs text-slate-500 mt-1">Overview of library activity, circulation, and metrics.</p>
-        </div>
-    </div>
-
     {{-- Key Stats / Metrics Grid --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {{-- Total Assets --}}
@@ -43,10 +35,10 @@
             </div>
         </div>
 
-        {{-- Total Patrons --}}
+        {{-- Total Borrowers --}}
         <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
-                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Patrons</p>
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Borrowers</p>
                 <p class="text-2xl font-bold text-slate-900 mt-1">{{ number_format($totalPatrons) }}</p>
             </div>
             <div class="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center shrink-0">
@@ -81,10 +73,10 @@
                     <div class="p-3 rounded-xl border border-rose-100 bg-rose-50/40 flex flex-col justify-between gap-2">
                         <div>
                             <p class="text-xs font-bold text-slate-900">
-                                {{ $alert->patron->first_name ?? 'Patron' }} {{ $alert->patron->last_name ?? '' }}
+                                {{ $alert->patron?->first_name ?? 'Borrower' }} {{ $alert->patron?->last_name ?? '' }}
                             </p>
                             <p class="text-xs text-slate-600 truncate mt-0.5">
-                                {{ $alert->accession->catalog->title ?? 'Unknown Title' }}
+                                {{ $alert->accession?->catalog?->title ?? 'Unknown Title' }}
                             </p>
                         </div>
                         <div class="flex items-center justify-between text-[11px] text-rose-600 font-medium pt-1 border-t border-rose-100/80">
@@ -110,7 +102,7 @@
                     <input
                         type="text"
                         wire:model.live.debounce.300ms="search"
-                        placeholder="Search patron, book, or transaction #..."
+                        placeholder="Search borrower or book details"
                         class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
                     />
                     <span class="absolute left-3 top-2.5 text-slate-400 text-xs">🔍</span>
@@ -122,58 +114,54 @@
                 <table class="w-full text-left border-collapse text-xs text-slate-600">
                     <thead>
                         <tr class="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase text-[11px] tracking-wider">
-                            <th class="p-3 pl-4">Patron</th>
-                            <th class="p-3">Book Title</th>
-                            <th class="p-3">Status</th>
-                            <th class="p-3">Fine</th>
-                            <th class="p-3 pr-4">Due Date</th>
+                            <th class="p-3 pl-4 whitespace-nowrap">Accession #</th>
+                            <th class="p-3 whitespace-nowrap">Title</th>
+                            <th class="p-3 whitespace-nowrap">Author</th>
+                            <th class="p-3 whitespace-nowrap">Borrower</th>
+                            <th class="p-3 whitespace-nowrap">Borrowed Date</th>
+                            <th class="p-3 pr-4 whitespace-nowrap">Due Date</th>
+                            <th class="p-3 whitespace-nowrap">Status</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($recentTransactions as $transaction)
                             <tr class="hover:bg-slate-50/60 transition-colors">
-                                <td class="p-3 pl-4 font-medium text-slate-900 whitespace-nowrap">
-                                    <div class="font-bold">{{ $transaction->patron->first_name ?? 'N/A' }} {{ $transaction->patron->last_name ?? '' }}</div>
-                                    @if($transaction->transaction_number)
-                                        <div class="text-[10px] text-slate-400 font-mono">TX: {{ $transaction->transaction_number }}</div>
+                                <td class="p-3 pl-4 whitespace-nowrap font-mono text-slate-900">
+                                    {{ $transaction->accession?->accession_number ?? 'N/A' }}
+                                </td>
+                                <td class="p-3 text-slate-700 capitalize max-w-50 whitespace-nowrap font-semibold">
+                                    {{ $transaction->accession?->catalog?->title ?? 'Unknown Title' }}
+                                </td>
+                                <td class="p-3 text-slate-700 capitalize max-w-45 whitespace-nowrap">
+                                    {{ $transaction->accession?->catalog?->author?->name ?? 'N/A' }}
+                                </td>
+                                <td class="p-3 font-medium text-slate-900 whitespace-nowrap">
+                                    <div class="font-bold">
+                                        {{ $transaction->patron?->first_name ?? 'N/A' }} {{ $transaction->patron?->last_name ?? '' }}
+                                    </div>
+                                    @if($transaction->patron?->card_number)
+                                        <div class="text-[10px] text-slate-400 font-mono">Card #: {{ $transaction->patron->card_number }}</div>
                                     @endif
                                 </td>
-                                <td class="p-3 text-slate-700 max-w-[200px] truncate whitespace-nowrap">
-                                    <div class="font-semibold">{{ $transaction->accession->catalog->title ?? 'Unknown Title' }}</div>
-                                    <div class="text-[10px] text-slate-400 font-mono">Acc #: {{ $transaction->accession->accession_number ?? 'N/A' }}</div>
+                                <td class="p-3 whitespace-nowrap text-slate-500">
+                                    {{ $transaction->borrowed_at ? $transaction->borrowed_at->format('M d, Y') : 'N/A' }}
+                                </td>
+                                <td class="p-3 pr-4 whitespace-nowrap text-slate-500">
+                                    {{ $transaction->due_at ? $transaction->due_at->format('M d, Y') : 'N/A' }}
                                 </td>
                                 <td class="p-3 whitespace-nowrap">
-                                    @switch($transaction->status)
-                                        @case('returned')
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">RETURNED</span>
-                                            @break
-                                        @case('borrowed')
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">BORROWED</span>
-                                            @break
-                                        @case('overdue')
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">OVERDUE</span>
-                                            @break
-                                        @case('lost')
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-800">LOST</span>
-                                            @break
-                                        @default
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">{{ strtoupper($transaction->status) }}</span>
-                                    @endswitch
-                                </td>
-                                <td class="p-3 font-mono whitespace-nowrap">
-                                    @if($transaction->fine_amount > 0)
-                                        <span class="text-rose-600 font-bold">₱{{ number_format($transaction->fine_amount, 2) }}</span>
+                                    @if($transaction->returned_at)
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Returned</span>
+                                    @elseif($transaction->due_at && $transaction->due_at->isPast())
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">Overdue</span>
                                     @else
-                                        <span class="text-slate-400">₱0.00</span>
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">Borrowed</span>
                                     @endif
-                                </td>
-                                <td class="p-3 pr-4 text-slate-500 whitespace-nowrap">
-                                    {{ $transaction->due_at ? $transaction->due_at->format('M d, Y') : 'N/A' }}
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-8 text-slate-400">
+                                <td colspan="7" class="text-center py-8 text-slate-400">
                                     No recent circulation transactions found.
                                 </td>
                             </tr>

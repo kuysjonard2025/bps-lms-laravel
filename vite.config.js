@@ -13,11 +13,12 @@ export default defineConfig({
 					weights: [400, 500, 600],
 				}),
 			],
+			// Add this configuration property here:
+			optimizedFallbacks: false,
 		}),
 		tailwindcss(),
 	],
 	build: {
-		// Prevents generating preload tags that trigger browser "preloaded but not used" warnings
 		modulePreload: false,
 	},
 	server: {

@@ -20,12 +20,7 @@ class Accession extends Model
         'call_number',
         'condition',
         'status',
-        'acquired_date',
         'remarks',
-    ];
-
-    protected $casts = [
-        'acquired_date' => 'date',
     ];
 
     protected function barcode(): Attribute
@@ -43,5 +38,10 @@ class Accession extends Model
     public function acquisition(): BelongsTo
     {
         return $this->belongsTo(Acquisition::class);
+    }
+
+    public function circulations()
+    {
+        return $this->hasMany(Circulation::class);
     }
 }

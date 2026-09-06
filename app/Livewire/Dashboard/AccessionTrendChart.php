@@ -5,14 +5,12 @@ namespace App\Livewire\Dashboard;
 use App\Models\Accession;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 class AccessionTrendChart extends Component
 {
     public string $timeframe = '6_months';
 
-    #[Computed]
     public function chartData(): array
     {
         return match ($this->timeframe) {
@@ -29,9 +27,9 @@ class AccessionTrendChart extends Component
         $endDate   = Carbon::today()->endOfDay();
 
         $rawResults = Accession::query()
-            ->whereBetween('acquired_date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->select(DB::raw('acquired_date::date as date'), DB::raw('COUNT(id) as total'))
-            ->groupBy(DB::raw('acquired_date::date'))
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->select(DB::raw('created_at::date as date'), DB::raw('COUNT(id) as total'))
+            ->groupBy(DB::raw('created_at::date'))
             ->pluck('total', 'date');
 
         $categories = [];
@@ -42,7 +40,7 @@ class AccessionTrendChart extends Component
             $dateKey = $date->toDateString();
 
             $categories[] = $date->format('M d');
-            $series[] = (int) ($rawResults[$dateKey] ?? 0);
+            $series[]     = (int) ($rawResults[$dateKey] ?? 0);
         }
 
         return [
@@ -57,15 +55,15 @@ class AccessionTrendChart extends Component
         $endDate   = Carbon::now()->endOfMonth();
 
         $rawResults = Accession::query()
-            ->whereBetween('acquired_date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->select(
-                DB::raw('EXTRACT(YEAR FROM acquired_date) as year'),
-                DB::raw('EXTRACT(MONTH FROM acquired_date) as month'),
+                DB::raw('EXTRACT(YEAR FROM created_at) as year'),
+                DB::raw('EXTRACT(MONTH FROM created_at) as month'),
                 DB::raw('COUNT(id) as total')
             )
             ->groupBy(
-                DB::raw('EXTRACT(YEAR FROM acquired_date)'),
-                DB::raw('EXTRACT(MONTH FROM acquired_date)')
+                DB::raw('EXTRACT(YEAR FROM created_at)'),
+                DB::raw('EXTRACT(MONTH FROM created_at)')
             )
             ->get()
             ->keyBy(fn ($item) => sprintf('%04d-%02d', (int)$item->year, (int)$item->month));
@@ -90,7 +88,7 @@ class AccessionTrendChart extends Component
     public function render()
     {
         return view('livewire.dashboard.accession-trend-chart', [
-            'chartData' => $this->chartData,
+            'chartData' => $this->chartData(),
         ]);
     }
 }

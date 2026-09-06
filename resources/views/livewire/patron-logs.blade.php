@@ -20,7 +20,7 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                 </svg>
-                <span>Export Excel</span>
+                <span>Export Excel {{ empty($filterDate) ? '(All Records)' : '' }}</span>
             </button>
 
             <!-- PDF Export Button -->
@@ -36,7 +36,7 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                 </svg>
-                <span>Export PDF</span>
+                <span>Export PDF {{ empty($filterDate) ? '(All Records)' : '' }}</span>
             </button>
 
             <!-- End of Day Logout -->
@@ -57,7 +57,9 @@
         <!-- Card 1 -->
         <div class="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Total Visits Today</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-gray-500">
+                    Total Visits {{ !empty($filterDate) ? "($filterDate)" : '(Today)' }}
+                </span>
                 <span class="rounded-lg bg-gray-100 p-2 text-gray-600">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -83,7 +85,7 @@
         <!-- Card 3 -->
         <div class="relative overflow-hidden rounded-xl border border-blue-200 bg-blue-50/40 p-5 shadow-xs">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-blue-700">Logged Out Today</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-blue-700">Logged Out</span>
                 <span class="rounded-lg bg-blue-100 p-2 text-blue-600">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -114,12 +116,23 @@
                     />
                 </div>
 
-                <!-- Date Filter -->
-                <input
-                    wire:model.live="filterDate"
-                    type="date"
-                    class="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
+                <!-- Date Filter Input & Clear Control -->
+                <div class="flex items-center gap-2">
+                    <input
+                        wire:model.live="filterDate"
+                        type="date"
+                        class="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+
+                    @if($filterDate)
+                        <button
+                            type="button"
+                            wire:click="$set('filterDate', null)"
+                            class="px-2.5 py-2 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition cursor-pointer">
+                            Show All Dates
+                        </button>
+                    @endif
+                </div>
 
                 <!-- Status Filter -->
                 <select wire:model.live="filterStatus" class="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
@@ -127,6 +140,16 @@
                     <option value="inside">Currently Inside</option>
                     <option value="logged_out">Logged Out</option>
                 </select>
+
+                <!-- Clear All Filters Button -->
+                @if($search !== '' || !empty($filterDate) || $filterStatus !== 'all')
+                    <button
+                        type="button"
+                        wire:click="clearFilters"
+                        class="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2 py-1 transition cursor-pointer">
+                        Reset Filters
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -137,7 +160,8 @@
                     <thead class="bg-gray-50 text-[11px] font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200">
                         <tr>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Log Date</th>
-                            <th scope="col" class="px-4 py-3 whitespace-nowrap">Borrower ID / Name</th>
+                            <th scope="col" class="px-4 py-3 whitespace-nowrap">Student/Employee #</th>
+                            <th scope="col" class="px-4 py-3 whitespace-nowrap">Name</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Type</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Grade & Section</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Log In Time</th>
@@ -154,12 +178,16 @@
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     <div class="font-semibold text-gray-900">
+                                        {{ $log->patron->school_id ?? '-' }}
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <div class="font-semibold text-gray-900">
                                         {{ $log->patron->first_name ?? '' }}
                                         {{ $log->patron->middle_name ?? '' }}
                                         {{ $log->patron->last_name ?? 'Deleted Borrower' }}
                                         {{ $log->patron->suffix ?? '' }}
                                     </div>
-                                    <div class="text-[11px] text-gray-400 font-mono mt-0.5">{{ $log->patron->school_id ?? '-' }}</div>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-gray-700">
                                     <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
@@ -239,7 +267,7 @@
                 </div>
 
                 <p class="text-xs text-gray-600 mb-5">
-                    Are you sure you want to log out all <strong>{{ $currentlyInside }}</strong> active borrowers who are currently marked inside the library for today?
+                    Are you sure you want to log out all <strong>{{ $currentlyInside }}</strong> active borrowers currently inside the library for <strong>{{ \Carbon\Carbon::parse($filterDate ?: now())->format('M d, Y') }}</strong>?
                 </p>
 
                 <div class="flex justify-end gap-2">
@@ -252,7 +280,8 @@
                     <button
                         type="button"
                         wire:click="checkoutAllActive"
-                        class="px-4 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-md shadow-xs transition cursor-pointer">
+                        wire:loading.attr="disabled"
+                        class="px-4 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-md shadow-xs transition cursor-pointer disabled:opacity-50">
                         Confirm Log Out
                     </button>
                 </div>
