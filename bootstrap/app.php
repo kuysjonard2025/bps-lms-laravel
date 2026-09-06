@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'profile.completed' => \App\Http\Middleware\EnsureProfileIsCompleted::class,
+            'patron.auth' => \App\Http\Middleware\EnsurePatronAuthenticated::class,
         ]);
 
         $middleware->redirectGuestsTo('/');

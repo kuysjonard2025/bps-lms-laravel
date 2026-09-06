@@ -14,7 +14,6 @@ class Login extends Component
 
     public function mount(): void
     {
-        // Redirect if patron is already authenticated
         if (Session::has('patron_session_id')) {
             $this->redirect(route('patron.portal'), navigate: true);
         }
@@ -26,20 +25,23 @@ class Login extends Component
             'patronId' => 'required|string|max:50',
         ]);
 
-        $cleanId = strtoupper(trim($this->patronId));
-        $patron = Patron::where('patron_id', $cleanId)->first();
+        $cleanId = trim($this->patronId);
+
+        // Search by School ID or RFID Tag
+        $patron = Patron::where('school_id', $cleanId)
+            ->orWhere('rfid_tag', $cleanId)
+            ->first();
 
         if (! $patron) {
-            $this->addError('patronId', 'Patron ID not found in library record.');
+            $this->addError('patronId', 'Student / Employee ID or RFID tag not found.');
             return;
         }
 
-        if ($patron->status !== 'active') {
-            $this->addError('patronId', 'Your patron account is currently inactive. Please approach the library desk.');
+        if (strtolower($patron->status) !== 'active') {
+            $this->addError('patronId', 'Your library account is currently inactive. Please approach the librarian.');
             return;
         }
 
-        // Secure session handling
         Session::regenerate();
         Session::put('patron_session_id', $patron->id);
 

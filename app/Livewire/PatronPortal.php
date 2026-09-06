@@ -75,12 +75,12 @@ class PatronPortal extends Component
     {
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
-        // 1. OPAC Catalog Query (using withCount for optimal database performance)
+        // 1. OPAC Catalog Query
         $catalogItems = Catalog::with(['author', 'assetType'])
             ->withCount([
                 'accessions as total_copies',
                 'accessions as available_copies' => function ($q) {
-                    $q->where('status', 'Available');
+                    $q->where('status', 'available');
                 }
             ])
             ->when($this->opacAssetType !== 'all', function ($q) {
@@ -100,7 +100,7 @@ class PatronPortal extends Component
         $myLoans = Circulation::with(['accession.catalog.author'])
             ->where('patron_id', $this->patron?->id)
             ->when($this->transactionFilter === 'active', fn ($q) => $q->whereIn('status', ['borrowed', 'overdue']))
-            ->when($this->transactionFilter === 'history', fn ($q) => $q->whereIn('status', ['returned', 'lost']))
+            ->when($this->transactionFilter === 'history', fn ($q) => $q->whereIn('status', ['returned', 'lost', 'minor', 'severe']))
             ->latest('borrowed_at')
             ->paginate(10, ['*'], 'loansPage');
 

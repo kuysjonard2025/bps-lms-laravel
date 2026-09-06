@@ -13,17 +13,17 @@
                     >
                 </div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Library Patron Portal</h1>
-                <p class="text-xs text-slate-500">Enter your Patron ID to access OPAC search and view your loans.</p>
+                <p class="text-xs text-slate-500">Enter your Student / Employee ID or scan your RFID tag to view your loan history.</p>
             </div>
 
             <form wire:submit="login" class="space-y-4">
                 <div class="space-y-1.5">
-                    <label for="patronId" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Patron ID</label>
+                    <label for="patronId" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Student / Employee ID or RFID</label>
                     <input
                         type="text"
                         id="patronId"
                         wire:model="patronId"
-                        placeholder="e.g. PAT-2024-001"
+                        placeholder="e.g. 2024-0001 or Scan Tag"
                         class="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-slate-800 transition outline-none @error('patronId') border-rose-300 bg-rose-50/30 @enderror"
                         autofocus
                         required

@@ -1,185 +1,257 @@
-<div class="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 bg-slate-50 min-h-screen">
-    {{-- Header & Profile Info Bar --}}
-    <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-blue-600 text-white font-bold flex items-center justify-center text-lg shadow-md shadow-blue-500/20 shrink-0">
-                {{ strtoupper(substr(optional($patron)->first_name ?? 'P', 0, 1)) }}
-            </div>
-            <div>
-                <h1 class="text-xl font-bold text-slate-900">{{ optional($patron)->first_name ?? 'Patron' }} {{ optional($patron)->last_name }}</h1>
-                <p class="text-xs text-slate-500 font-medium mt-0.5">
-                    Patron ID: <span class="text-slate-800 font-semibold">{{ optional($patron)->patron_id ?? 'N/A' }}</span> •
-                    Type: <span class="text-blue-600 font-semibold">{{ $patron->patronType->name ?? 'Standard' }}</span>
-                </p>
+<div class="min-h-screen bg-slate-50 flex flex-col">
+    {{-- Header Bar --}}
+    <header class="bg-white border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+
+                {{-- Logo & Portal Title --}}
+                <div class="flex items-center gap-3">
+                    <img
+                        src="{{ asset('images/bps-logo.png') }}"
+                        alt="BPS Logo"
+                        class="w-9 h-9 object-contain"
+                        onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\'font-black text-blue-900 text-lg\'>BPS</span>';"
+                    >
+                    <div>
+                        <h1 class="text-sm sm:text-base font-bold text-slate-900 leading-tight">Library Patron Portal</h1>
+                        <p class="text-[11px] text-slate-500 hidden sm:block">Bicutan Parochial School, Inc.</p>
+                    </div>
+                </div>
+
+                {{-- User Info & Logout Button --}}
+                <div class="flex items-center gap-4">
+                    @if($patron)
+                        <div class="text-right hidden sm:block">
+                            <div class="text-xs font-semibold text-slate-800">
+                                {{ trim(implode(' ', array_filter([$patron->first_name, $patron->last_name]))) }}
+                            </div>
+                            <div class="text-[11px] text-slate-500">
+                                {{ $patron->school_id ?? $patron->patron_id }} | {{ $patron->patronType->name ?? 'Borrower' }}
+                            </div>
+                        </div>
+                    @endif
+
+                    <button
+                        wire:click="logout"
+                        wire:confirm="Are you sure you want to log out?"
+                        class="px-3 py-1.5 text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition border border-rose-200/60 flex items-center gap-1.5 cursor-pointer"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                        <span>Logout</span>
+                    </button>
+                </div>
+
             </div>
         </div>
+    </header>
 
-        <div class="flex items-center gap-3">
-            {{-- Navigation Tabs --}}
-            <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200/60 shrink-0">
-                <button
-                    wire:click="setTab('opac')"
-                    class="px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer {{ $activeTab === 'opac' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
-                    🔍 OPAC (Asset Catalog)
-                </button>
-                <button
-                    wire:click="setTab('transactions')"
-                    class="px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer {{ $activeTab === 'transactions' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
-                    📖 My Transactions
-                </button>
-            </div>
+    {{-- Main Container --}}
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        {{-- Navigation Tabs --}}
+        <div class="flex border-b border-slate-200 gap-6 text-sm font-semibold">
+            <button
+                wire:click="setTab('opac')"
+                class="pb-3 border-b-2 transition flex items-center gap-2 cursor-pointer {{ $activeTab === 'opac' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800' }}"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <span>OPAC (Open Public Accession Catalog)</span>
+            </button>
 
             <button
-                wire:click="logout"
-                class="px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition border border-rose-200 cursor-pointer">
-                Logout
+                wire:click="setTab('transactions')"
+                class="pb-3 border-b-2 transition flex items-center gap-2 cursor-pointer {{ $activeTab === 'transactions' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800' }}"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+                <span>My Transactions & Loans</span>
             </button>
         </div>
-    </div>
 
-    {{-- TAB 1: OPAC (ONLINE PUBLIC ACCESS CATALOG) --}}
-    @if ($activeTab === 'opac')
-        <div class="space-y-6">
-            {{-- OPAC Search Bar --}}
-            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3">
-                <div class="relative flex-1">
-                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {{-- TAB 1: OPAC SEARCH --}}
+        @if($activeTab === 'opac')
+            <div class="space-y-6">
+                {{-- Search Input --}}
+                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-3">
+                    <div class="flex-1 relative">
+                        <input
+                            type="text"
+                            wire:model.live.debounce.300ms="opacSearch"
+                            placeholder="Search by title, ISBN, or author name..."
+                            class="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none text-slate-800"
+                        >
+                        <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                     </div>
-                    <input
-                        type="text"
-                        wire:model.live.debounce.300ms="opacSearch"
-                        placeholder="Search books by title, author, or ISBN..."
-                        class="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-slate-800 outline-none transition"
+                </div>
+
+                {{-- Catalog Grid --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    @forelse($catalogItems as $item)
+                        <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                            <div class="space-y-2">
+                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-600 inline-block">
+                                    {{ $item->assetType?->name ?? 'Book' }}
+                                </span>
+                                <h3 class="text-sm font-bold text-slate-900 line-clamp-2">
+                                    {{ ucwords(strtolower($item->title)) }}
+                                </h3>
+                                <p class="text-xs text-slate-500 font-semibold">
+                                    By {{ ucwords(strtolower($item->author?->name)) ?? 'Unknown Author' }}
+                                </p>
+                                <p class="text-xs text-slate-500">
+                                    {{ $item->isbn_issn ?? 'No ISBN' }}
+                                </p>
+                            </div>
+
+                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                                <span class="text-slate-500">Availability:</span>
+                                @if($item->available_copies > 0)
+                                    <span class="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
+                                        {{ $item->available_copies }} / {{ $item->total_copies }} Available
+                                    </span>
+                                @else
+                                    <span class="font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded text-[11px]">
+                                        Out of Stock
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-span-full bg-white p-12 text-center rounded-2xl border border-slate-200/80 text-slate-400">
+                            <p class="text-sm italic">No catalog items matching your search criteria.</p>
+                        </div>
+                    @endforelse
+                </div>
+
+                {{-- Pagination --}}
+                @if($catalogItems->hasPages())
+                    <div class="pt-2">
+                        {{ $catalogItems->links() }}
+                    </div>
+                @endif
+            </div>
+        @endif
+
+        {{-- TAB 2: TRANSACTIONS & LOANS --}}
+        @if($activeTab === 'transactions')
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden space-y-4">
+
+                {{-- Filter Buttons --}}
+                <div class="p-4 border-b border-slate-200 flex items-center gap-2">
+                    <button
+                        wire:click="$set('transactionFilter', 'active')"
+                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer {{ $transactionFilter === 'active' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}"
                     >
-                </div>
-            </div>
-
-            {{-- OPAC Books Grid --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                @forelse ($catalogItems as $item)
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:border-blue-300 transition group">
-                        <div class="space-y-3">
-                            <div class="flex items-start justify-between gap-2">
-                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
-                                    {{ $item->assetType->name ?? 'Book' }}
-                                </span>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {{ $item->available_copies > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' }}">
-                                    {{ $item->available_copies > 0 ? "{$item->available_copies} / {$item->total_copies} Available" : 'Out of Stock' }}
-                                </span>
-                            </div>
-
-                            <div>
-                                <h3 class="font-bold text-slate-900 text-sm line-clamp-2 group-hover:text-blue-600 transition">{{ $item->title }}</h3>
-                                <p class="text-xs text-slate-500 mt-1">by {{ $item->author->name ?? 'Unknown Author' }}</p>
-                            </div>
-                        </div>
-
-                        <div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                            <span>ISBN: <strong class="text-slate-700">{{ $item->isbn_issn ?? 'N/A' }}</strong></span>
-                            <span>Edition: <strong class="text-slate-700">{{ $item->edition ?? '—' }}</strong></span>
-                        </div>
-                    </div>
-                @empty
-                    <div class="col-span-full bg-white p-12 text-center rounded-2xl border border-slate-200/80 text-slate-400">
-                        No books or library catalog items found matching your search.
-                    </div>
-                @endforelse
-            </div>
-
-            <div>
-                {{ $catalogItems->links() }}
-            </div>
-        </div>
-    @endif
-
-    {{-- TAB 2: VIEW CURRENT TRANSACTIONS --}}
-    @if ($activeTab === 'transactions')
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 border-slate-100 gap-3">
-                <div>
-                    <h2 class="text-lg font-bold text-slate-900">My Borrowing Transactions</h2>
-                    <p class="text-xs text-slate-500">View active items currently in your possession and historical transactions.</p>
+                        Active Loans
+                    </button>
+                    <button
+                        wire:click="$set('transactionFilter', 'history')"
+                        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer {{ $transactionFilter === 'history' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}"
+                    >
+                        Borrowing History
+                    </button>
                 </div>
 
-                <select wire:model.live="transactionFilter" class="px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 focus:border-blue-500 outline-none">
-                    <option value="active">Active Borrowed Items</option>
-                    <option value="history">Returned / Past History Log</option>
-                </select>
-            </div>
-
-            {{-- Transactions Table --}}
-            <div class="overflow-x-auto border border-slate-100 rounded-xl">
-                <table class="w-full text-left text-xs text-slate-600">
-                    <thead class="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
-                        <tr>
-                            <th class="p-3.5 whitespace-nowrap">Accession No.</th>
-                            <th class="p-3.5 pl-4 whitespace-nowrap">Book Title</th>
-                            <th class="p-3.5 whitespace-nowrap">Author</th>
-                            <th class="p-3.5 whitespace-nowrap">ISBN</th>
-                            <th class="p-3.5 whitespace-nowrap">Borrowed Date</th>
-                            <th class="p-3.5 whitespace-nowrap">Due Date</th>
-                            <th class="p-3.5 whitespace-nowrap">Returned Date</th>
-                            <th class="p-3.5 whitespace-nowrap">Fine / Penalty</th>
-                            <th class="p-3.5 pr-4 text-right whitespace-nowrap">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse ($myLoans as $loan)
-                            <tr class="hover:bg-slate-50/60 transition">
-                                <td class="p-3.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">{{ $loan->accession->accession_number ?? 'N/A' }}</td>
-                                <td class="p-3.5 pl-4 font-bold text-slate-900 whitespace-nowrap">
-                                    {{ $loan->accession->catalog->title ?? 'N/A' }}
-                                </td>
-                                <td class="p-3.5 text-slate-500 whitespace-nowrap">{{ $loan->accession->catalog->author->name ?? 'N/A' }}</td>
-                                <td class="p-3.5 text-slate-500 whitespace-nowrap">{{ $loan->accession->catalog->isbn_issn ?? 'N/A' }}</td>
-                                <td class="p-3.5 text-slate-500 whitespace-nowrap">{{ $loan->borrowed_at ? \Carbon\Carbon::parse($loan->borrowed_at)->format('M d, Y') : '—' }}</td>
-                                <td class="p-3.5 text-slate-500 whitespace-nowrap">{{ $loan->due_at ? \Carbon\Carbon::parse($loan->due_at)->format('M d, Y') : '—' }}</td>
-                                <td class="p-3.5 text-slate-500 whitespace-nowrap">
-                                    {{ $loan->returned_at ? \Carbon\Carbon::parse($loan->returned_at)->format('M d, Y h:i A') : '—' }}
-                                </td>
-                                <td class="p-3.5 font-semibold {{ ($loan->fine_amount ?? 0) > 0 ? 'text-rose-600' : 'text-slate-400' }} whitespace-nowrap">
-                                    ₱{{ number_format($loan->fine_amount ?? 0, 2) }}
-                                </td>
-                                <td class="p-3.5 pr-4 text-right whitespace-nowrap">
-                                    @if ($loan->status === 'returned')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                                            RETURNED
-                                        </span>
-                                    @elseif ($loan->status === 'lost')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-800">
-                                            LOST
-                                        </span>
-                                    @elseif (($loan->due_at && \Carbon\Carbon::parse($loan->due_at)->isPast()) || $loan->status === 'overdue')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700">
-                                            OVERDUE
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700">
-                                            BORROWED
-                                        </span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
+                {{-- Loans Table --}}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-600">
+                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-700 uppercase font-bold text-[10px] tracking-wider">
                             <tr>
-                                <td colspan="9" class="text-center py-8 text-slate-400">No circulation records found.</td>
+                                <th class="px-6 py-3.5 whitespace-nowrap">Accession #</th>
+                                <th class="px-6 py-3.5 whitespace-nowrap">Title</th>
+                                <th class="px-6 py-3.5 whitespace-nowrap">Author</th>
+                                <th class="px-6 py-3.5 whitespace-nowrap">Borrowed Date</th>
+                                <th class="px-6 py-3.5 whitespace-nowrap">Due Date</th>
+                                <th class="px-6 py-3.5 whitespace-nowrap">Status</th>
+                                @if($transactionFilter === 'history')
+                                    <th class="px-6 py-3.5 whitespace-nowrap">Returned Date</th>
+                                    <th class="px-6 py-3.5 whitespace-nowrap">Receipt #</th>
+                                    <th class="px-6 py-3.5 whitespace-nowrap">Fine Amount</th>
+                                    <th class="px-6 py-3.5 whitespace-nowrap">Condition</th>
+                                @endif
                             </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($myLoans as $loan)
+                                @php
+                                    $isOverdue = !$loan->returned_at && $loan->due_at && $loan->due_at->isPast();
+                                @endphp
+                                <tr class="hover:bg-slate-50/80 transition">
+                                    {{-- Common Columns (6 Total for Active) --}}
+                                    <td class="px-6 py-4 font-bold text-slate-900 whitespace-nowrap">
+                                        {{ $loan->accession?->accession_number ?? 'N/A' }}
+                                    </td>
+                                    <td class="px-6 py-4 font-medium text-slate-800 whitespace-nowrap">
+                                        {{ ucwords(strtolower($loan->accession?->catalog?->title ?? 'N/A')) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        {{ ucwords($loan->accession?->catalog?->author?->name ?? 'N/A') }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        {{ $loan->borrowed_at ? $loan->borrowed_at->format('M d, Y h:i A') : '-' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap {{ $isOverdue ? 'font-bold text-rose-600' : '' }}">
+                                        {{ $loan->due_at ? $loan->due_at->format('M d, Y') : '-' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @if($loan->returned_at)
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                                                Returned
+                                            </span>
+                                        @elseif($isOverdue)
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200/60 animate-pulse">
+                                                Overdue
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-bold uppercase bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                                                Borrowed
+                                            </span>
+                                        @endif
+                                    </td>
 
-            <div>
-                {{ $myLoans->links() }}
-            </div>
-        </div>
-    @endif
+                                    {{-- History Columns (4 Additional for History = 10 Total) --}}
+                                    @if($transactionFilter === 'history')
+                                        <td class="px-6 py-4 whitespace-nowrap text-emerald-600 font-medium">
+                                            {{ $loan->returned_at ? $loan->returned_at->format('M d, Y h:i A') : '-' }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap font-semibold text-slate-800">
+                                            {{ $loan->receipt_number ?? 'N/A' }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap font-semibold text-slate-800">
+                                            &#8369;{{ number_format((float) $loan->fine_amount, 2) }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap capitalize">
+                                            {{ $loan->condition ?? $loan->accession?->condition ?? 'N/A' }}
+                                        </td>
+                                    @endif
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="{{ $transactionFilter === 'history' ? '10' : '6' }}" class="px-6 py-12 text-center text-slate-400">
+                                        <p class="text-sm italic">No {{ $transactionFilter }} transactions found.</p>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
 
-    {{-- Footer --}}
-    <div class="text-center text-[11px] text-slate-400 pt-4">
-        &copy; {{ date('Y') }} Bicutan Parochial School, Inc. All rights reserved.
-    </div>
+                {{-- Pagination Links --}}
+                @if($myLoans->hasPages())
+                    <div class="p-4 border-t border-slate-200 bg-slate-50">
+                        {{ $myLoans->links() }}
+                    </div>
+                @endif
+
+            </div>
+        @endif
+
+    </main>
 </div>
