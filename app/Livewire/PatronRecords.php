@@ -66,7 +66,7 @@ class PatronRecords extends Component
             ->when($this->statusFilter !== 'all', fn ($q) => $q->where('status', $this->statusFilter))
             ->when($this->search, function ($q) use ($likeOperator) {
                 $q->where(function ($sub) use ($likeOperator) {
-                    $sub->where('patron_id', $likeOperator, "%{$this->search}%")
+                    $sub->where('school_id', $likeOperator, "%{$this->search}%")
                         ->orWhere('first_name', $likeOperator, "%{$this->search}%")
                         ->orWhere('last_name', $likeOperator, "%{$this->search}%")
                         ->orWhere('email', $likeOperator, "%{$this->search}%");
