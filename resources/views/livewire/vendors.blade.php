@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="space-y-6 bg-white text-slate-900 min-h-full p-4 md:p-6">
 
     {{-- Top Bar & Header --}}
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -29,7 +29,7 @@
                 wire:model.live.debounce.300ms="search"
                 type="text"
                 placeholder="Search vendor, contact, phone, email..."
-                class="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition"
+                class="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 text-slate-900 placeholder-slate-400 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition"
             />
         </div>
     </div>
@@ -47,9 +47,9 @@
                         <th class="p-3 text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200">
+                <tbody class="divide-y divide-slate-200 bg-white">
                     @forelse ($vendors as $vendor)
-                        <tr class="hover:bg-slate-50/50 transition">
+                        <tr class="hover:bg-slate-50 transition">
                             <td class="p-3 font-semibold text-slate-900 whitespace-nowrap">
                                 {{ ucwords($vendor->company_name) }}
                             </td>
@@ -60,7 +60,7 @@
                                 {{ ucwords($vendor->address) }}
                             </td>
                             <td class="p-3 text-slate-600 whitespace-nowrap">
-                                <div class="font-mono text-[11px]">{{ $vendor->contact_number }}</div>
+                                <div class="font-mono text-[11px] text-slate-700">{{ $vendor->contact_number }}</div>
                                 <div class="text-[10px] text-slate-400 font-sans">{{ strtolower($vendor->email) }}</div>
                             </td>
                             <td class="p-3 text-right whitespace-nowrap">
@@ -88,7 +88,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="p-8 text-center text-slate-400">
+                            <td colspan="5" class="p-8 text-center text-slate-400 bg-white">
                                 No vendors found matching your search.
                             </td>
                         </tr>
@@ -106,9 +106,9 @@
 
     {{-- Create / Edit Modal --}}
     @if ($showModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200">
-                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white">
                     <h3 class="text-sm font-bold text-slate-900">
                         {{ $vendorIdBeingEdited ? 'Edit Vendor Profile' : 'Add New Vendor' }}
                     </h3>
@@ -119,14 +119,14 @@
                     </button>
                 </div>
 
-                <form wire:submit="saveVendor" class="p-6 space-y-4">
+                <form wire:submit="saveVendor" class="p-6 space-y-4 bg-white">
                     <div>
                         <label for="vendor-company-name" class="block text-xs font-semibold text-slate-700">Company Name *</label>
                         <input
                             id="vendor-company-name"
                             wire:model="company_name"
                             type="text"
-                            class="mt-1 w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
+                            class="mt-1 w-full px-3 py-2 text-xs bg-white text-slate-900 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
                             placeholder="Acme Corporation"
                         />
                         @error('company_name') <span class="text-[11px] text-rose-500 mt-1 block">{{ $message }}</span> @enderror
@@ -138,7 +138,7 @@
                             id="vendor-contact-person"
                             wire:model="contact_person"
                             type="text"
-                            class="mt-1 w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
+                            class="mt-1 w-full px-3 py-2 text-xs bg-white text-slate-900 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
                             placeholder="John Doe"
                         />
                         @error('contact_person') <span class="text-[11px] text-rose-500 mt-1 block">{{ $message }}</span> @enderror
@@ -150,7 +150,7 @@
                             id="vendor-address"
                             wire:model="address"
                             rows="2"
-                            class="mt-1 w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
+                            class="mt-1 w-full px-3 py-2 text-xs bg-white text-slate-900 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
                             placeholder="123 Business Rd, Suite 100..."
                         ></textarea>
                         @error('address') <span class="text-[11px] text-rose-500 mt-1 block">{{ $message }}</span> @enderror
@@ -163,7 +163,7 @@
                                 id="vendor-contact-number"
                                 wire:model="contact_number"
                                 type="text"
-                                class="mt-1 w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
+                                class="mt-1 w-full px-3 py-2 text-xs bg-white text-slate-900 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
                                 placeholder="+1 (555) 000-0000"
                             />
                             @error('contact_number') <span class="text-[11px] text-rose-500 mt-1 block">{{ $message }}</span> @enderror
@@ -175,7 +175,7 @@
                                 id="vendor-email"
                                 wire:model="email"
                                 type="email"
-                                class="mt-1 w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
+                                class="mt-1 w-full px-3 py-2 text-xs bg-white text-slate-900 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
                                 placeholder="vendor@example.com"
                             />
                             @error('email') <span class="text-[11px] text-rose-500 mt-1 block">{{ $message }}</span> @enderror
@@ -204,7 +204,7 @@
 
     {{-- Delete Confirmation Modal --}}
     @if ($showDeleteModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4 border border-slate-200 text-center">
                 <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

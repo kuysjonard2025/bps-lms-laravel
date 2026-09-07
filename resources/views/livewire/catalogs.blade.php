@@ -52,7 +52,8 @@
                         <th scope="col" class="p-3 whitespace-nowrap hidden md:table-cell">Asset Type</th>
                         <th scope="col" class="p-3 whitespace-nowrap hidden lg:table-cell">Publisher</th>
                         <th scope="col" class="p-3 whitespace-nowrap hidden lg:table-cell">Reference</th>
-                        <th scope="col" class="p-3 whitespace-nowrap">ISBN / Year</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">ISBN</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">Copyright Year</th>
                         <th scope="col" class="p-3 pr-4 text-right whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
@@ -70,8 +71,10 @@
                             <td class="p-3 text-slate-600 whitespace-nowrap hidden lg:table-cell">{{ ucwords($catalog->publisher->name ?? '—') }}</td>
                             <td class="p-3 text-slate-600 whitespace-nowrap hidden lg:table-cell">{{ ucwords($catalog->generalReference->name ?? '—') }}</td>
                             <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-[11px]">
-                                <div>{{ $catalog->isbn_issn ?: '—' }}</div>
-                                <div class="text-[10px] text-slate-400 font-sans">{{ $catalog->publication_year }}</div>
+                                {{ $catalog->isbn_issn ?: '—' }}
+                            </td>
+                            <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-[11px]">
+                                {{ $catalog->publication_year ?: '—' }}
                             </td>
                             <td class="p-3 pr-4 text-right whitespace-nowrap space-x-1">
                                 <button
@@ -92,7 +95,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-10 text-slate-400">
+                            <td colspan="8" class="text-center py-10 text-slate-400">
                                 No catalogs found matching your criteria.
                             </td>
                         </tr>
