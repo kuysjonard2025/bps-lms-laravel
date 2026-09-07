@@ -362,9 +362,9 @@ class Circulations extends Component
             $accessionStatus = 'Available';
 
             if ($this->returnCondition === 'damaged') {
-                $accessionStatus = 'Damaged';
-            } elseif ($this->returnCondition === 'lost') {
-                $accessionStatus = 'Lost';
+                $accessionStatus = 'under maintenance';
+            } elseif ($this->returnCondition === 'lost' || $this->returnCondition === 'missing') {
+                $accessionStatus = 'dumped';
             }
 
             $loan->update([

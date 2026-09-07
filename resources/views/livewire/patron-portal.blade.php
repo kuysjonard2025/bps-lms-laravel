@@ -22,11 +22,11 @@
                 <div class="flex items-center gap-4">
                     @if($patron)
                         <div class="text-right hidden sm:block">
-                            <div class="text-xs font-semibold text-slate-800">
+                            <div class="text-xs font-semibold text-slate-800 capitalize">
                                 {{ trim(implode(' ', array_filter([$patron->first_name, $patron->last_name]))) }}
                             </div>
                             <div class="text-[11px] text-slate-500">
-                                {{ $patron->school_id ?? $patron->patron_id }} | {{ $patron->patronType->name ?? 'Borrower' }}
+                                {{ $patron->school_id ?? "-" }} | {{ $patron->patronType->name ?? "Borrower" }}
                             </div>
                         </div>
                     @endif
