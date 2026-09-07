@@ -434,8 +434,8 @@
                             >
                                 <option value="New">New</option>
                                 <option value="Good">Good</option>
-                                <option value="Fair">Fair</option>
                                 <option value="Damaged">Damaged</option>
+                                <option value="Lost">Lost</option>
                             </select>
                             @error('condition') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                         </div>
@@ -451,12 +451,11 @@
                                 <option value="On Loan" disabled class="bg-slate-100 text-slate-400">On Loan (Auto-set via Circulation)</option>
                                 <option value="Reserved">Reserved</option>
                                 <option value="Under Maintenance">Under Maintenance</option>
-                                <option value="Lost">Lost</option>
-                                <option value="Withdrawn">Withdrawn</option>
+                                <option value="Dumped">Dumped</option>
                             </select>
                             @error('status') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                         </div>
-
+{{--
                         <div>
                             <label for="acquired-date" class="block text-xs font-semibold text-slate-700">Acquired Date *</label>
                             <input
@@ -466,7 +465,7 @@
                                 class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                             >
                             @error('acquired_date') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
-                        </div>
+                        </div> --}}
                     </div>
 
                     {{-- Modal Actions --}}
