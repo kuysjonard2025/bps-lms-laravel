@@ -211,13 +211,18 @@ class Registrations extends Component
             'u_role.in' => 'System accounts registered here must be assigned as Librarian Assistant.',
         ]);
 
+        $role = $this->u_role;
+        if ($this->userIdBeingEdited && $this->u_role !== 'librarian') {
+            $role = 'librarian';
+        }
+
         $data = [
             'first_name' => $firstName,
             'middle_name' => $middleName,
             'last_name' => $lastName,
             'suffix' => $suffix,
             'username' => $username,
-            'role' => 'assistant',
+            'role' => $role,
             'email' => $email,
             'contact_number' => $contactNumber,
             'address' => $address,
