@@ -235,14 +235,14 @@ class Registrations extends Component
         try {
             if ($this->userIdBeingEdited) {
                 User::findOrFail($this->userIdBeingEdited)->update($data);
-                $message = 'Assistant user updated successfully.';
+                $message = ucwords($role) . ' user updated successfully.';
             } else {
                 $user = User::create($data);
 
                 // Triggers queued email verification notification upon creation
                 $user->sendEmailVerificationNotification();
 
-                $message = 'Assistant user created successfully. Verification email dispatched.';
+                $message = ucwords($role) . ' user created successfully. Verification email dispatched.';
             }
         } catch (UniqueConstraintViolationException $e) {
             throw ValidationException::withMessages([
