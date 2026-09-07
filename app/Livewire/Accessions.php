@@ -55,7 +55,7 @@ class Accessions extends Component
             'catalog_id'     => 'required|exists:catalogs,id',
             'batch_number'   => 'required|string|max:50',
             'call_number'    => 'required|string|max:50',
-            'condition'      => 'required|string|in:new,good,fair,damaged,lost,missing',
+            'condition'      => 'required|string|in:new,good,damaged,lost',
             'status'         => ['required', 'string', 'in:available,on loan,reserved,under maintenance,dumped'],
             'remarks'        => 'nullable|string|max:1000',
         ];

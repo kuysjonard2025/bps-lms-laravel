@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('accession_number')->unique();
             $table->string('batch_number')->index();
             $table->string('call_number');
-            $table->string('condition')->default('new'); // new, good, fair, damaged, lost, missing
+            $table->string('condition')->default('new'); // new, good, damaged, lost, missing
             $table->string('status')->default('available'); // available, on loan, reserved, under maintenance, dumped
             $table->text('remarks')->nullable();
             $table->timestamps();
