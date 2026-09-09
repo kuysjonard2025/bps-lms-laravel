@@ -2,6 +2,7 @@
 
 namespace App\Livewire\AssetDetails;
 
+use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\AssetType;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -12,7 +13,7 @@ use Livewire\WithPagination;
 
 class AssetTypesTab extends Component
 {
-    use WithPagination;
+    use WithPagination, SanitizesInputs;
 
     public string $search = '';
 
@@ -67,8 +68,7 @@ class AssetTypesTab extends Component
 
     public function saveAssetType(): void
     {
-        // 1. Trim first so validation checks the exact string being saved
-        $this->name = strtolower(trim($this->name));
+        $this->cleanFields(['name']);
 
         $this->validate();
 
@@ -130,3 +130,4 @@ class AssetTypesTab extends Component
         ]);
     }
 }
+

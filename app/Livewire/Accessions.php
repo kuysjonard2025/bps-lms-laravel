@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Exports\AccessionsExport;
+use App\Exports\AccessionNumberExport; // <-- Import the new export class
 use App\Models\Accession;
 use App\Models\Acquisition;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -29,8 +30,13 @@ class Accessions extends Component
 
     public bool $showModal = false;
     public bool $showDeleteModal = false;
+    public bool $showExportModal = false; // <-- Added for Niimbot export modal
     public ?int $accessionIdBeingEdited = null;
     public ?int $accessionIdBeingDeleted = null;
+
+    // Range Export fields for Niimbot
+    public ?string $exportStartAccession = null;
+    public ?string $exportEndAccession = null;
 
     // Form fields
     public ?int $acquisition_id = null;
@@ -180,19 +186,25 @@ class Accessions extends Component
     private function generateAccessionNumber(int $offset = 0): string
     {
         $year = date('Y');
-        $latest = Accession::whereYear('created_at', $year)
-            ->where('accession_number', 'LIKE', "ACC-{$year}-%")
-            ->orderByDesc('id')
-            ->first();
 
-        $baseNum = 0;
-        if ($latest && preg_match('/-(\d+)$/', $latest->accession_number, $matches)) {
-            $baseNum = (int) $matches[1];
+        static $baseNum = null;
+
+        if ($baseNum === null) {
+            $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+            $latest = Accession::whereYear('created_at', $year)
+                ->where('accession_number', $likeOperator, "acc-{$year}-%")
+                ->orderByDesc('id')
+                ->first();
+
+            $baseNum = 0;
+            if ($latest && preg_match('/-(\d+)$/', $latest->accession_number, $matches)) {
+                $baseNum = (int) $matches[1];
+            }
         }
 
         $nextNum = str_pad($baseNum + 1 + $offset, 5, '0', STR_PAD_LEFT);
 
-        return "ACC-{$year}-{$nextNum}";
+        return "acc-{$year}-{$nextNum}";
     }
 
     public function openEditModal(Accession $accession): void
@@ -339,7 +351,7 @@ class Accessions extends Component
         $this->accessionIdBeingDeleted = null;
     }
 
-    private function getFilteredAccessionsQuery()
+    private function getFilteredAccessionsQuery(string $orderBy = 'desc')
     {
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
@@ -353,7 +365,7 @@ class Accessions extends Component
                 });
             })
             ->when($this->statusFilter, fn ($q) => $q->where('status', $this->statusFilter))
-            ->latest();
+            ->orderBy('accession_number', $orderBy);
     }
 
     public function exportExcel(): BinaryFileResponse
@@ -366,9 +378,35 @@ class Accessions extends Component
         );
     }
 
+    // --- Niimbot Export Methods ---
+    public function openExportModal(): void
+    {
+        $this->resetValidation();
+        $this->exportStartAccession = null;
+        $this->exportEndAccession = null;
+        $this->showExportModal = true;
+    }
+
+    public function exportAccessionNumbers(): BinaryFileResponse
+    {
+        $this->showExportModal = false;
+        $fileName = 'niimbot-accessions-' . now()->format('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(
+            new AccessionNumberExport(
+                search: $this->search,
+                statusFilter: $this->statusFilter,
+                startAccession: $this->exportStartAccession,
+                endAccession: $this->exportEndAccession
+            ),
+            $fileName
+        );
+    }
+    // ------------------------------
+
     public function exportPdf(): StreamedResponse
     {
-        $accessions = $this->getFilteredAccessionsQuery()->get();
+        $accessions = $this->getFilteredAccessionsQuery('asc')->get();
 
         $pdf = Pdf::loadView('pdf.accessions-report', [
             'accessions' => $accessions,

@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\AssetType;
 use App\Models\Author;
 use App\Models\Catalog;
@@ -16,7 +17,7 @@ use Livewire\WithPagination;
 
 class Catalogs extends Component
 {
-    use WithPagination;
+    use WithPagination, SanitizesInputs;
 
     public string $search = '';
 
@@ -58,14 +59,12 @@ class Catalogs extends Component
             ],
             'isbn_issn'            => [
                 'nullable',
-                'string',
-                'max:20',
-                'regex:/^[0-9\-]{8,20}$/',
+                'digits_between:8,20',
                 Rule::unique('catalogs', 'isbn_issn')->ignore($this->catalogIdBeingEdited),
             ],
             'edition'              => 'nullable|string|max:50',
-            'publication_year'     => 'required|integer|digits:4|min:1800|max:' . (date('Y') + 1),
-            'description'          => 'nullable|string|max:1000',
+            'publication_year'     => 'required|integer|digits:4|min:' . (date('Y') - 10) . '|max:' . date('Y'),
+            'description'          => 'nullable|string|max:255',
         ];
     }
 
@@ -129,16 +128,13 @@ class Catalogs extends Component
 
     public function saveCatalog(): void
     {
-        // 1. Sanitize components cleanly before validation
-        $this->title       = strtolower(trim($this->title));
-        $this->isbn_issn   = blank($this->isbn_issn) ? null : trim($this->isbn_issn);
-        $this->edition     = blank($this->edition) ? null : strtolower(trim($this->edition));
-        $this->description = blank($this->description) ? null : strtolower(trim($this->description));
+        // Clean input fields
+        $this->cleanFields(['title', 'isbn_issn', 'edition', 'description']);
 
-        // 2. Run Livewire Validation
+        // Capture the validated data into the $validated variable
         $validated = $this->validate();
 
-        // 3. Persist to DB
+        // Persist to DB
         if ($this->catalogIdBeingEdited) {
             Catalog::findOrFail($this->catalogIdBeingEdited)->update($validated);
             $message = 'Catalog entry updated successfully.';

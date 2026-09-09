@@ -3,7 +3,7 @@
     {{-- Header & Quick Actions --}}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Accessions Management</h1>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Accessions</h1>
             <p class="text-xs text-slate-500 mt-1">Manage individual copies, batch generation, and circulation status.</p>
         </div>
 
@@ -14,12 +14,11 @@
                 class="px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer text-slate-700"
             >
                 <option value="">All Statuses</option>
-                <option value="Available">Available</option>
-                <option value="On Loan">On Loan</option>
-                <option value="Reserved">Reserved</option>
-                <option value="Under Maintenance">Under Maintenance</option>
-                <option value="Lost">Lost</option>
-                <option value="Withdrawn">Withdrawn</option>
+                <option value="available">Available</option>
+                <option value="on loan">On Loan</option>
+                <option value="reserved">Reserved</option>
+                <option value="under maintenance">Under Maintenance</option>
+                <option value="dumped">Dumped</option>
             </select>
 
             {{-- Search Bar --}}
@@ -67,7 +66,7 @@
                     x-transition:leave="transition ease-in duration-75"
                     x-transition:leave-start="transform opacity-100 scale-100"
                     x-transition:leave-end="transform opacity-0 scale-95"
-                    class="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-30"
+                    class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-30"
                     style="display: none;"
                 >
                     <button
@@ -91,6 +90,17 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                         </svg>
                         <span>Export PDF</span>
+                    </button>
+                    <button
+                        wire:click="openExportModal"
+                        @click="open = false"
+                        type="button"
+                        class="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2 cursor-pointer border-t border-slate-100"
+                    >
+                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                        </svg>
+                        <span>Export Niimbot Labels</span>
                     </button>
                 </div>
             </div>
@@ -131,30 +141,30 @@
                 <tbody class="divide-y divide-slate-100">
                     @forelse($accessions as $item)
                         <tr wire:key="accession-row-{{ $item->id }}" class="hover:bg-slate-50/60 transition-colors">
-                            <td class="p-3 pl-4 font-mono font-bold text-blue-600 whitespace-nowrap">
-                                {{ ucwords($item->accession_number) }}
+                            <td class="p-3 pl-4 font-mono font-bold text-blue-600 uppercase whitespace-nowrap">
+                                {{ strtoupper($item->accession_number) }}
                             </td>
                             <td class="p-3 font-mono text-slate-600 whitespace-nowrap">
-                                {{ ucwords($item->batch_number) }}
+                                {{ strtoupper($item->batch_number) }}
                             </td>
                             <td class="p-3 font-mono font-semibold text-blue-600 whitespace-nowrap">
-                                {{ ucwords($item->acquisition->acquisition_number) ?? 'N/A' }}
+                                {{ strtoupper($item->acquisition->acquisition_number ?? 'N/A') }}
                             </td>
                             <td class="p-3 font-bold text-slate-900 whitespace-nowrap">
-                                {{ ucwords($item->catalog->title) ?? '—' }}
+                                {{ ucwords($item->catalog->title ?? '—') }}
                             </td>
                             <td class="p-3 text-slate-700 whitespace-nowrap">
-                                {{ ucwords($item->catalog->author->name) ?? 'N/A' }}
+                                {{ ucwords($item->catalog->author->name ?? 'N/A') }}
                             </td>
                             <td class="p-3 text-slate-700 whitespace-nowrap">
-                                {{ ucwords($item->catalog->publisher->name) ?? 'N/A' }}
+                                {{ ucwords($item->catalog->publisher->name ?? 'N/A') }}
                             </td>
                             <td class="p-3 text-slate-700 whitespace-nowrap">
-                                {{ ucwords($item->catalog->generalReference->name) ?? 'N/A' }}
+                                {{ ucwords($item->catalog->generalReference->name ?? 'N/A') }}
                             </td>
                             <td class="p-3 whitespace-nowrap">
                                 <span class="px-2 py-0.5 text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/80 rounded-full">
-                                    {{ ucwords($item->catalog->assetType->name) ?? 'N/A' }}
+                                    {{ ucwords($item->catalog->assetType->name ?? 'N/A') }}
                                 </span>
                             </td>
                             <td class="hidden md:table-cell p-3 text-center font-mono text-slate-800 whitespace-nowrap">
@@ -168,11 +178,11 @@
                             <td class="p-3 text-center whitespace-nowrap">
                                 @php
                                     $statusClasses = match($item->status) {
-                                        'Available' => 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
-                                        'On Loan' => 'bg-blue-50 text-blue-700 border-blue-200/80',
-                                        'Reserved' => 'bg-amber-50 text-amber-700 border-amber-200/80',
-                                        'Under Maintenance' => 'bg-purple-50 text-purple-700 border-purple-200/80',
-                                        'Lost', 'Withdrawn' => 'bg-rose-50 text-rose-700 border-rose-200/80',
+                                        'available' => 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+                                        'on loan' => 'bg-blue-50 text-blue-700 border-blue-200/80',
+                                        'reserved' => 'bg-amber-50 text-amber-700 border-amber-200/80',
+                                        'under maintenance' => 'bg-purple-50 text-purple-700 border-purple-200/80',
+                                        'dumped' => 'bg-rose-50 text-rose-700 border-rose-200/80',
                                         default => 'bg-slate-100 text-slate-700 border-slate-200/80',
                                     };
                                 @endphp
@@ -181,7 +191,7 @@
                                 </span>
                             </td>
                             <td class="p-3 pr-4 text-right whitespace-nowrap space-x-1">
-                                @if($item->status === 'On Loan')
+                                @if($item->status === 'on loan')
                                     <button
                                         type="button"
                                         disabled
@@ -424,7 +434,7 @@
                         @endif
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div>
                             <label for="accession-condition" class="block text-xs font-semibold text-slate-700">Condition *</label>
                             <select
@@ -448,24 +458,13 @@
                                 class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all bg-white"
                             >
                                 <option value="available">Available</option>
-                                <option value="On Loan" disabled class="bg-slate-100 text-slate-400">On Loan (Auto-set via Circulation)</option>
+                                <option value="on loan" disabled class="bg-slate-100 text-slate-400">On Loan (Auto-set via Circulation)</option>
                                 <option value="reserved">Reserved</option>
                                 <option value="under maintenance">Under Maintenance</option>
                                 <option value="dumped">Dumped</option>
                             </select>
                             @error('status') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                         </div>
-{{--
-                        <div>
-                            <label for="acquired-date" class="block text-xs font-semibold text-slate-700">Acquired Date *</label>
-                            <input
-                                id="acquired-date"
-                                type="date"
-                                wire:model="acquired_date"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                            >
-                            @error('acquired_date') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
-                        </div> --}}
                     </div>
 
                     {{-- Modal Actions --}}
@@ -493,6 +492,71 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    @endif
+
+    {{-- Niimbot Label Export Modal --}}
+    @if ($showExportModal)
+        <div
+            x-data
+            @keydown.window.escape="$wire.set('showExportModal', false)"
+            class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div wire:click="$set('showExportModal', false)" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"></div>
+
+            <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md z-10 p-6 my-auto overflow-hidden border border-slate-100">
+                <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+                    <h3 class="text-sm font-bold text-slate-900">Export Niimbot Labels</h3>
+                    <button wire:click="$set('showExportModal', false)" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer">&times;</button>
+                </div>
+
+                <div class="space-y-4">
+                    <p class="text-xs text-slate-500">
+                        Specify an optional accession range or leave blank to export items based on your current search/filters.
+                    </p>
+
+                    <div>
+                        <label for="exportStartAccession" class="block text-xs font-semibold text-slate-700">Start Accession Number (Optional)</label>
+                        <input
+                            id="exportStartAccession"
+                            type="text"
+                            wire:model="exportStartAccession"
+                            placeholder="e.g. acc-2026-00001"
+                            class="mt-1 w-full text-xs font-mono rounded-xl border border-slate-200 p-2.5 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
+                        >
+                    </div>
+
+                    <div>
+                        <label for="exportEndAccession" class="block text-xs font-semibold text-slate-700">End Accession Number (Optional)</label>
+                        <input
+                            id="exportEndAccession"
+                            type="text"
+                            wire:model="exportEndAccession"
+                            placeholder="e.g. acc-2026-00050"
+                            class="mt-1 w-full text-xs font-mono rounded-xl border border-slate-200 p-2.5 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
+                        >
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+                        <button
+                            wire:click="$set('showExportModal', false)"
+                            type="button"
+                            class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition cursor-pointer"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            wire:click="exportAccessionNumbers"
+                            type="button"
+                            class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition cursor-pointer flex items-center gap-2"
+                        >
+                            <span>Download Niimbot Excel</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     @endif

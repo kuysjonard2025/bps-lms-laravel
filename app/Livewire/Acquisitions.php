@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Exports\AcquisitionsExport;
+use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\Accession;
 use App\Models\Acquisition;
 use App\Models\Catalog;
@@ -23,11 +24,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class Acquisitions extends Component
 {
-    use WithPagination;
+    use WithPagination, SanitizesInputs;
 
     // Form Properties
     public ?string $acquisition_number = null;
     public string $transaction_number = '';
+    public string $delivery_type = 'purchase';
     public ?int $vendor_id = null;
     public ?int $catalog_id = null;
     public int $quantity = 1;
@@ -45,14 +47,15 @@ class Acquisitions extends Component
     protected function rules(): array
     {
         return [
-            'transaction_number' => ['required', 'string', 'max:255', 'regex:/^[\pL\pN\s\/._#-]+$/u'],
+            'transaction_number' => ['required', 'string', 'min:1', 'max:50'],
+            'delivery_type'      => ['required', 'string', 'in:purchase,donation'],
             'vendor_id'          => 'required|integer|exists:vendors,id',
             'catalog_id'         => 'required|integer|exists:catalogs,id',
             'quantity'           => [
                 'required',
                 'integer',
                 'min:1',
-                'max:100000',
+                'max:1000',
                 function ($attribute, $value, $fail) {
                     if ($this->acquisitionIdBeingEdited) {
                         $accessionedCount = Accession::where('acquisition_id', $this->acquisitionIdBeingEdited)->count();
@@ -64,14 +67,15 @@ class Acquisitions extends Component
             ],
             'unit_cost'          => 'required|numeric|min:0|max:99999999.99',
             'received_date'      => 'required|date|before_or_equal:today',
-            'remarks'            => 'nullable|string|max:1000',
+            'remarks'            => 'nullable|string',
         ];
     }
 
     protected function messages(): array
     {
         return [
-            'transaction_number.regex' => 'Transaction number may only contain letters, numbers, spaces, and - / . #',
+            'transaction_number.max' => 'Transaction number must not exceed 50 characters.',
+            'delivery_type.in'       => 'Selected delivery type must be either purchase or donation.',
         ];
     }
 
@@ -139,29 +143,32 @@ class Acquisitions extends Component
         $this->resetForm();
 
         $this->acquisition_number = $this->generateAcquisitionNumber();
+        $this->delivery_type = 'purchase';
         $this->received_date = now()->format('Y-m-d');
         $this->showModal = true;
     }
 
     private function generateAcquisitionNumber(): string
     {
-        $year = date('Y');
-        $prefix = "ACQ-{$year}-";
+        return DB::transaction(function () {
+            $year = date('Y');
+            $prefix = "ACQ-{$year}-";
 
-        $latest = Acquisition::whereYear('created_at', $year)
-            ->where('acquisition_number', 'LIKE', $prefix . '%')
-            ->lockForUpdate()
-            ->orderByDesc('id')
-            ->first();
+            $latest = Acquisition::whereYear('created_at', $year)
+                ->where('acquisition_number', 'LIKE', $prefix . '%')
+                ->lockForUpdate()
+                ->orderByDesc('id')
+                ->first();
 
-        $baseNum = 0;
-        if ($latest && preg_match('/-(\d+)$/', $latest->acquisition_number, $matches)) {
-            $baseNum = (int) $matches[1];
-        }
+            $baseNum = 0;
+            if ($latest && preg_match('/-(\d+)$/', $latest->acquisition_number, $matches)) {
+                $baseNum = (int) $matches[1];
+            }
 
-        $nextNum = str_pad((string) ($baseNum + 1), 4, '0', STR_PAD_LEFT);
+            $nextNum = str_pad((string) ($baseNum + 1), 3, '0', STR_PAD_LEFT);
 
-        return $prefix . $nextNum;
+            return $prefix . $nextNum;
+        });
     }
 
     public function openEditModal(int $id): void
@@ -173,6 +180,7 @@ class Acquisitions extends Component
 
         $this->acquisition_number = mb_convert_encoding((string) $acq->acquisition_number, 'UTF-8', 'UTF-8');
         $this->transaction_number = mb_convert_encoding((string) $acq->transaction_number, 'UTF-8', 'UTF-8');
+        $this->delivery_type      = $acq->delivery_type;
         $this->vendor_id          = $acq->vendor_id;
         $this->catalog_id         = $acq->catalog_id;
         $this->quantity           = $acq->quantity;
@@ -185,14 +193,9 @@ class Acquisitions extends Component
 
     public function saveAcquisition(): void
     {
-        $this->transaction_number = mb_convert_encoding(strip_tags(trim($this->transaction_number ?? '')), 'UTF-8', 'UTF-8');
-
-        $remarksTrimmed = mb_convert_encoding(strip_tags(trim((string) $this->remarks)), 'UTF-8', 'UTF-8');
-        $this->remarks = $remarksTrimmed === '' ? null : $remarksTrimmed;
+        $this->cleanFields(['transaction_number', 'remarks']);
 
         $validated = $this->validate();
-        $validated['transaction_number'] = strtoupper(trim($this->transaction_number));
-        $validated['remarks'] = blank($this->remarks) ? null : strtolower(trim($this->remarks));
 
         $isEditing = (bool) $this->acquisitionIdBeingEdited;
         $maxAttempts = $isEditing ? 1 : 3;
@@ -201,7 +204,7 @@ class Acquisitions extends Component
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
                 DB::transaction(function () use ($validated, $isEditing) {
-                    $exists = Acquisition::where('transaction_number', $this->transaction_number)
+                    $exists = Acquisition::where('transaction_number', $validated['transaction_number'])
                         ->where('catalog_id', $this->catalog_id)
                         ->where('vendor_id', $this->vendor_id)
                         ->when($isEditing, fn ($query) => $query->where('id', '!=', $this->acquisitionIdBeingEdited))
@@ -305,6 +308,7 @@ class Acquisitions extends Component
         $this->reset([
             'acquisition_number',
             'transaction_number',
+            'delivery_type',
             'vendor_id',
             'catalog_id',
             'quantity',
@@ -314,20 +318,24 @@ class Acquisitions extends Component
             'acquisitionIdBeingEdited',
         ]);
         $this->quantity = 1;
+        $this->delivery_type = 'purchase';
     }
 
     private function filteredAcquisitionsQuery(): Builder
     {
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
-        $searchTerm = mb_convert_encoding(addcslashes(trim($this->search), '%_\\'), 'UTF-8', 'UTF-8');
+        $searchTerm = strtolower(mb_convert_encoding(addcslashes(trim($this->search), '%_\\'), 'UTF-8', 'UTF-8'));
 
         return Acquisition::with(['catalog.author', 'catalog.assetType', 'vendor'])
             ->when($searchTerm !== '', function ($query) use ($likeOperator, $searchTerm) {
                 $query->where(function ($q) use ($likeOperator, $searchTerm) {
                     $q->where('acquisition_number', $likeOperator, "%{$searchTerm}%")
-                      ->orWhere('transaction_number', $likeOperator, "%{$searchTerm}%")
-                      ->orWhereHas('catalog', fn ($sub) => $sub->where('title', $likeOperator, "%{$searchTerm}%"))
-                      ->orWhereHas('vendor', fn ($sub) => $sub->where('company_name', $likeOperator, "%{$searchTerm}%"));
+                    ->orWhere('transaction_number', $likeOperator, "%{$searchTerm}%")
+                    ->orWhere('delivery_type', $likeOperator, "%{$searchTerm}%")
+                    ->orWhereHas('catalog', fn ($sub) => $sub->where('title', $likeOperator, "%{$searchTerm}%"))
+                    ->orWhereHas('catalog.author', fn ($sub) => $sub->where('name', $likeOperator, "%{$searchTerm}%"))
+                    ->orWhereHas('catalog.assetType', fn ($sub) => $sub->where('name', $likeOperator, "%{$searchTerm}%"))
+                    ->orWhereHas('vendor', fn ($sub) => $sub->where('company_name', $likeOperator, "%{$searchTerm}%"));
                 });
             })
             ->latest();
@@ -348,7 +356,7 @@ class Acquisitions extends Component
         $pdf = Pdf::loadView('pdf.acquisitions-report', [
             'acquisitions' => $acquisitions,
             'searchTerm'   => trim($this->search),
-            'date'         => now(), // Send as Carbon instance
+            'date'         => now(),
         ])->setPaper('a4', 'landscape');
 
         return response()->streamDownload(function () use ($pdf) {
@@ -362,7 +370,6 @@ class Acquisitions extends Component
     {
         $acquisitions = $this->filteredAcquisitionsQuery()->paginate(10);
 
-        // Sanitize paginated string items before rendering
         $acquisitions->getCollection()->transform(function ($acq) {
             $acq->acquisition_number = mb_convert_encoding((string) $acq->acquisition_number, 'UTF-8', 'UTF-8');
             $acq->transaction_number = mb_convert_encoding((string) $acq->transaction_number, 'UTF-8', 'UTF-8');

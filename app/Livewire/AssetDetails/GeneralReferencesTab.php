@@ -2,6 +2,7 @@
 
 namespace App\Livewire\AssetDetails;
 
+use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\GeneralReference;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -12,7 +13,7 @@ use Livewire\WithPagination;
 
 class GeneralReferencesTab extends Component
 {
-    use WithPagination;
+    use WithPagination, SanitizesInputs;
 
     public string $search = '';
 
@@ -67,8 +68,7 @@ class GeneralReferencesTab extends Component
 
     public function saveReference(): void
     {
-        // 1. Trim whitespace before running validation
-        $this->name = strtolower(trim($this->name));
+        $this->cleanFields(['name']);
 
         $this->validate();
 

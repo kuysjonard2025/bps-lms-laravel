@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\Vendor;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -14,7 +15,7 @@ use Livewire\WithPagination;
 
 class Vendors extends Component
 {
-    use WithPagination;
+    use WithPagination, SanitizesInputs;
 
     public string $search = '';
 
@@ -43,7 +44,7 @@ class Vendors extends Component
             'contact_person' => [
                 'required',
                 'string',
-                'max:100',
+                'max:50',
                 Rule::unique('vendors', 'contact_person')
                     ->ignore($this->vendorIdBeingEdited),
             ],
@@ -54,8 +55,7 @@ class Vendors extends Component
             ],
             'contact_number' => [
                 'required',
-                'string',
-                'max:20',
+                'digits_between:10,15',
                 Rule::unique('vendors', 'contact_number')
                     ->ignore($this->vendorIdBeingEdited),
             ],
@@ -105,14 +105,16 @@ class Vendors extends Component
 
     public function saveVendor(): void
     {
+        $this->cleanFields(['company_name', 'contact_person', 'address', 'contact_number', 'email']);
+
         $this->validate();
 
         $payload = [
-            'company_name'   => strtolower(trim($this->company_name)),
-            'contact_person' => strtolower(trim($this->contact_person)),
-            'address'        => strtolower(trim($this->address)),
-            'contact_number' => trim($this->contact_number),
-            'email'          => strtolower(trim($this->email)),
+            'company_name'   => $this->company_name,
+            'contact_person' => $this->contact_person,
+            'address'        => $this->address,
+            'contact_number' => $this->contact_number,
+            'email'          => $this->email,
         ];
 
         try {

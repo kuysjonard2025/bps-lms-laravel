@@ -8,7 +8,7 @@
         </div>
         <button
             wire:click="openCreateModal"
-            class="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-slate-900 rounded-lg shadow hover:bg-slate-800 transition focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
+            class="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg shadow hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -43,7 +43,8 @@
                         <th class="p-3">Company Name</th>
                         <th class="p-3">Contact Person</th>
                         <th class="p-3">Address</th>
-                        <th class="p-3">Contact Details</th>
+                        <th class="p-3">Contact #</th>
+                        <th class="p-3">Email</th>
                         <th class="p-3 text-right">Actions</th>
                     </tr>
                 </thead>
@@ -61,27 +62,23 @@
                             </td>
                             <td class="p-3 text-slate-600 whitespace-nowrap">
                                 <div class="font-mono text-[11px] text-slate-700">{{ $vendor->contact_number }}</div>
+                            </td>
+                            <td class="p-3 text-slate-600 whitespace-nowrap">
                                 <div class="text-[10px] text-slate-400 font-sans">{{ strtolower($vendor->email) }}</div>
                             </td>
                             <td class="p-3 text-right whitespace-nowrap">
-                                <div class="inline-flex items-center gap-2">
+                                <div class="inline-flex items-center gap-1">
                                     <button
                                         wire:click="openEditModal({{ $vendor->id }})"
-                                        class="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-md transition"
-                                        title="Edit Vendor"
+                                        class="px-2 py-0.5 font-bold text-blue-700 hover:text-blue-800 hover:bg-blue-100 rounded-md transition"
                                     >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                        </svg>
+                                        Edit
                                     </button>
                                     <button
                                         wire:click="confirmDelete({{ $vendor->id }})"
-                                        class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-md transition"
-                                        title="Delete Vendor"
+                                        class="px-2 py-0.5 font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-100 rounded-md transition"
                                     >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
+                                        Delete
                                     </button>
                                 </div>
                             </td>
@@ -164,7 +161,7 @@
                                 wire:model="contact_number"
                                 type="text"
                                 class="mt-1 w-full px-3 py-2 text-xs bg-white text-slate-900 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                                placeholder="+1 (555) 000-0000"
+                                placeholder="639123456789 or 09123456789"
                             />
                             @error('contact_number') <span class="text-[11px] text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                         </div>

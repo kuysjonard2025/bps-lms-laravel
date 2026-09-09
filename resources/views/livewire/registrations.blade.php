@@ -51,7 +51,8 @@
                             <th class="px-6 py-3 whitespace-nowrap">Full Name</th>
                             <th class="px-6 py-3 whitespace-nowrap">Username</th>
                             <th class="px-6 py-3 whitespace-nowrap">Role</th>
-                            <th class="px-6 py-3 whitespace-nowrap">Contact Details</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Contact #</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Email</th>
                             <th class="px-6 py-3 whitespace-nowrap">Address</th>
                             <th class="px-6 py-3 whitespace-nowrap">Is Verified</th>
                             <th class="px-6 py-3 text-right whitespace-nowrap">Actions</th>
@@ -72,8 +73,10 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-xs text-gray-900 font-medium">{{ $user->contact_number }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-xs text-gray-900 font-medium">{{ $user->email ?? 'N/A' }}</div>
-                                    <div class="text-xs text-gray-500">{{ $user->contact_number }}</div>
                                 </td>
                                 <td class="px-6 py-4 text-xs text-gray-700 max-w-xs capitalize whitespace-nowrap" title="{{ $user->address }}">
                                     {{ $user->address ?? 'N/A' }}
@@ -120,8 +123,11 @@
                             <th class="px-6 py-3 whitespace-nowrap">School ID</th>
                             <th class="px-6 py-3 whitespace-nowrap">RFID Tag</th>
                             <th class="px-6 py-3 whitespace-nowrap">Full Name</th>
-                            <th class="px-6 py-3 whitespace-nowrap">Type / Grade & Sec</th>
-                            <th class="px-6 py-3 whitespace-nowrap">Contact Details</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Type</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Grade</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Section</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Contact #</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Email</th>
                             <th class="px-6 py-3 whitespace-nowrap">Address</th>
                             <th class="px-6 py-3 whitespace-nowrap">Status</th>
                             <th class="px-6 py-3 text-right whitespace-nowrap">Actions</th>
@@ -144,13 +150,22 @@
                                 </td>
                                 <td class="px-6 py-4 capitalize whitespace-nowrap">
                                     <div class="font-medium text-xs text-gray-900">{{ $patron->patronType->name ?? 'N/A' }}</div>
+                                </td>
+                                <td class="px-6 py-4 capitalize whitespace-nowrap">
                                     @if($patron->gradeLevel)
-                                        <div class="text-xs text-gray-500">{{ $patron->gradeLevel->name }} - {{ $patron->section->name ?? '' }}</div>
+                                        <div class="text-xs text-gray-500">{{ $patron->gradeLevel->name }}</div>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 capitalize whitespace-nowrap">
+                                    @if($patron->section)
+                                        <div class="text-xs text-gray-500">{{ $patron->section->name }}</div>
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-xs text-gray-900 font-medium">{{ $patron->contact_number }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-xs text-gray-900 font-medium">{{ $patron->email ?? 'N/A' }}</div>
-                                    <div class="text-xs text-gray-500">{{ $patron->contact_number }}</div>
                                 </td>
                                 <td class="px-6 py-4 text-xs text-gray-700 max-w-xs capitalize whitespace-nowrap" title="{{ $patron->address }}">
                                     {{ $patron->address ?? 'N/A' }}
@@ -276,7 +291,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-indigo-50/50 p-3 rounded-lg border border-indigo-100">
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">School / Student ID <span class="text-rose-500">*</span></label>
-                            <input type="text" wire:model="p_school_id" placeholder="e.g. 2026-00123" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900">
+                            <input type="text" wire:model="p_school_id" wire:keydown.enter.prevent placeholder="e.g. 2026-00123" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900">
                             @error('p_school_id') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>

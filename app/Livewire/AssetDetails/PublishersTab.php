@@ -2,6 +2,7 @@
 
 namespace App\Livewire\AssetDetails;
 
+use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\Publisher;
 use Illuminate\Database\QueryException;
 use Illuminate\Validation\Rule;
@@ -10,7 +11,7 @@ use Livewire\WithPagination;
 
 class PublishersTab extends Component
 {
-    use WithPagination;
+    use WithPagination, SanitizesInputs;
 
     public string $search = '';
 
@@ -65,7 +66,7 @@ class PublishersTab extends Component
 
     public function savePublisher(): void
     {
-        $this->name = strtolower(trim($this->name));
+        $this->cleanFields(['name']);
 
         $this->validate();
 

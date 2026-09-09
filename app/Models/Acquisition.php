@@ -18,6 +18,7 @@ class Acquisition extends Model
         'vendor_id',
         'acquisition_number',
         'transaction_number',
+        'delivery_type',
         'quantity',
         'unit_cost',
         'received_date',

@@ -1,9 +1,9 @@
-<div class="p-4 sm:p-6 space-y-4 max-w-full">
+<div class="space-y-4">
     {{-- Header Container --}}
     <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-            <h2 class="text-base sm:text-lg font-bold text-gray-900">Acquisitions Management</h2>
-            <p class="text-xs text-gray-500">Log incoming receiving records for cataloged assets from registered vendors.</p>
+            <h2 class="text-base sm:text-lg font-bold text-gray-900">Acquisitions</h2>
+            <p class="text-xs text-gray-500">Manage incoming receiving records for accessions.</p>
         </div>
 
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
@@ -101,14 +101,18 @@
         <table class="w-full text-left text-xs text-gray-700">
             <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[11px] border-b border-gray-200">
                 <tr>
-                    <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">ACQ / Txn</th>
-                    <th scope="col" class="px-3 sm:px-4 py-3">Catalog Item Details</th>
-                    <th scope="col" class="hidden md:table-cell px-4 py-3 whitespace-nowrap">Vendor</th>
-                    <th scope="col" class="hidden sm:table-cell px-3 py-3 text-center whitespace-nowrap">Qty</th>
-                    <th scope="col" class="hidden sm:table-cell px-4 py-3 text-right whitespace-nowrap">Unit Cost</th>
-                    <th scope="col" class="px-3 sm:px-4 py-3 text-right whitespace-nowrap">Total Cost</th>
-                    <th scope="col" class="hidden lg:table-cell px-4 py-3 whitespace-nowrap">Received Date</th>
-                    <th scope="col" class="px-3 sm:px-4 py-3 text-right whitespace-nowrap">Actions</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">ACQ #</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">Txn #</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">Delivery Type</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">Title</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">Author</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">Asset Type</th>
+                    <th scope="col" class="px-4 py-3 whitespace-nowrap">Vendor</th>
+                    <th scope="col" class="px-3 py-3 text-center whitespace-nowrap">Qty</th>
+                    <th scope="col" class="px-4 py-3 text-right whitespace-nowrap">Unit Cost</th>
+                    <th scope="col" class="px-3 py-3 text-right whitespace-nowrap">Total Cost</th>
+                    <th scope="col" class="px-4 py-3 whitespace-nowrap">Received Date</th>
+                    <th scope="col" class="px-3 py-3 text-right whitespace-nowrap">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 bg-white">
@@ -116,28 +120,37 @@
                     <tr wire:key="acq-row-{{ $acq->id }}" class="hover:bg-gray-50/50 transition">
                         <td class="px-3 sm:px-4 py-3 whitespace-nowrap">
                             <div class="font-mono font-bold text-blue-600 uppercase">{{ $acq->acquisition_number }}</div>
-                            <div class="text-[10px] sm:text-[11px] font-mono text-gray-500 uppercase">Txn: {{ $acq->transaction_number }}</div>
                         </td>
-                        <td class="px-3 sm:px-4 py-3 max-w-[180px] sm:max-w-none truncate sm:whitespace-normal">
-                            <div class="font-semibold text-gray-900 capitalize">{{ $acq->catalog->title ?? '—' }}</div>
-                            <div class="text-[10px] sm:text-[11px] text-gray-500 capitalize">
-                                Author: <span class="text-gray-700">{{ $acq->catalog->author->name ?? 'N/A' }}</span>
-                                <span class="hidden sm:inline"> | Type: <span class="text-gray-700">{{ $acq->catalog->assetType->name ?? 'N/A' }}</span></span>
-                            </div>
+                        <td class="px-3 sm:px-4 py-3 whitespace-nowrap">
+                            <div class="font-mono text-gray-600 uppercase">{{ $acq->transaction_number }}</div>
                         </td>
-                        <td class="hidden md:table-cell px-4 py-3 text-gray-600 capitalize whitespace-nowrap">{{ $acq->vendor->company_name ?? '—' }}</td>
-                        <td class="hidden sm:table-cell px-3 py-3 text-center text-gray-900 font-semibold whitespace-nowrap">{{ $acq->quantity }}</td>
-                        <td class="hidden sm:table-cell px-4 py-3 text-right text-gray-600 font-mono whitespace-nowrap">₱{{ number_format($acq->unit_cost, 2) }}</td>
-                        <td class="px-3 sm:px-4 py-3 text-right text-gray-900 font-mono font-bold whitespace-nowrap">₱{{ number_format($acq->total_cost, 2) }}</td>
-                        <td class="hidden lg:table-cell px-4 py-3 text-gray-500 whitespace-nowrap">{{ $acq->received_date ? $acq->received_date->format('M d, Y') : '—' }}</td>
-                        <td class="px-3 sm:px-4 py-3 text-right whitespace-nowrap space-x-1">
+                        <td class="px-3 sm:px-4 py-3 whitespace-nowrap">
+                            <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase {{ $acq->delivery_type === 'donate' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700' }}">
+                                {{ $acq->delivery_type }}
+                            </span>
+                        </td>
+                        <td class="px-3 sm:px-4 py-3 whitespace-nowrap capitalize">
+                            {{ $acq->catalog->title ?? '—' }}
+                        </td>
+                        <td class="px-3 sm:px-4 py-3 whitespace-nowrap capitalize">
+                            {{ $acq->catalog->author->name ?? 'N/A' }}
+                        </td>
+                        <td class="px-3 sm:px-4 py-3 whitespace-nowrap capitalize">
+                            {{ $acq->catalog->assetType->name ?? 'N/A' }}
+                        </td>
+                        <td class="px-4 py-3 text-gray-600 capitalize whitespace-nowrap">{{ $acq->vendor->company_name ?? '—' }}</td>
+                        <td class="px-3 py-3 text-center text-gray-900 font-semibold whitespace-nowrap">{{ $acq->quantity }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600 font-mono whitespace-nowrap">₱{{ number_format($acq->unit_cost, 2) }}</td>
+                        <td class="px-3 py-3 text-right text-gray-900 font-mono font-bold whitespace-nowrap">₱{{ number_format($acq->total_cost, 2) }}</td>
+                        <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ $acq->received_date ? $acq->received_date->format('M d, Y') : '—' }}</td>
+                        <td class="px-3 py-3 text-right whitespace-nowrap space-x-1">
                             <button wire:click="openEditModal({{ $acq->id }})" type="button" class="text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-blue-50 transition cursor-pointer">Edit</button>
                             <button wire:click="confirmDelete({{ $acq->id }})" type="button" class="text-red-600 hover:text-red-800 font-semibold px-2 py-1 rounded hover:bg-red-50 transition cursor-pointer">Delete</button>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">No acquisition records found.</td>
+                        <td colspan="12" class="px-4 py-8 text-center text-gray-500">No acquisition records found.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -161,7 +174,7 @@
                 </div>
 
                 <form wire:submit="saveAcquisition" class="p-4 sm:p-6 space-y-4 overflow-y-auto">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Acquisition Number</label>
                             <input
@@ -169,7 +182,7 @@
                                 wire:model="acquisition_number"
                                 disabled
                                 readonly
-                                class="mt-1 w-full text-xs font-mono rounded-md border-gray-300 border p-2 bg-gray-100 text-gray-500 cursor-not-allowed"
+                                class="mt-1 w-full text-xs font-mono rounded-md border-gray-300 border p-2 bg-gray-100 text-gray-500 cursor-not-allowed uppercase"
                             >
                             @error('acquisition_number') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
@@ -179,17 +192,26 @@
                             <input
                                 type="text"
                                 wire:model="transaction_number"
-                                placeholder="e.g. PO-98214 / INV-001"
-                                class="mt-1 w-full text-xs font-mono rounded-md border-gray-300 border p-2 shadow-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                placeholder="e.g. PO-98214"
+                                class="mt-1 w-full text-xs font-mono rounded-md border-gray-300 border p-2 shadow-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 uppercase"
                             >
                             @error('transaction_number') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700">Delivery Type <span class="text-red-500">*</span></label>
+                            <select wire:model="delivery_type" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs bg-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 capitalize">
+                                <option value="purchase">Purchase</option>
+                                <option value="donation">Donation</option>
+                            </select>
+                            @error('delivery_type') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
                     {{-- Vendor Selection --}}
                     <div>
                         <label class="block text-xs font-medium text-gray-700">Vendor <span class="text-red-500">*</span></label>
-                        <select wire:model.live="vendor_id" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs bg-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <select wire:model.live="vendor_id" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs bg-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 capitalize">
                             <option value="">Select Vendor</option>
                             @foreach($vendors as $vendor)
                                 <option value="{{ $vendor->id }}" class="capitalize">{{ $vendor->company_name }}</option>
@@ -209,13 +231,19 @@
                                 </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px] pt-1 capitalize">
                                     @if ($this->selectedVendor->email)
-                                        <div class="lowercase"><strong class="text-gray-900">Email:</strong> {{ $this->selectedVendor->email }}</div>
+                                        <div class="lowercase">
+                                            <strong class="text-gray-900 capitalize">Email:</strong> {{ $this->selectedVendor->email }}
+                                        </div>
                                     @endif
                                     @if ($this->selectedVendor->contact_number)
-                                        <div><strong class="text-gray-900">Phone:</strong> {{ $this->selectedVendor->contact_number }}</div>
+                                        <div>
+                                            <strong class="text-gray-900">Phone:</strong> {{ $this->selectedVendor->contact_number }}
+                                        </div>
                                     @endif
                                     @if ($this->selectedVendor->address)
-                                        <div class="col-span-1 sm:col-span-2 truncate"><strong class="text-gray-900">Address:</strong> {{ $this->selectedVendor->address }}</div>
+                                        <div class="col-span-1 sm:col-span-2">
+                                            <strong class="text-gray-900">Address:</strong> {{ $this->selectedVendor->address }}
+                                        </div>
                                     @endif
                                 </div>
                             </div>
@@ -243,10 +271,18 @@
                                 </span>
                             </div>
                             <div class="grid grid-cols-2 gap-1.5 text-gray-700 text-[11px] pt-1 capitalize">
-                                <div class="truncate"><strong class="text-gray-900">Author:</strong> {{ $this->selectedCatalog->author->name ?? 'N/A' }}</div>
-                                <div class="truncate"><strong class="text-gray-900">Type:</strong> {{ $this->selectedCatalog->assetType->name ?? 'N/A' }}</div>
-                                <div class="truncate"><strong class="text-gray-900">Publisher:</strong> {{ $this->selectedCatalog->publisher->name ?? 'N/A' }}</div>
-                                <div class="truncate"><strong class="text-gray-900">Edition:</strong> {{ $this->selectedCatalog->edition ?: 'N/A' }}</div>
+                                <div>
+                                    <strong class="text-gray-900">Author:</strong> {{ $this->selectedCatalog->author->name ?? 'N/A' }}
+                                </div>
+                                <div>
+                                    <strong class="text-gray-900">Type:</strong> {{ $this->selectedCatalog->assetType->name ?? 'N/A' }}
+                                </div>
+                                <div>
+                                    <strong class="text-gray-900">Publisher:</strong> {{ $this->selectedCatalog->publisher->name ?? 'N/A' }}
+                                </div>
+                                <div>
+                                    <strong class="text-gray-900">Edition:</strong> {{ $this->selectedCatalog->edition ?: 'N/A' }}
+                                </div>
                             </div>
                         </div>
                     @endif
@@ -260,7 +296,7 @@
 
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Unit Cost <span class="text-red-500">*</span></label>
-                            <input type="number" step="0.01" wire:model.live="unit_cost" min="0" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="0.00">
+                            <input type="number" step="0.01" min="0" wire:model.live.debounce.300ms="unit_cost" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="0.00">
                             @error('unit_cost') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
 

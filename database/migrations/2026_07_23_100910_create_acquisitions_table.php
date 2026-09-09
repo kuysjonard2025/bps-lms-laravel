@@ -18,6 +18,7 @@ return new class extends Migration
             // Transaction & Log Details
             $table->string('acquisition_number')->unique(); // e.g., ACQ-2026-001
             $table->string('transaction_number', 50); // e.g., PO / Invoice / OR #
+            $table->string('delivery_type')->default('purchase'); // purchase or donation
             $table->integer('quantity')->default(1);
             $table->decimal('unit_cost', 10, 2)->default(0.00);
             $table->date('received_date');

@@ -9,10 +9,11 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Livewire\Helpers\SanitizesInputs;
 
 class AuthorsTab extends Component
 {
-    use WithPagination;
+    use WithPagination, SanitizesInputs;
 
     public string $search = '';
 
@@ -68,9 +69,9 @@ class AuthorsTab extends Component
 
     public function saveAuthor(): void
     {
-        // 1. Format FIRST so validation tests the exact string saved to DB
-        $this->name = strtolower(trim($this->name));
+        $this->cleanFields(['name']);
 
+        // Now validate the cleaned data
         $this->validate();
 
         try {

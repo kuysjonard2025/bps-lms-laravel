@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Livewire\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AuthLog extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     public $timestamps = false; // Using custom logged_at timestamp
 
