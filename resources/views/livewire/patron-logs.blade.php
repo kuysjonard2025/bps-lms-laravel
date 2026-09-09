@@ -163,7 +163,8 @@
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Student/Employee #</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Name</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Type</th>
-                            <th scope="col" class="px-4 py-3 whitespace-nowrap">Grade & Section</th>
+                            <th scope="col" class="px-4 py-3 whitespace-nowrap">Grade</th>
+                            <th scope="col" class="px-4 py-3 whitespace-nowrap">Section</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Log In Time</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Log Out Time</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Status</th>
@@ -181,22 +182,29 @@
                                         {{ $log->patron->school_id ?? '-' }}
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap">
+                                <td class="px-4 py-3 whitespace-nowrap capitalize">
                                     <div class="font-semibold text-gray-900">
                                         {{ $log->patron->first_name ?? '' }}
                                         {{ $log->patron->middle_name ?? '' }}
                                         {{ $log->patron->last_name ?? 'Deleted Borrower' }}
-                                        {{ $log->patron->suffix ?? '' }}
+                                        {{ strtoupper($log->patron->suffix) ?? '' }}
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-gray-700">
+                                <td class="px-4 py-3 whitespace-nowrap capitalize text-gray-700">
                                     <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
                                         {{ $log->patron->patronType->name ?? 'N/A' }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-gray-700">
+                                <td class="px-4 py-3 whitespace-nowrap capitalize text-gray-700">
                                     @if($log->patron && $log->patron->gradeLevel)
-                                        {{ $log->patron->gradeLevel->name }} - {{ $log->patron->section->name ?? '' }}
+                                        {{ $log->patron->gradeLevel->name }}
+                                    @else
+                                        <span class="text-gray-400">N/A</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap capitalize text-gray-700">
+                                    @if($log->patron && $log->patron->section)
+                                        {{ $log->patron->section->name }}
                                     @else
                                         <span class="text-gray-400">N/A</span>
                                     @endif

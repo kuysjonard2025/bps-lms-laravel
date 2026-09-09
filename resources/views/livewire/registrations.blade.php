@@ -120,7 +120,7 @@
                 <table class="w-full text-left text-sm text-gray-600">
                     <thead class="bg-gray-50 border-b border-gray-200 text-xs uppercase font-semibold text-gray-500">
                         <tr>
-                            <th class="px-6 py-3 whitespace-nowrap">School ID</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Student/Employee #</th>
                             <th class="px-6 py-3 whitespace-nowrap">RFID Tag</th>
                             <th class="px-6 py-3 whitespace-nowrap">Full Name</th>
                             <th class="px-6 py-3 whitespace-nowrap">Type</th>
@@ -290,8 +290,8 @@
                 <form wire:submit="savePatron" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-indigo-50/50 p-3 rounded-lg border border-indigo-100">
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">School / Student ID <span class="text-rose-500">*</span></label>
-                            <input type="text" wire:model="p_school_id" wire:keydown.enter.prevent placeholder="e.g. 2026-00123" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Student/Employee # <span class="text-rose-500">*</span></label>
+                            <input type="text" wire:model="p_school_id" wire:keydown.enter.prevent placeholder="Enter student/employee number" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900">
                             @error('p_school_id') <span class="text-rose-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>

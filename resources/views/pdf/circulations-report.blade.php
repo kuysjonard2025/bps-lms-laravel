@@ -15,43 +15,38 @@
             padding: 0;
         }
 
-        /* Top Branding Header */
-        .header-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 12px;
-        }
-        .header-table td {
-            padding: 0;
-            border: none;
-            vertical-align: middle;
-        }
-        .brand-logo {
-            width: 45px;
-            height: 45px;
-        }
+        /* Top Branding Header Style matching Acquisitions Report */
         .brand-title {
-            font-size: 14px;
-            font-weight: 800;
-            color: #0f172a;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e3a8a;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
             margin: 0;
             line-height: 1.1;
         }
         .brand-subtitle {
-            font-size: 8px;
-            color: #64748b;
-            margin-top: 2px;
+            font-size: 9px;
+            font-weight: 600;
+            color: #334155;
+            margin-top: 3px;
+            margin-bottom: 8px;
+        }
+        .header-divider {
+            width: 100%;
+            height: 2px;
+            background-color: #1e3a8a;
+            border: none;
+            margin-bottom: 10px;
         }
 
         /* Meta Information Card Panel */
         .meta-card {
             background-color: #f8fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            padding: 8px 12px;
-            margin-bottom: 12px;
+            border-radius: 2px;
+            padding: 8px 10px;
+            margin-bottom: 10px;
         }
         .meta-table {
             width: 100%;
@@ -65,7 +60,6 @@
             vertical-align: top;
         }
         .meta-label {
-            font-weight: bold;
             color: #1e293b;
         }
 
@@ -76,20 +70,20 @@
             margin-top: 5px;
         }
         table.data-table th {
-            background-color: #f1f5f9;
-            color: #334155;
+            background-color: #1e3a8a;
+            color: #ffffff;
             text-align: left;
-            padding: 6px 5px;
-            font-size: 7px;
+            padding: 6px 4px;
+            font-size: 6.5px;
             font-weight: 700;
             text-transform: uppercase;
-            border: 1px solid #cbd5e1;
+            border: 1px solid #1e3a8a;
             letter-spacing: 0.2px;
         }
         table.data-table td {
-            padding: 5px;
+            padding: 4px;
             border: 1px solid #e2e8f0;
-            font-size: 7.5px;
+            font-size: 7px;
             color: #334155;
             vertical-align: middle;
         }
@@ -97,13 +91,22 @@
             background-color: #f8fafc;
         }
 
+        /* Summary / Grand Total Row Styling */
+        table.data-table tr.total-row td {
+            background-color: #f1f5f9;
+            font-weight: bold;
+            color: #0f172a;
+            border-top: 1.5px solid #cbd5e1;
+            border-bottom: 1.5px solid #cbd5e1;
+        }
+
         /* Badges */
         .badge {
             display: inline-block;
-            padding: 1px 4px;
-            font-size: 6.5px;
+            padding: 1px 3px;
+            font-size: 6px;
             font-weight: 700;
-            text-transform: uppercase;
+            text-transform: capitalize;
             border-radius: 2px;
             text-align: center;
         }
@@ -116,6 +119,10 @@
         .badge-cond-damaged { background-color: #fffbeb; color: #b45309; }
         .badge-cond-lost { background-color: #fff1f2; color: #be123c; }
 
+        /* Status Colors */
+        .text-danger { color: #dc2626; font-weight: bold; }
+        .text-success { color: #16a34a; font-weight: bold; }
+
         /* Empty State */
         .empty-cell {
             text-align: center;
@@ -127,18 +134,10 @@
 </head>
 <body>
 
-    <!-- Header Section with Logo and Title -->
-    <table class="header-table">
-        <tr>
-            <td style="width: 55px;">
-                <img src="{{ public_path('images/bps-logo.png') }}" class="brand-logo" alt="System Logo">
-            </td>
-            <td>
-                <div class="brand-title">BPS Library Management System</div>
-                <div class="brand-subtitle">Circulation Report</div>
-            </td>
-        </tr>
-    </table>
+    <!-- Header Section matching Acquisitions Report theme -->
+    <div class="brand-title">BPS LIBRARY MANAGEMENT SYSTEM</div>
+    <div class="brand-subtitle">Circulation Report</div>
+    <hr class="header-divider">
 
     <!-- Meta Information Grid -->
     <div class="meta-card">
@@ -146,38 +145,47 @@
             <tr>
                 <td style="width: 50%;">
                     <span class="meta-label">Generated On:</span> {{ now()->format('F d, Y g:i A') }}<br>
-                    <span class="meta-label">Total Records:</span> {{ count($activeLoans) }}<br>
-                    <span class="meta-label">Search Filter:</span> {{ $search ?? 'All (None applied)' }}
+                    <span class="meta-label">Search Filter:</span> {{ $search ?? 'None (All applied)' }}
                 </td>
                 <td style="width: 50%;">
+                    <span class="meta-label">Total Records:</span> {{ count($activeLoans) }}<br>
                     <span class="meta-label">Generated By:</span> {{ auth()->user()?->getFullNameAttribute() ?? 'System Administrator' }}<br>
-                    <span class="meta-label">Role:</span> {{ auth()->user()?->role ? ucwords(auth()->user()->role) : 'Librarian' }}<br>
-                    <span class="meta-label">Status Filter:</span> {{ ucfirst($filterStatus ?? 'All Statuses') }}
+                    <span class="meta-label">Role:</span> {{ auth()->user()?->role ? ucwords(auth()->user()->role) : 'Librarian' }}
                 </td>
             </tr>
         </table>
     </div>
 
-    <!-- Data Table -->
+    <!-- Data Table with Deep Blue Headers -->
     <table class="data-table">
         <thead>
             <tr>
-                <th style="width: 8%;">Accession #</th>
-                <th style="width: 16%;">Book Title</th>
-                <th style="width: 9%;">Student/Emp #</th>
-                <th style="width: 13%;">Borrower Name</th>
-                <th style="width: 10%;">Borrowed At</th>
-                <th style="width: 8%;">Due At</th>
-                <th style="width: 8%;">Receipt #</th>
+                <th style="width: 7%;">Accession #</th>
+                <th style="width: 13%;">Book Title</th>
+                <th style="width: 8%;">ID #</th>
+                <th style="width: 10%;">Name</th>
+                <th style="width: 6%;">Type</th>
+                <th style="width: 9%;">Borrowed Date</th>
+                <th style="width: 7%;">Due Date</th>
+                <th style="width: 7%;">Returned Date</th>
+                <th style="width: 7%;">Receipt #</th>
+                <th style="width: 7%;">Payment</th>
                 <th style="width: 7%;">Fine Amount</th>
                 <th style="width: 7%;">Condition</th>
                 <th style="width: 6%;">Status</th>
-                <th style="width: 8%;">Processed By</th>
+                <th style="width: 6%;">Processed</th>
             </tr>
         </thead>
         <tbody>
+            @php
+                $totalFineSum = 0;
+            @endphp
             @forelse ($activeLoans as $loan)
                 @php
+                    if (!($loan->is_paid === true)) {
+                        $totalFineSum += (float) ($loan->fine_amount ?? 0);
+                    }
+
                     $cond = strtolower($loan->condition ?? 'good');
                     $condBadge = match($cond) {
                         'good' => 'badge-cond-good',
@@ -206,14 +214,41 @@
                         : ($loan->user?->name ?? 'System User');
                 @endphp
                 <tr>
-                    <td><strong>{{ $loan->accession?->accession_number ?? 'N/A' }}</strong></td>
-                    <td>{{ $loan->accession?->catalog?->title ? ucwords(strtolower($loan->accession->catalog->title)) : 'N/A' }}</td>
+                    <td><strong>{{ strtoupper($loan->accession?->accession_number) ?? 'N/A' }}</strong></td>
+                    <td>{{ ucwords($loan->accession->catalog->title) ?? 'N/A' }}</td>
                     <td>{{ $loan->patron?->school_id ?? 'N/A' }}</td>
-                    <td>{{ $borrowerName ? ucwords(strtolower($borrowerName)) : 'N/A' }}</td>
+                    <td>{{ $borrowerName ? ucwords($borrowerName) : 'N/A' }}</td>
+                    <td>{{ ucwords($loan->patron?->patronType?->name) ?? 'N/A' }}</td>
                     <td>{{ $loan->borrowed_at?->format('M d, Y h:i A') ?? '-' }}</td>
-                    <td>{{ $loan->due_at?->format('M d, Y') ?? '-' }}</td>
+                    <td>{{ strtolower($loan->patron?->patronType?->name) === 'student' ? $loan->due_at?->format('M d, Y') : '-' }}</td>
+                    <td>{{ $loan->returned_at?->format('M d, Y h:i A') ?? '-' }}</td>
                     <td>{{ $loan->receipt_number ?? '-' }}</td>
-                    <td>{{ number_format((float) ($loan->fine_amount ?? 0), 2) }}</td>
+                    @if ($loan->returned_at)
+                        @if ($loan->fine_amount > 0)
+                            <td>{{ $loan->is_paid === true ? 'Paid' : 'Unpaid' }}</td>
+                        @else
+                            <td>-</td>
+                        @endif
+
+                        @if ($loan->fine_amount > 0)
+                            <td>
+                                <span class="text-danger">
+                                    P{{ number_format((float) ($loan->fine_amount ?? 0), 2) }}
+                                </span>
+                            </td>
+                        @else
+                            <td>
+                                <span class="text-success">
+                                    P{{ number_format((float) ($loan->fine_amount ?? 0), 2) }}
+                                </span>
+                            </td>
+                        @endif
+                    @else
+                        <td>-</td>
+                        <td>
+                            <span class="empty-cell">₱{{ number_format((float) ($loan->fine_amount ?? 0), 2) }}</span>
+                        </td>
+                    @endif
                     <td>
                         <span class="badge {{ $condBadge }}">{{ ucwords($loan->condition ?? 'Good') }}</span>
                     </td>
@@ -221,16 +256,28 @@
                         <span class="badge {{ $statusBadge }}">{{ ucwords($loan->status ?? 'N/A') }}</span>
                     </td>
                     <td>
-                        {{ ucwords(strtolower($loan->user?->getFullNameAttribute() ?? 'System User')) }}
+                        {{ ucwords(strtolower($processedBy)) }}
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="11" class="empty-cell">
+                    <td colspan="14" class="empty-cell">
                         No circulation records found matching criteria.
                     </td>
                 </tr>
             @endforelse
+
+            <!-- Grand Total Row -->
+            @if(count($activeLoans) > 0)
+                <tr class="total-row">
+                    <td colspan="10" style="text-align: right; text-transform: uppercase;">Grand Total (Unpaid Fines):</td>
+                    <td colspan="4">P{{ number_format($totalFineSum, 2) }}</td>
+                </tr>
+                <tr class="total-row">
+                    <td colspan="10" style="text-align: right; text-transform: uppercase;">Grand Total (Paid Fines):</td>
+                    <td colspan="4">P{{ number_format($totalPaidFineSum, 2) }}</td>
+                </tr>
+            @endif
         </tbody>
     </table>
 

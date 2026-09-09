@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\GradeLevel;
 use App\Models\Patron;
 use App\Models\PatronType;
@@ -12,35 +13,30 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Exception;
 
 class Registrations extends Component
 {
-    use WithPagination;
+    use WithPagination, SanitizesInputs;
 
-    // Active Navigation Tab ('users' or 'borrowers')
     public string $activeTab = 'users';
-
-    // Global Search Query
     public string $search = '';
 
-    // Modal Control Flags
     public bool $showUserModal = false;
     public bool $showPatronModal = false;
     public bool $showDeleteModal = false;
 
-    // Delete Modal State
-    public ?string $deleteType = null; // 'user' or 'borrower'
+    public ?string $deleteType = null;
     public ?int $idBeingDeleted = null;
 
-    // ------------------------------------------------------------------
-    // USER FORM PROPERTIES (Strictly Assistant Role)
-    // ------------------------------------------------------------------
+    // User Form Properties
     public ?int $userIdBeingEdited = null;
     public string $u_first_name = '';
     public string $u_middle_name = '';
@@ -53,9 +49,7 @@ class Registrations extends Component
     public string $u_address = '';
     public string $u_password = '';
 
-    // ------------------------------------------------------------------
-    // BORROWER FORM PROPERTIES
-    // ------------------------------------------------------------------
+    // Borrower Form Properties
     public ?int $patronIdBeingEdited = null;
     public string $p_school_id = '';
     public string $p_rfid_tag = '';
@@ -71,23 +65,6 @@ class Registrations extends Component
     public string $p_address = '';
     public string $p_status = 'active';
 
-    // ------------------------------------------------------------------
-    // SANITIZATION HELPER
-    // ------------------------------------------------------------------
-    private function cleanString(?string $value): ?string
-    {
-        if (is_null($value)) {
-            return null;
-        }
-
-        $trimmed = trim(preg_replace('/\s+/', ' ', $value));
-
-        return $trimmed === '' ? null : $trimmed;
-    }
-
-    // ------------------------------------------------------------------
-    // LISTENERS & UPDATERS
-    // ------------------------------------------------------------------
     public function updatedPPatronTypeId($value): void
     {
         if (blank($value)) {
@@ -123,109 +100,103 @@ class Registrations extends Component
         $this->search = '';
     }
 
-    // ------------------------------------------------------------------
-    // USER MODAL ACTIONS
-    // ------------------------------------------------------------------
     public function openCreateUserModal(): void
     {
-        $this->resetUserForm();
-        $this->showUserModal = true;
+        try {
+            $this->resetUserForm();
+            $this->showUserModal = true;
+        } catch (Exception $e) {
+            Log::error('Error opening create user modal: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Could not open the user form.', type: 'error');
+        }
     }
 
     public function openEditUserModal(int $id): void
     {
-        $this->resetUserForm();
-        $user = User::findOrFail($id);
+        try {
+            $this->resetUserForm();
+            $user = User::findOrFail($id);
 
-        $this->userIdBeingEdited = $user->id;
-        $this->u_first_name = $user->first_name ?? '';
-        $this->u_middle_name = $user->middle_name ?? '';
-        $this->u_last_name = $user->last_name ?? '';
-        $this->u_suffix = $user->suffix ?? '';
-        $this->u_username = $user->username;
-        $this->u_role = 'assistant';
-        $this->u_email = $user->email ?? '';
-        $this->u_contact_number = $user->contact_number ?? '';
-        $this->u_address = $user->address ?? '';
+            $this->userIdBeingEdited = $user->id;
+            $this->u_first_name = $user->first_name ?? '';
+            $this->u_middle_name = $user->middle_name ?? '';
+            $this->u_last_name = $user->last_name ?? '';
+            $this->u_suffix = $user->suffix ?? '';
+            $this->u_username = $user->username;
+            $this->u_role = 'assistant';
+            $this->u_email = $user->email ?? '';
+            $this->u_contact_number = $user->contact_number ?? '';
+            $this->u_address = $user->address ?? '';
 
-        $this->showUserModal = true;
+            $this->showUserModal = true;
+        } catch (Exception $e) {
+            Log::error('Error opening edit user modal: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Could not load user details.', type: 'error');
+        }
     }
 
     public function saveUser(): void
     {
-        // 1. Input Sanitization
-        $firstName = $this->cleanString($this->u_first_name);
-        $middleName = $this->cleanString($this->u_middle_name);
-        $lastName = $this->cleanString($this->u_last_name);
-        $suffix = $this->cleanString($this->u_suffix);
-        $username = $this->cleanString($this->u_username);
-        $email = $this->cleanString(strtolower($this->u_email));
-        $contactNumber = $this->cleanString($this->u_contact_number);
-        $address = $this->cleanString($this->u_address);
+        $fields = [
+            'u_first_name', 'u_middle_name', 'u_last_name', 'u_suffix',
+            'u_username', 'u_email', 'u_contact_number', 'u_address',
+        ];
 
-        // 2. Composite Full-Name Uniqueness Check
+        $this->cleanFields($fields);
+
         $userFullNameRule = Rule::unique('users', 'first_name')
-            ->where('first_name', $firstName)
-            ->where('middle_name', $middleName)
-            ->where('last_name', $lastName)
-            ->when($suffix, fn ($q) => $q->where('suffix', $suffix), fn ($q) => $q->whereNull('suffix'))
+            ->where('first_name', $this->u_first_name)
+            ->where('middle_name', $this->u_middle_name)
+            ->where('last_name', $this->u_last_name)
+            ->when($this->u_suffix, fn ($q) => $q->where('suffix', $this->u_suffix), fn ($q) => $q->whereNull('suffix'))
             ->ignore($this->userIdBeingEdited);
 
-        // 3. Validation Rules
         $rules = [
             'u_first_name' => ['required', 'string', 'max:50', $userFullNameRule],
             'u_middle_name' => 'required|string|max:50',
             'u_last_name' => 'required|string|max:50',
             'u_suffix' => 'nullable|string|max:10',
             'u_username' => [
-                'required',
-                'string',
-                'max:20',
-                'alpha_dash',
+                'required', 'string', 'max:20', 'alpha_dash',
                 Rule::unique('users', 'username')->ignore($this->userIdBeingEdited),
             ],
             'u_role' => 'required|in:assistant',
             'u_email' => [
-                'required', // Required to receive verification email
-                'email',
-                'max:100',
+                'required', 'email', 'max:100',
                 Rule::unique('users', 'email')->ignore($this->userIdBeingEdited),
             ],
             'u_contact_number' => [
-                'required',
-                'string',
-                'max:20',
+                'required', 'string', 'max:20',
                 Rule::unique('users', 'contact_number')->ignore($this->userIdBeingEdited),
             ],
             'u_address' => 'required|string|max:255',
             'u_password' => $this->userIdBeingEdited ? 'nullable|min:6' : 'required|min:6',
         ];
 
-        $validated = $this->validate($rules, [
-            'u_first_name.unique' => 'A user with this identical full name already exists.',
-            'u_middle_name.required' => 'Middle name is required.',
-            'u_username.unique' => 'This username is already taken.',
-            'u_email.required' => 'An email address is required for user verification.',
-            'u_email.unique' => 'This email address is already registered.',
-            'u_contact_number.unique' => 'This contact number is already registered to another user.',
-            'u_role.in' => 'System accounts registered here must be assigned as Librarian Assistant.',
+        $validated = $this->validate($rules, [], [
+            'u_first_name' => 'First name',
+            'u_middle_name' => 'Middle name',
+            'u_last_name' => 'Last name',
+            'u_suffix' => 'Suffix',
+            'u_username' => 'Username',
+            'u_role' => 'Role',
+            'u_email' => 'Email',
+            'u_contact_number' => 'Contact number',
+            'u_address' => 'Address',
+            'u_password' => 'Password',
         ]);
 
         $role = $this->u_role;
-        if ($this->userIdBeingEdited && $this->u_role !== 'librarian') {
-            $role = 'librarian';
-        }
-
         $data = [
-            'first_name' => $firstName,
-            'middle_name' => $middleName,
-            'last_name' => $lastName,
-            'suffix' => $suffix,
-            'username' => $username,
+            'first_name' => $this->u_first_name,
+            'middle_name' => $this->u_middle_name,
+            'last_name' => $this->u_last_name,
+            'suffix' => $this->u_suffix,
+            'username' => $this->u_username,
             'role' => $role,
-            'email' => $email,
-            'contact_number' => $contactNumber,
-            'address' => $address,
+            'email' => $this->u_email,
+            'contact_number' => $this->u_contact_number,
+            'address' => $this->u_address,
         ];
 
         if (! empty($validated['u_password'])) {
@@ -238,16 +209,17 @@ class Registrations extends Component
                 $message = ucwords($role) . ' user updated successfully.';
             } else {
                 $user = User::create($data);
-
-                // Triggers queued email verification notification upon creation
                 $user->sendEmailVerificationNotification();
-
                 $message = ucwords($role) . ' user created successfully. Verification email dispatched.';
             }
         } catch (UniqueConstraintViolationException $e) {
             throw ValidationException::withMessages([
                 'u_username' => 'A database unique constraint error occurred while saving this user.',
             ]);
+        } catch (Exception $e) {
+            Log::error('Error saving user: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'An unexpected error occurred while saving the user.', type: 'error');
+            return;
         }
 
         $this->showUserModal = false;
@@ -258,95 +230,78 @@ class Registrations extends Component
     private function resetUserForm(): void
     {
         $this->reset([
-            'userIdBeingEdited',
-            'u_first_name',
-            'u_middle_name',
-            'u_last_name',
-            'u_suffix',
-            'u_username',
-            'u_email',
-            'u_contact_number',
-            'u_address',
-            'u_password',
+            'userIdBeingEdited', 'u_first_name', 'u_middle_name', 'u_last_name',
+            'u_suffix', 'u_username', 'u_email', 'u_contact_number', 'u_address', 'u_password',
         ]);
         $this->u_role = 'assistant';
         $this->resetValidation();
     }
 
-    // ------------------------------------------------------------------
-    // BORROWER MODAL ACTIONS
-    // ------------------------------------------------------------------
     public function openCreatePatronModal(): void
     {
-        $this->resetPatronForm();
-
-        $firstType = PatronType::first();
-        if ($firstType) {
-            $this->p_patron_type_id = $firstType->id;
+        try {
+            $this->resetPatronForm();
+            $firstType = PatronType::first();
+            if ($firstType) {
+                $this->p_patron_type_id = $firstType->id;
+            }
+            $this->showPatronModal = true;
+        } catch (Exception $e) {
+            Log::error('Error opening create patron modal: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Could not open the borrower form.', type: 'error');
         }
-
-        $this->showPatronModal = true;
     }
 
     public function openEditPatronModal(int $id): void
     {
-        $this->resetPatronForm();
-        $patron = Patron::findOrFail($id);
+        try {
+            $this->resetPatronForm();
+            $patron = Patron::findOrFail($id);
 
-        $this->patronIdBeingEdited = $patron->id;
-        $this->p_school_id = $patron->school_id;
-        $this->p_rfid_tag = $patron->rfid_tag;
-        $this->p_first_name = $patron->first_name;
-        $this->p_middle_name = $patron->middle_name;
-        $this->p_last_name = $patron->last_name;
-        $this->p_suffix = $patron->suffix ?? '';
-        $this->p_patron_type_id = $patron->patron_type_id;
-        $this->p_grade_level_id = $patron->grade_level_id;
-        $this->p_section_id = $patron->section_id;
-        $this->p_email = $patron->email ?? '';
-        $this->p_contact_number = $patron->contact_number ?? '';
-        $this->p_address = $patron->address ?? '';
-        $this->p_status = $patron->status;
+            $this->patronIdBeingEdited = $patron->id;
+            $this->p_school_id = $patron->school_id;
+            $this->p_rfid_tag = $patron->rfid_tag;
+            $this->p_first_name = $patron->first_name;
+            $this->p_middle_name = $patron->middle_name;
+            $this->p_last_name = $patron->last_name;
+            $this->p_suffix = $patron->suffix ?? '';
+            $this->p_patron_type_id = $patron->patron_type_id;
+            $this->p_grade_level_id = $patron->grade_level_id;
+            $this->p_section_id = $patron->section_id;
+            $this->p_email = $patron->email ?? '';
+            $this->p_contact_number = $patron->contact_number ?? '';
+            $this->p_address = $patron->address ?? '';
+            $this->p_status = $patron->status;
 
-        $this->showPatronModal = true;
+            $this->showPatronModal = true;
+        } catch (Exception $e) {
+            Log::error('Error opening edit patron modal: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Could not load borrower details.', type: 'error');
+        }
     }
 
     public function savePatron(): void
     {
-        // 1. Input Sanitization
-        $schoolId = $this->cleanString($this->p_school_id);
-        $rfidTag = $this->cleanString($this->p_rfid_tag);
-        $firstName = $this->cleanString($this->p_first_name);
-        $middleName = $this->cleanString($this->p_middle_name);
-        $lastName = $this->cleanString($this->p_last_name);
-        $suffix = $this->cleanString($this->p_suffix);
-        $email = $this->cleanString(strtolower($this->p_email));
-        $contactNumber = $this->cleanString($this->p_contact_number);
-        $address = $this->cleanString($this->p_address);
+        $fields = [
+            'p_school_id', 'p_rfid_tag', 'p_first_name', 'p_middle_name',
+            'p_last_name', 'p_suffix', 'p_email', 'p_contact_number', 'p_address',
+        ];
+
+        $this->cleanFields($fields);
 
         $selectedType = PatronType::find($this->p_patron_type_id);
         $isStudent = $selectedType && strtolower($selectedType->name) === 'student';
 
         $fullNameUniqueRule = Rule::unique('patrons', 'first_name')
-            ->where('first_name', $firstName)
-            ->where('middle_name', $middleName)
-            ->where('last_name', $lastName)
-            ->when($suffix, fn ($q) => $q->where('suffix', $suffix), fn ($q) => $q->whereNull('suffix'))
+            ->where('first_name', $this->p_first_name)
+            ->where('middle_name', $this->p_middle_name)
+            ->where('last_name', $this->p_last_name)
+            ->when($this->p_suffix, fn ($q) => $q->where('suffix', $this->p_suffix), fn ($q) => $q->whereNull('suffix'))
             ->ignore($this->patronIdBeingEdited);
 
         $rules = [
-            'p_school_id' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('patrons', 'school_id')->ignore($this->patronIdBeingEdited),
-            ],
-            'p_rfid_tag' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('patrons', 'rfid_tag')->ignore($this->patronIdBeingEdited),
-            ],
+            'p_school_id' => ['required', 'string', 'max:255', Rule::unique('patrons', 'school_id')->ignore($this->patronIdBeingEdited)],
+            'p_rfid_tag' => ['required', 'string', 'max:255', Rule::unique('patrons', 'rfid_tag')->ignore($this->patronIdBeingEdited)],
             'p_first_name' => ['required', 'string', 'max:50', $fullNameUniqueRule],
             'p_middle_name' => 'required|string|max:50',
             'p_last_name' => 'required|string|max:50',
@@ -354,48 +309,38 @@ class Registrations extends Component
             'p_patron_type_id' => 'required|exists:patron_types,id',
             'p_grade_level_id' => $isStudent ? 'required|exists:grade_levels,id' : 'nullable|exists:grade_levels,id',
             'p_section_id' => $isStudent ? 'required|exists:sections,id' : 'nullable|exists:sections,id',
-            'p_email' => [
-                'required',
-                'email',
-                'max:100',
-                Rule::unique('patrons', 'email')->ignore($this->patronIdBeingEdited),
-            ],
-            'p_contact_number' => [
-                'required',
-                'string',
-                'max:20',
-                Rule::unique('patrons', 'contact_number')->ignore($this->patronIdBeingEdited),
-            ],
+            'p_email' => ['required', 'email', 'max:100', Rule::unique('patrons', 'email')->ignore($this->patronIdBeingEdited)],
+            'p_contact_number' => ['required', 'string', 'max:20', Rule::unique('patrons', 'contact_number')->ignore($this->patronIdBeingEdited)],
             'p_address' => 'required|string|max:255',
             'p_status' => 'required|in:active,inactive,suspended',
         ];
 
-        $this->validate($rules, [
-            'p_first_name.unique' => 'A borrower with this identical full name already exists in the system.',
-            'p_middle_name.required' => 'Middle name is strictly required.',
-            'p_school_id.required' => 'The School ID is required.',
-            'p_school_id.unique' => 'This School ID is already assigned to another borrower.',
-            'p_rfid_tag.required' => 'The RFID Tag UID is required.',
-            'p_rfid_tag.unique' => 'This RFID Tag UID is already registered to another borrower.',
-            'p_email.unique' => 'This email is already assigned to another borrower.',
-            'p_contact_number.unique' => 'This contact number is already assigned to another borrower.',
-            'p_grade_level_id.required' => 'Grade level is required for student borrowers.',
-            'p_section_id.required' => 'Section is required for student borrowers.',
+        $this->validate($rules, [], [
+            'p_first_name' => 'First name',
+            'p_middle_name' => 'Middle name',
+            'p_last_name' => 'Last name',
+            'p_suffix' => 'Suffix',
+            'p_school_id' => 'Student/Employee #',
+            'p_rfid_tag' => 'RFID',
+            'p_email' => 'Email',
+            'p_contact_number' => 'Contact number',
+            'p_address' => 'Address',
+            'p_status' => 'Status',
         ]);
 
         $payload = [
-            'school_id' => $schoolId,
-            'rfid_tag' => $rfidTag,
-            'first_name' => $firstName,
-            'middle_name' => $middleName,
-            'last_name' => $lastName,
-            'suffix' => $suffix,
+            'school_id' => $this->p_school_id,
+            'rfid_tag' => $this->p_rfid_tag,
+            'first_name' => $this->p_first_name,
+            'middle_name' => $this->p_middle_name,
+            'last_name' => $this->p_last_name,
+            'suffix' => $this->p_suffix,
             'patron_type_id' => $this->p_patron_type_id,
             'grade_level_id' => $isStudent ? $this->p_grade_level_id : null,
             'section_id' => $isStudent ? $this->p_section_id : null,
-            'email' => $email,
-            'contact_number' => $contactNumber,
-            'address' => $address,
+            'email' => strtolower($this->p_email),
+            'contact_number' => $this->p_contact_number,
+            'address' => $this->p_address,
             'status' => $this->p_status,
         ];
 
@@ -409,6 +354,10 @@ class Registrations extends Component
             throw ValidationException::withMessages([
                 'p_rfid_tag' => 'This RFID tag or School ID is already assigned to another borrower record.',
             ]);
+        } catch (Exception $e) {
+            Log::error('Error saving patron: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'An unexpected error occurred while saving the borrower.', type: 'error');
+            return;
         }
 
         $message = $this->patronIdBeingEdited ? 'Borrower record updated successfully.' : 'Borrower record created successfully.';
@@ -421,32 +370,24 @@ class Registrations extends Component
     private function resetPatronForm(): void
     {
         $this->reset([
-            'patronIdBeingEdited',
-            'p_school_id',
-            'p_rfid_tag',
-            'p_first_name',
-            'p_middle_name',
-            'p_last_name',
-            'p_suffix',
-            'p_patron_type_id',
-            'p_grade_level_id',
-            'p_section_id',
-            'p_email',
-            'p_contact_number',
-            'p_address',
+            'patronIdBeingEdited', 'p_school_id', 'p_rfid_tag', 'p_first_name',
+            'p_middle_name', 'p_last_name', 'p_suffix', 'p_patron_type_id',
+            'p_grade_level_id', 'p_section_id', 'p_email', 'p_contact_number', 'p_address',
         ]);
         $this->p_status = 'active';
         $this->resetValidation();
     }
 
-    // ------------------------------------------------------------------
-    // DELETE ACTIONS
-    // ------------------------------------------------------------------
     public function confirmDelete(string $type, int $id): void
     {
-        $this->deleteType = $type;
-        $this->idBeingDeleted = $id;
-        $this->showDeleteModal = true;
+        try {
+            $this->deleteType = $type;
+            $this->idBeingDeleted = $id;
+            $this->showDeleteModal = true;
+        } catch (Exception $e) {
+            Log::error('Error confirming delete: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to proceed with deletion request.', type: 'error');
+        }
     }
 
     public function deleteRecord(): void
@@ -458,7 +399,6 @@ class Registrations extends Component
                 if ($user->id === Auth::id()) {
                     $this->dispatch('toast', message: 'You cannot delete your own account.', type: 'error');
                     $this->showDeleteModal = false;
-
                     return;
                 }
 
@@ -473,63 +413,74 @@ class Registrations extends Component
                 $this->dispatch('toast', message: 'Borrower record deleted successfully.', type: 'success');
             }
         } catch (QueryException $e) {
+            Log::error('Query error deleting record: ' . $e->getMessage());
             $this->dispatch('toast', message: 'Cannot delete record: It is referenced by active transactions or borrower logs.', type: 'error');
+        } catch (Exception $e) {
+            Log::error('Unexpected error deleting record: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'An unexpected error occurred while deleting the record.', type: 'error');
         }
 
         $this->showDeleteModal = false;
         $this->reset(['deleteType', 'idBeingDeleted']);
     }
 
-    // ------------------------------------------------------------------
-    // RENDER
-    // ------------------------------------------------------------------
     #[Layout('components.layouts.app')]
     #[Title('Registrations')]
     public function render()
     {
-        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        try {
+            $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
-        $users = $this->activeTab === 'users'
-            ? User::query()
-                ->when($this->search, function ($query) use ($likeOperator) {
-                    $query->where(function ($q) use ($likeOperator) {
-                        $q->where('username', $likeOperator, "%{$this->search}%")
-                            ->orWhere('first_name', $likeOperator, "%{$this->search}%")
-                            ->orWhere('middle_name', $likeOperator, "%{$this->search}%")
-                            ->orWhere('last_name', $likeOperator, "%{$this->search}%")
-                            ->orWhere('email', $likeOperator, "%{$this->search}%")
-                            ->orWhere('address', $likeOperator, "%{$this->search}%");
-                    });
-                })
-                ->latest()
-                ->paginate(10, ['*'], 'usersPage')
-            : new LengthAwarePaginator([], 0, 10);
+            $users = $this->activeTab === 'users'
+                ? User::query()
+                    ->when($this->search, function ($query) use ($likeOperator) {
+                        $query->where(function ($q) use ($likeOperator) {
+                            $q->where('username', $likeOperator, "%{$this->search}%")
+                                ->orWhere('first_name', $likeOperator, "%{$this->search}%")
+                                ->orWhere('middle_name', $likeOperator, "%{$this->search}%")
+                                ->orWhere('last_name', $likeOperator, "%{$this->search}%")
+                                ->orWhere('email', $likeOperator, "%{$this->search}%")
+                                ->orWhere('address', $likeOperator, "%{$this->search}%");
+                        });
+                    })
+                    ->latest()
+                    ->paginate(10, ['*'], 'usersPage')
+                : new LengthAwarePaginator([], 0, 10);
 
-        $patrons = $this->activeTab === 'borrowers'
-            ? Patron::with(['patronType', 'gradeLevel', 'section'])
-                ->when($this->search, function ($query) use ($likeOperator) {
-                    $query->where(function ($q) use ($likeOperator) {
-                        $q->where('school_id', $likeOperator, "%{$this->search}%")
-                            ->orWhere('rfid_tag', $likeOperator, "%{$this->search}%")
-                            ->orWhere('first_name', $likeOperator, "%{$this->search}%")
-                            ->orWhere('middle_name', $likeOperator, "%{$this->search}%")
-                            ->orWhere('last_name', $likeOperator, "%{$this->search}%")
-                            ->orWhere('email', $likeOperator, "%{$this->search}%")
-                            ->orWhere('address', $likeOperator, "%{$this->search}%");
-                    });
-                })
-                ->latest()
-                ->paginate(10, ['*'], 'patronsPage')
-            : new LengthAwarePaginator([], 0, 10);
+            $patrons = $this->activeTab === 'borrowers'
+                ? Patron::with(['patronType', 'gradeLevel', 'section'])
+                    ->when($this->search, function ($query) use ($likeOperator) {
+                        $query->where(function ($q) use ($likeOperator) {
+                            $q->where('school_id', $likeOperator, "%{$this->search}%")
+                                ->orWhere('rfid_tag', $likeOperator, "%{$this->search}%")
+                                ->orWhere('first_name', $likeOperator, "%{$this->search}%")
+                                ->orWhere('middle_name', $likeOperator, "%{$this->search}%")
+                                ->orWhere('last_name', $likeOperator, "%{$this->search}%")
+                                ->orWhere('email', $likeOperator, "%{$this->search}%")
+                                ->orWhere('address', $likeOperator, "%{$this->search}%");
+                        });
+                    })
+                    ->latest()
+                    ->paginate(10, ['*'], 'patronsPage')
+                : new LengthAwarePaginator([], 0, 10);
 
-        $patronTypes = PatronType::orderBy('name')->get(['id', 'name']);
-        $allGradeLevels = GradeLevel::orderBy('name')->get(['id', 'name', 'code']);
-        $availableSections = $this->p_grade_level_id
-            ? Section::where('grade_level_id', $this->p_grade_level_id)->orderBy('name')->get(['id', 'name'])
-            : collect();
+            $patronTypes = PatronType::orderBy('name')->get(['id', 'name']);
+            $allGradeLevels = GradeLevel::orderBy('name')->get(['id', 'name', 'code']);
+            $availableSections = $this->p_grade_level_id
+                ? Section::where('grade_level_id', $this->p_grade_level_id)->orderBy('name')->get(['id', 'name'])
+                : collect();
 
-        $selectedPatronType = $patronTypes->firstWhere('id', $this->p_patron_type_id);
-        $isStudentType = $selectedPatronType && strtolower($selectedPatronType->name) === 'student';
+            $selectedPatronType = $patronTypes->firstWhere('id', $this->p_patron_type_id);
+            $isStudentType = $selectedPatronType && strtolower($selectedPatronType->name) === 'student';
+        } catch (Exception $e) {
+            Log::error('Error rendering registrations view: ' . $e->getMessage());
+            $users = new LengthAwarePaginator([], 0, 10);
+            $patrons = new LengthAwarePaginator([], 0, 10);
+            $patronTypes = collect();
+            $allGradeLevels = collect();
+            $availableSections = collect();
+            $isStudentType = false;
+        }
 
         return view('livewire.registrations', [
             'users' => $users,

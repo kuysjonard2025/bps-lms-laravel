@@ -16,21 +16,19 @@ use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\BeforeSheet;
-use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 
-class CirculationsExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize, WithStyles, WithColumnFormatting, WithCustomStartCell, WithEvents
+class CirculationsExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize, WithStyles, WithColumnFormatting,WithCustomStartCell, WithEvents
 {
     use Exportable;
 
     public string $search;
     public string $filterStatus;
 
-    public function __construct(string $search = '', string $filterStatus = 'all')
+    public function __construct(string $search = '', string $filterStatus = 'borrowed')
     {
         $this->search = $search;
         $this->filterStatus = $filterStatus;
@@ -49,31 +47,22 @@ class CirculationsExport implements FromQuery, WithHeadings, WithMapping, Should
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
         return Circulation::query()
-            ->with(['patron', 'accession.catalog', 'user'])
-            ->when($this->filterStatus === 'borrowed', fn (Builder $q) => $q->whereIn('status', ['borrowed', 'overdue']))
-            ->when($this->filterStatus === 'returned', fn (Builder $q) => $q->whereIn('status', ['returned', 'lost', 'minor', 'severe']))
-            ->when($this->filterStatus === 'overdue', function (Builder $q) {
-                $q->where('status', 'overdue')
-                  ->orWhere(function (Builder $sub) {
-                      $sub->whereNull('returned_at')->where('due_at', '<', now());
-                  });
-            })
-            ->when($this->search, function (Builder $q) use ($likeOperator) {
-                $q->where(function (Builder $query) use ($likeOperator) {
-                    $query->whereHas('patron', function (Builder $patronQ) use ($likeOperator) {
-                        $patronQ->where('school_id', $likeOperator, "%{$this->search}%")
-                            ->orWhere('rfid_tag', $likeOperator, "%{$this->search}%")
-                            ->orWhere('first_name', $likeOperator, "%{$this->search}%")
-                            ->orWhere('last_name', $likeOperator, "%{$this->search}%");
-                    })
-                    ->orWhereHas('accession', function (Builder $accQ) use ($likeOperator) {
-                        $accQ->where('accession_number', $likeOperator, "%{$this->search}%")
-                            ->orWhereHas('catalog', fn (Builder $catQ) => $catQ->where('title', $likeOperator, "%{$this->search}%"));
-                    })
-                    ->orWhereHas('user', function (Builder $userQ) use ($likeOperator) {
-                        $userQ->where('name', $likeOperator, "%{$this->search}%")
-                            ->orWhere('email', $likeOperator, "%{$this->search}%");
-                    });
+            ->with(['patron.patronType', 'accession.catalog', 'user'])
+            ->when($this->filterStatus === 'borrowed', fn ($q) => $q->where('status', 'borrowed'))
+            ->when($this->filterStatus === 'returned', fn ($q) => $q->where('status', 'returned'))
+            ->when($this->filterStatus === 'overdue', fn ($q) => $q->where('status', 'borrowed')->where('due_at', '<', now()))
+            ->when($this->search, function ($q) use ($likeOperator) {
+                $searchTerm = "%{$this->search}%";
+                $q->where(function ($query) use ($likeOperator, $searchTerm) {
+                    $query->where('receipt_number', $likeOperator, $searchTerm)
+                        ->orWhereHas('patron', function ($patronQ) use ($likeOperator, $searchTerm) {
+                            $patronQ->where('school_id', $likeOperator, $searchTerm)
+                                ->orWhere('first_name', $likeOperator, $searchTerm)
+                                ->orWhere('last_name', $likeOperator, $searchTerm);
+                        })->orWhereHas('accession', function ($accQ) use ($likeOperator, $searchTerm) {
+                            $accQ->where('accession_number', $likeOperator, $searchTerm)
+                                ->orWhereHas('catalog', fn ($catQ) => $catQ->where('title', $likeOperator, $searchTerm));
+                        });
                 });
             })
             ->latest('borrowed_at');
@@ -85,44 +74,57 @@ class CirculationsExport implements FromQuery, WithHeadings, WithMapping, Should
             'Accession #',
             'Book Title',
             'Student/Employee #',
-            'Borrower Name',
-            'Borrowed At',
-            'Due At',
+            'Name',
+            'Type',
+            'Borrowed Date',
+            'Due Date',
+            'Returned Date',
             'Receipt #',
+            'Payment',
             'Fine Amount',
             'Condition',
             'Status',
             'Processed By',
+            'Action',
         ];
     }
 
     public function map($loan): array
     {
+        $isStudent = strtolower($loan->patron?->patronType?->name ?? '') === 'student';
+
         $borrowerName = trim(implode(' ', array_filter([
-            $loan->patron?->first_name,
-            $loan->patron?->middle_name,
-            $loan->patron?->last_name,
-            $loan->patron?->suffix,
-        ])));
+            ucwords($loan->patron?->first_name ?? ''),
+            ucwords($loan->patron?->middle_name ?? ''),
+            ucwords($loan->patron?->last_name ?? ''),
+        ]))) . ($loan->patron?->suffix ? ' ' . strtoupper($loan->patron->suffix) : '');
 
         $processedBy = method_exists($loan->user, 'getFullNameAttribute')
             ? $loan->user?->getFullNameAttribute()
             : ($loan->user?->name ?? 'System User');
 
-        $title = $loan->accession?->catalog?->title;
+        // Payment column calculation
+        $paymentStatus = '-';
+        if ($loan->returned_at && $loan->fine_amount > 0) {
+            $paymentStatus = $loan->is_paid ? 'Paid' : 'Unpaid';
+        }
 
         return [
-            $loan->accession?->accession_number ?? 'N/A',
-            $title ? ucwords(strtolower($title)) : 'N/A',
-            $loan->patron?->school_id ?? 'N/A',
-            $borrowerName ? ucwords(strtolower($borrowerName)) : 'N/A',
-            $loan->borrowed_at ? $loan->borrowed_at->format('M d, Y h:i A') : '-',
-            $loan->due_at ? $loan->due_at->format('M d, Y') : '-',
+            strtoupper($loan->accession?->accession_number ?? 'N/A'),
+            $loan->accession?->catalog?->title ? ucwords($loan->accession->catalog->title) : 'N/A',
+            (string) ($loan->patron?->school_id ?? 'N/A'), // <--- Cast to string here
+            $borrowerName ?: 'N/A',
+            ucwords($loan->patron?->patronType?->name ?? 'N/A'),
+            $loan->borrowed_at?->format('M d, Y h:i A') ?? '-',
+            $isStudent ? ($loan->due_at?->format('M d, Y') ?? '-') : '-',
+            $loan->returned_at?->format('M d, Y h:i A') ?? '-',
             $loan->receipt_number ?? '-',
+            $paymentStatus,
             (float) ($loan->fine_amount ?? 0),
             ucfirst($loan->condition ?? 'Good'),
             ucfirst($loan->status ?? 'N/A'),
-            $processedBy ? ucwords(strtolower($processedBy)) : 'System User',
+            $processedBy,
+            '-',
         ];
     }
 
@@ -131,8 +133,8 @@ class CirculationsExport implements FromQuery, WithHeadings, WithMapping, Should
         return [
             'A' => NumberFormat::FORMAT_TEXT,
             'C' => NumberFormat::FORMAT_TEXT,
-            'G' => NumberFormat::FORMAT_TEXT,
-            'H' => '"₱"#,##0.00',
+            'I' => NumberFormat::FORMAT_TEXT,
+            'K' => '"₱"#,##0.00',
         ];
     }
 
@@ -142,20 +144,25 @@ class CirculationsExport implements FromQuery, WithHeadings, WithMapping, Should
             BeforeSheet::class => function (BeforeSheet $event) {
                 $sheet = $event->sheet->getDelegate();
 
-                $generatedBy = auth()->user()?->getFullNameAttribute() ?? 'System User';
-                $searchLabel = $this->search ? $this->search : 'All (None applied)';
+                $generatedBy = method_exists(auth()->user(), 'getFullNameAttribute')
+                    ? auth()->user()->getFullNameAttribute() : 'System User';
+                $roleName = auth()->user()?->role?->name ?? 'librarian';
+                $searchLabel = $this->search ? $this->search : 'None (All applied)';
                 $statusLabel = ucfirst($this->filterStatus ?? 'All Statuses');
 
                 // Row 1: Main Title
-                $sheet->setCellValue('A1', 'BPS LIBRARY MANAGEMENT SYSTEM - CIRCULATION REPORT');
+                $sheet->setCellValue('A1', 'BPS LIBRARY MANAGEMENT SYSTEM');
 
-                // Row 2: Metadata Left & Right
-                $sheet->setCellValue('A2', 'Generated On: ' . now()->format('F d, Y g:i A'));
-                $sheet->setCellValue('E2', 'Generated By: ' . $generatedBy);
+                // Row 2: Report Subtitle
+                $sheet->setCellValue('A2', 'Circulation Report');
 
-                // Row 3: Metadata Left & Right
-                $sheet->setCellValue('A3', 'Search Query: ' . $searchLabel);
-                $sheet->setCellValue('E3', 'Status Filter: ' . $statusLabel);
+                // Row 3: Generated On / Generated By
+                $sheet->setCellValue('A3', 'Generated On: ' . now()->format('F d, Y h:i A'));
+                $sheet->setCellValue('F3', 'Generated By: ' . $generatedBy);
+
+                // Row 4: Search Filter / Role
+                $sheet->setCellValue('A4', 'Search Filter: ' . $searchLabel);
+                $sheet->setCellValue('F4', 'Role: ' . ucwords($roleName));
             },
         ];
     }
@@ -168,28 +175,36 @@ class CirculationsExport implements FromQuery, WithHeadings, WithMapping, Should
                 'font' => [
                     'bold' => true,
                     'size' => 11,
-                    'italic' => true,
-                    'color' => ['rgb' => '000000'],
+                    'color' => ['rgb' => '10257F'],
                 ],
             ],
 
-            // Meta Details Styling (Rows 2 & 3)
+            // Subtitle Styling (Row 2)
             2 => [
                 'font' => [
-                    'italic' => true,
-                    'size' => 9,
+                    'bold' => true,
+                    'size' => 10,
                     'color' => ['rgb' => '333333'],
                 ],
             ],
+
+            // Meta Details Styling (Rows 3 & 4)
             3 => [
                 'font' => [
                     'italic' => true,
                     'size' => 9,
-                    'color' => ['rgb' => '333333'],
+                    'color' => ['rgb' => '555555'],
+                ],
+            ],
+            4 => [
+                'font' => [
+                    'italic' => true,
+                    'size' => 9,
+                    'color' => ['rgb' => '555555'],
                 ],
             ],
 
-            // Table Header Styling (Row 5 - Dark Blue Bar matching screenshot)
+            // Table Header Styling (Row 5 - Dark Navy Accent)
             5 => [
                 'font' => [
                     'bold' => true,
@@ -198,7 +213,7 @@ class CirculationsExport implements FromQuery, WithHeadings, WithMapping, Should
                 ],
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '10257F'], // Dark Navy Accent
+                    'startColor' => ['rgb' => '10257F'],
                 ],
                 'alignment' => [
                     'vertical' => Alignment::VERTICAL_CENTER,

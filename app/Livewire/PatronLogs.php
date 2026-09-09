@@ -6,6 +6,8 @@ use App\Exports\BorrowerLogsExport;
 use App\Models\PatronLog;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -20,7 +22,7 @@ class PatronLogs extends Component
 
     // Search and Filters for Datatable
     public string $search = '';
-    public ?string $filterDate = null; // Set to null by default to show all dates
+    public ?string $filterDate = null;
     public string $filterStatus = 'all'; // 'all', 'inside', 'logged_out'
 
     // Mass Logout Modal State
@@ -28,13 +30,15 @@ class PatronLogs extends Component
 
     public function mount(): void
     {
-        // Keep null to show all records by default, or set to today if preferred:
-        // $this->filterDate = now()->toDateString();
+        // Initial setup if needed
     }
 
     public function updatedSearch(): void
     {
         $this->search = trim(strip_tags($this->search));
+        if (strlen($this->search) > 100) {
+            $this->search = substr($this->search, 0, 100);
+        }
         $this->resetPage();
     }
 
@@ -51,9 +55,6 @@ class PatronLogs extends Component
         $this->resetPage();
     }
 
-    /**
-     * Clear all filters to view all historical records.
-     */
     public function clearFilters(): void
     {
         $this->reset(['search', 'filterDate', 'filterStatus']);
@@ -63,31 +64,43 @@ class PatronLogs extends Component
     // ------------------------------------------------------------------
     // EXPORT ACTIONS
     // ------------------------------------------------------------------
-    public function exportExcel(): BinaryFileResponse
+    public function exportExcel(): ?BinaryFileResponse
     {
-        $dateSuffix = $this->filterDate ? $this->filterDate : 'all-dates';
-        $filename = 'borrower-attendance-logs-' . $dateSuffix . '-' . now()->format('His') . '.xlsx';
+        try {
+            $dateSuffix = $this->filterDate ? $this->filterDate : 'all-dates';
+            $filename = 'borrower-attendance-logs-' . $dateSuffix . '-' . now()->format('His') . '.xlsx';
 
-        return Excel::download(
-            new BorrowerLogsExport($this->search, $this->filterDate ?? '', $this->filterStatus),
-            $filename
-        );
+            return Excel::download(
+                new BorrowerLogsExport($this->search, $this->filterDate ?? '', $this->filterStatus),
+                $filename
+            );
+        } catch (\Exception $e) {
+            Log::error('Excel export error: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Failed to export Excel file.', type: 'error');
+            return null;
+        }
     }
 
-    public function exportPdf(): StreamedResponse
+    public function exportPdf(): ?StreamedResponse
     {
-        $logs = $this->buildLogsQuery()->get();
+        try {
+            $logs = $this->buildLogsQuery()->get();
 
-        $pdf = Pdf::loadView('pdf.borrower-logs', [
-            'logs'         => $logs,
-            'filterDate'   => $this->filterDate ?? 'All Dates',
-            'filterStatus' => $this->filterStatus,
-        ])->setPaper('a4', 'landscape');
+            $pdf = Pdf::loadView('pdf.borrower-logs', [
+                'logs'         => $logs,
+                'filterDate'   => $this->filterDate ?? 'All Dates',
+                'filterStatus' => $this->filterStatus,
+            ])->setPaper('a4', 'landscape');
 
-        $dateSuffix = $this->filterDate ? $this->filterDate : 'all-dates';
-        $filename = 'borrower-attendance-logs-' . $dateSuffix . '-' . now()->format('His') . '.pdf';
+            $dateSuffix = $this->filterDate ? $this->filterDate : 'all-dates';
+            $filename = 'borrower-attendance-logs-' . $dateSuffix . '-' . now()->format('His') . '.pdf';
 
-        return response()->streamDownload(fn () => print($pdf->output()), $filename);
+            return response()->streamDownload(fn () => print($pdf->output()), $filename);
+        } catch (\Exception $e) {
+            Log::error('PDF export error: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Failed to export PDF file.', type: 'error');
+            return null;
+        }
     }
 
     // ------------------------------------------------------------------
@@ -95,32 +108,40 @@ class PatronLogs extends Component
     // ------------------------------------------------------------------
     public function manualCheckOut(int $logId): void
     {
-        $log = PatronLog::find($logId);
+        try {
+            DB::transaction(function () use ($logId) {
+                $log = PatronLog::lockForUpdate()->find($logId);
 
-        if ($log && ! $log->time_out) {
-            $log->update(['time_out' => now()]);
-            $this->dispatch('toast', message: 'Borrower logged out manually.', type: 'success');
+                if ($log && !$log->time_out) {
+                    $log->update(['time_out' => now()]);
+                    $this->dispatch('toast', message: 'Borrower logged out manually.', type: 'success');
+                }
+            });
+        } catch (\Exception $e) {
+            Log::error('Manual checkout error: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'An error occurred during manual checkout.', type: 'error');
         }
     }
 
-    /**
-     * Mass check-out active patrons for the active filter date (or today).
-     */
     public function checkoutAllActive(): void
     {
-        $targetDate = ! empty($this->filterDate) ? $this->filterDate : now()->toDateString();
+        try {
+            DB::transaction(function () {
+                $updatedCount = PatronLog::whereNull('time_out')
+                    ->update(['time_out' => now()]);
 
-        $updatedCount = PatronLog::whereDate('log_date', $targetDate)
-            ->whereNull('time_out')
-            ->update(['time_out' => now()]);
+                $this->showForceCheckoutModal = false;
+                $this->resetPage();
 
-        $this->showForceCheckoutModal = false;
-        $this->resetPage();
-
-        if ($updatedCount > 0) {
-            $this->dispatch('toast', message: "Successfully logged out {$updatedCount} active borrower(s).", type: 'success');
-        } else {
-            $this->dispatch('toast', message: 'No active borrowers found to log out.', type: 'info');
+                if ($updatedCount > 0) {
+                    $this->dispatch('toast', message: "Successfully logged out {$updatedCount} active borrower(s) system-wide.", type: 'success');
+                } else {
+                    $this->dispatch('toast', message: 'No active borrowers found to log out.', type: 'info');
+                }
+            });
+        } catch (\Exception $e) {
+            Log::error('Mass checkout error: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'An unexpected system error occurred during mass checkout.', type: 'error');
         }
     }
 
@@ -133,8 +154,7 @@ class PatronLogs extends Component
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
         return PatronLog::with(['patron.patronType', 'patron.gradeLevel', 'patron.section'])
-            // Only apply date filtering if $filterDate is not empty/null
-            ->when(! empty($this->filterDate), fn ($q) => $q->whereDate('log_date', $this->filterDate))
+            ->when(!empty($this->filterDate), fn ($q) => $q->whereDate('log_date', $this->filterDate))
             ->when($this->filterStatus === 'inside', fn ($q) => $q->whereNull('time_out'))
             ->when($this->filterStatus === 'logged_out', fn ($q) => $q->whereNotNull('time_out'))
             ->when($searchTerm !== '', function ($query) use ($searchTerm, $likeOperator) {
@@ -156,8 +176,7 @@ class PatronLogs extends Component
     #[Title('Borrower Attendance Logs')]
     public function render(): View
     {
-        // If a filter date is selected, stats evaluate for that date; otherwise, default to today for dashboard stats.
-        $statsDate = ! empty($this->filterDate) ? $this->filterDate : now()->toDateString();
+        $statsDate = !empty($this->filterDate) ? $this->filterDate : now()->toDateString();
 
         return view('livewire.patron-logs', [
             'logs'            => $this->buildLogsQuery()->paginate(15),

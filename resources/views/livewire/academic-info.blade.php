@@ -68,11 +68,11 @@
                 <select
                     id="sectionGradeFilter"
                     wire:model.live="sectionGradeFilter"
-                    class="w-full sm:w-56 px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer text-slate-700"
+                    class="w-full sm:w-56 px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all cursor-pointer text-slate-700 capitalize"
                 >
                     <option value="">All Grade Levels</option>
                     @foreach($allGradeLevels as $gl)
-                        <option value="{{ $gl->id }}">{{ $gl->name }} ({{ $gl->code }})</option>
+                        <option value="{{ $gl->id }}">{{ $gl->name }} ( {{ $gl->code }} )</option>
                     @endforeach
                 </select>
             </div>
@@ -283,11 +283,11 @@
                             id="sec_grade_level_id"
                             wire:model="sec_grade_level_id"
                             autofocus
-                            class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all bg-white text-slate-900"
+                            class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all bg-white text-slate-900 capitalize"
                         >
                             <option value="">Select Grade Level</option>
                             @foreach($allGradeLevels as $gl)
-                                <option value="{{ $gl->id }}" class="capitalize">{{ $gl->name }}</option>
+                                <option value="{{ $gl->id }}">{{ $gl->name }} ({{ $gl->code }})</option>
                             @endforeach
                         </select>
                         @error('sec_grade_level_id') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror

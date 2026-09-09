@@ -2,8 +2,8 @@
     {{-- Header Container --}}
     <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-            <h2 class="text-base sm:text-lg font-bold text-gray-900">Student Circulation Policy</h2>
-            <p class="text-xs text-gray-500">Configure multiple borrowing policy rules for Student borrower types.</p>
+            <h2 class="text-base sm:text-lg font-bold text-gray-900">Circulation Policy</h2>
+            <p class="text-xs text-gray-500">Configure multiple borrowing policy rules for borrowers.</p>
         </div>
 
         <button
@@ -14,7 +14,7 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
-            <span>New Student Policy</span>
+            <span>New Policy</span>
         </button>
     </div>
 
@@ -124,7 +124,7 @@
             <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-xl z-10 overflow-hidden my-auto flex flex-col max-h-[90vh]">
                 <div class="bg-gray-50 px-5 py-3.5 border-b border-gray-200 flex justify-between items-center shrink-0">
                     <h3 class="text-xs sm:text-sm font-bold text-gray-900">
-                        {{ $isEditing ? 'Edit Student Policy Rule' : 'Create Student Policy Rule' }}
+                        {{ $isEditing ? 'Edit Policy Rule' : 'Create Policy Rule' }}
                     </h3>
                     <button type="button" wire:click="closeModal" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
                 </div>

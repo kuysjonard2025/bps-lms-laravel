@@ -2,10 +2,12 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\AssetType;
 use App\Models\CirculationPolicy as PolicyModel;
 use App\Models\PatronType;
 use Illuminate\Database\QueryException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
@@ -15,7 +17,7 @@ use Livewire\WithPagination;
 
 class CirculationPolicy extends Component
 {
-    use WithPagination;
+    use WithPagination, SanitizesInputs;
 
     // Form attributes
     public ?int $policy_id = null;
@@ -38,15 +40,24 @@ class CirculationPolicy extends Component
 
     public function mount(): void
     {
-        $this->resolveStudentPatronType();
+        try {
+            $this->resolveStudentPatronType();
+        } catch (\Exception $e) {
+            // Fallback gracefully if database tables aren't migrated or seeded yet
+            $this->studentTypeName = 'Student';
+        }
     }
 
     private function resolveStudentPatronType(): void
     {
-        $studentType = PatronType::where('name', 'like', '%Student%')->first();
-        if ($studentType) {
-            $this->patron_type_id = $studentType->id;
-            $this->studentTypeName = $studentType->name;
+        try {
+            $studentType = PatronType::where('name', 'like', '%Student%')->first();
+            if ($studentType) {
+                $this->patron_type_id = $studentType->id;
+                $this->studentTypeName = $studentType->name;
+            }
+        } catch (\Exception $e) {
+            // Prevent boot crashes if PatronType table is inaccessible
         }
     }
 
@@ -91,69 +102,84 @@ class CirculationPolicy extends Component
 
     public function editPolicy(int $id): void
     {
-        $this->resetValidation();
-        $policy = PolicyModel::findOrFail($id);
+        try {
+            $this->resetValidation();
+            $policy = PolicyModel::findOrFail($id);
 
-        $this->policy_id = $policy->id;
-        $this->name = $policy->name;
-        $this->patron_type_id = $policy->patron_type_id;
-        $this->asset_type_id = $policy->asset_type_id;
-        $this->max_borrow_limit = $policy->max_borrow_limit;
-        $this->loan_duration_days = $policy->loan_duration_days;
-        $this->fine_per_day = (float) $policy->fine_per_day;
-        $this->max_fine_amount = (float) $policy->max_fine_amount;
-        $this->is_active = (bool) $policy->is_active;
+            $this->policy_id = $policy->id;
+            $this->name = $policy->name;
+            $this->patron_type_id = $policy->patron_type_id;
+            $this->asset_type_id = $policy->asset_type_id;
+            $this->max_borrow_limit = $policy->max_borrow_limit;
+            $this->loan_duration_days = $policy->loan_duration_days;
+            $this->fine_per_day = (float) $policy->fine_per_day;
+            $this->max_fine_amount = (float) $policy->max_fine_amount;
+            $this->is_active = (bool) $policy->is_active;
 
-        $this->isEditing = true;
-        $this->showModal = true;
+            $this->isEditing = true;
+            $this->showModal = true;
+        } catch (ModelNotFoundException $e) {
+            $this->dispatch('toast', message: 'The selected policy record could not be found.', type: 'error');
+        }
     }
 
     public function save(): void
     {
-        $this->resolveStudentPatronType();
-        $validated = $this->validate();
+        try {
+            $fields = ['name', 'patron_type_id', 'asset_type_id', 'max_borrow_limit', 'loan_duration_days', 'fine_per_day', 'max_fine_amount', 'is_active'];
+            $this->cleanFields($fields);
 
-        $payload = [
-            'name' => strtolower(trim($validated['name'])),
-            'patron_type_id' => (int) $validated['patron_type_id'],
-            'asset_type_id' => (int) $validated['asset_type_id'],
-            'max_borrow_limit' => (int) $validated['max_borrow_limit'],
-            'loan_duration_days' => (int) $validated['loan_duration_days'],
-            'fine_per_day' => round((float) $validated['fine_per_day'], 2),
-            'max_fine_amount' => round((float) $validated['max_fine_amount'], 2),
-            'is_active' => (bool) $validated['is_active'],
-        ];
+            $this->resolveStudentPatronType();
+            $validated = $this->validate();
 
-        // Ensure only ONE active policy exists for this (patron_type_id, asset_type_id)
-        if ($payload['is_active']) {
-            $this->deactivateOtherPolicies($payload['patron_type_id'], $payload['asset_type_id'], $this->policy_id);
+            $payload = [
+                'name' => $validated['name'],
+                'patron_type_id' => (int) $validated['patron_type_id'],
+                'asset_type_id' => (int) $validated['asset_type_id'],
+                'max_borrow_limit' => (int) $validated['max_borrow_limit'],
+                'loan_duration_days' => (int) $validated['loan_duration_days'],
+                'fine_per_day' => round((float) $validated['fine_per_day'], 2),
+                'max_fine_amount' => round((float) $validated['max_fine_amount'], 2),
+                'is_active' => (bool) $validated['is_active'],
+            ];
+
+            if ($payload['is_active']) {
+                $this->deactivateOtherPolicies($payload['patron_type_id'], $payload['asset_type_id'], $this->policy_id);
+            }
+
+            if ($this->policy_id) {
+                PolicyModel::findOrFail($this->policy_id)->update($payload);
+                $message = 'Student circulation policy updated successfully.';
+            } else {
+                PolicyModel::create($payload);
+                $message = 'Student circulation policy created successfully.';
+            }
+
+            $this->closeModal();
+            $this->dispatch('toast', message: $message, type: 'success');
+        } catch (QueryException $e) {
+            $this->dispatch('toast', message: 'Database error occurred while saving the policy.', type: 'error');
+        } catch (\Exception $e) {
+            $this->dispatch('toast', message: 'An unexpected error occurred.', type: 'error');
         }
-
-        if ($this->policy_id) {
-            PolicyModel::findOrFail($this->policy_id)->update($payload);
-            $message = 'Student circulation policy updated successfully.';
-        } else {
-            PolicyModel::create($payload);
-            $message = 'Student circulation policy created successfully.';
-        }
-
-        $this->closeModal();
-        $this->dispatch('toast', message: $message, type: 'success');
     }
 
     public function toggleStatus(int $id): void
     {
-        $policy = PolicyModel::findOrFail($id);
-        $newStatus = ! $policy->is_active;
+        try {
+            $policy = PolicyModel::findOrFail($id);
+            $newStatus = ! $policy->is_active;
 
-        if ($newStatus) {
-            // Deactivate all other policies for the same Borrower and Asset Type
-            $this->deactivateOtherPolicies($policy->patron_type_id, $policy->asset_type_id, $policy->id);
+            if ($newStatus) {
+                $this->deactivateOtherPolicies($policy->patron_type_id, $policy->asset_type_id, $policy->id);
+            }
+
+            $policy->update(['is_active' => $newStatus]);
+
+            $this->dispatch('toast', message: 'Policy status updated.', type: 'success');
+        } catch (ModelNotFoundException $e) {
+            $this->dispatch('toast', message: 'Policy record not found.', type: 'error');
         }
-
-        $policy->update(['is_active' => $newStatus]);
-
-        $this->dispatch('toast', message: 'Policy status updated.', type: 'success');
     }
 
     private function deactivateOtherPolicies(int $patronTypeId, int $assetTypeId, ?int $currentPolicyId = null): void
@@ -172,6 +198,8 @@ class CirculationPolicy extends Component
             if ($policy) {
                 $policy->delete();
                 $this->dispatch('toast', message: 'Student policy rule deleted successfully.', type: 'success');
+            } else {
+                $this->dispatch('toast', message: 'Policy record already removed.', type: 'error');
             }
         } catch (QueryException $e) {
             $this->dispatch('toast', message: 'Cannot delete: This policy is linked to existing transactions.', type: 'error');
@@ -209,7 +237,7 @@ class CirculationPolicy extends Component
             ->when($searchTerm !== '', function ($query) use ($searchTerm, $likeOperator) {
                 $query->where(function ($q) use ($searchTerm, $likeOperator) {
                     $q->where('name', $likeOperator, "%{$searchTerm}%")
-                      ->orWhereHas('assetType', fn ($a) => $a->where('name', $likeOperator, "%{$searchTerm}%"));
+                        ->orWhereHas('assetType', fn ($a) => $a->where('name', $likeOperator, "%{$searchTerm}%"));
                 });
             })
             ->latest()

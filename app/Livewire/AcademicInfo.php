@@ -2,10 +2,12 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\GradeLevel;
 use App\Models\Section;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -13,10 +15,11 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Exception;
 
 class AcademicInfo extends Component
 {
-    use WithPagination;
+    use WithPagination, SanitizesInputs;
 
     // Active Tab: 'grade_levels' or 'sections'
     public string $activeTab = 'grade_levels';
@@ -65,24 +68,34 @@ class AcademicInfo extends Component
 
     public function openCreateGradeLevelModal(): void
     {
-        $this->resetValidation();
-        $this->reset(['gl_name', 'gl_code', 'gradeLevelIdBeingEdited']);
-        $this->showGradeLevelModal = true;
+        try {
+            $this->resetValidation();
+            $this->reset(['gl_name', 'gl_code', 'gradeLevelIdBeingEdited']);
+            $this->showGradeLevelModal = true;
+        } catch (Exception $e) {
+            Log::error('Error opening create grade level modal: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Could not open the grade level form.', type: 'error');
+        }
     }
 
     public function openEditGradeLevelModal(GradeLevel $gradeLevel): void
     {
-        $this->resetValidation();
-        $this->gradeLevelIdBeingEdited = $gradeLevel->id;
-        $this->gl_name = $gradeLevel->name;
-        $this->gl_code = $gradeLevel->code;
-        $this->showGradeLevelModal = true;
+        try {
+            $this->resetValidation();
+            $this->gradeLevelIdBeingEdited = $gradeLevel->id;
+            $this->gl_name = $gradeLevel->name;
+            $this->gl_code = $gradeLevel->code;
+            $this->showGradeLevelModal = true;
+        } catch (Exception $e) {
+            Log::error('Error opening edit grade level modal: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Could not load the grade level details.', type: 'error');
+        }
     }
 
     public function saveGradeLevel(): void
     {
-        $this->gl_name = strtolower(trim($this->gl_name));
-        $this->gl_code = strtolower(trim($this->gl_code));
+        $fields = ['gl_name', 'gl_code'];
+        $this->cleanFields($fields);
 
         $validated = $this->validate([
             'gl_name' => [
@@ -121,6 +134,9 @@ class AcademicInfo extends Component
             throw ValidationException::withMessages([
                 'gl_code' => 'A grade level with this name or code already exists.',
             ]);
+        } catch (Exception $e) {
+            Log::error('Error saving grade level: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'An unexpected error occurred while saving the grade level.', type: 'error');
         }
     }
 
@@ -128,32 +144,43 @@ class AcademicInfo extends Component
 
     public function openCreateSectionModal(?int $gradeLevelId = null): void
     {
-        $this->resetValidation();
-        $this->reset(['sec_grade_level_id', 'sec_name', 'sectionIdBeingEdited']);
+        try {
+            $this->resetValidation();
+            $this->reset(['sec_grade_level_id', 'sec_name', 'sectionIdBeingEdited']);
 
-        $firstGradeLevel = GradeLevel::orderBy('name')->first();
+            $firstGradeLevel = GradeLevel::orderBy('name')->first();
 
-        if (! $firstGradeLevel) {
-            $this->dispatch('toast', message: 'Please create at least one Grade Level before adding sections.', type: 'error');
-            return;
+            if (! $firstGradeLevel) {
+                $this->dispatch('toast', message: 'Please create at least one Grade Level before adding sections.', type: 'error');
+                return;
+            }
+
+            $this->sec_grade_level_id = $gradeLevelId ?? $firstGradeLevel->id;
+            $this->showSectionModal = true;
+        } catch (Exception $e) {
+            Log::error('Error opening create section modal: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Could not open the section form.', type: 'error');
         }
-
-        $this->sec_grade_level_id = $gradeLevelId ?? $firstGradeLevel->id;
-        $this->showSectionModal = true;
     }
 
     public function openEditSectionModal(Section $section): void
     {
-        $this->resetValidation();
-        $this->sectionIdBeingEdited = $section->id;
-        $this->sec_grade_level_id = $section->grade_level_id;
-        $this->sec_name = $section->name;
-        $this->showSectionModal = true;
+        try {
+            $this->resetValidation();
+            $this->sectionIdBeingEdited = $section->id;
+            $this->sec_grade_level_id = $section->grade_level_id;
+            $this->sec_name = $section->name;
+            $this->showSectionModal = true;
+        } catch (Exception $e) {
+            Log::error('Error opening edit section modal: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Could not load section details.', type: 'error');
+        }
     }
 
     public function saveSection(): void
     {
-        $this->sec_name = trim($this->sec_name);
+        $fields = ['sec_name'];
+        $this->cleanFields($fields);
 
         $validated = $this->validate([
             'sec_grade_level_id' => 'required|exists:grade_levels,id',
@@ -189,6 +216,9 @@ class AcademicInfo extends Component
             throw ValidationException::withMessages([
                 'sec_name' => 'A section with this name already exists for the selected grade level.',
             ]);
+        } catch (Exception $e) {
+            Log::error('Error saving section: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'An unexpected error occurred while saving the section.', type: 'error');
         }
     }
 
@@ -196,18 +226,23 @@ class AcademicInfo extends Component
 
     public function confirmDelete(string $type, int $id): void
     {
-        $this->deleteType = $type;
-        $this->itemBeingDeleted = $id;
+        try {
+            $this->deleteType = $type;
+            $this->itemBeingDeleted = $id;
 
-        if ($type === 'grade_level') {
-            $gl = GradeLevel::withCount('sections')->find($id);
-            if ($gl && $gl->sections_count > 0) {
-                $this->dispatch('toast', message: "Cannot delete '{$gl->name}' because it has {$gl->sections_count} assigned sections.", type: 'error');
-                return;
+            if ($type === 'grade_level') {
+                $gl = GradeLevel::withCount('sections')->find($id);
+                if ($gl && $gl->sections_count > 0) {
+                    $this->dispatch('toast', message: "Cannot delete '{$gl->name}' because it has {$gl->sections_count} assigned sections.", type: 'error');
+                    return;
+                }
             }
-        }
 
-        $this->showDeleteModal = true;
+            $this->showDeleteModal = true;
+        } catch (Exception $e) {
+            Log::error('Error confirming delete: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to proceed with deletion request.', type: 'error');
+        }
     }
 
     public function deleteItem(): void
@@ -233,7 +268,11 @@ class AcademicInfo extends Component
                 }
             }
         } catch (QueryException $e) {
+            Log::error('Query error deleting item: ' . $e->getMessage());
             $this->dispatch('toast', message: 'Cannot delete: This record is referenced by active records.', type: 'error');
+        } catch (Exception $e) {
+            Log::error('Unexpected error deleting item: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'An unexpected error occurred while deleting the record.', type: 'error');
         }
 
         $this->showDeleteModal = false;
@@ -244,29 +283,38 @@ class AcademicInfo extends Component
     #[Title('Academic Info')]
     public function render(): View
     {
-        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        try {
+            $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
-        $gradeLevels = GradeLevel::withCount('sections')
-            ->when($this->search && $this->activeTab === 'grade_levels', function ($query) use ($likeOperator) {
-                $query->where(function ($q) use ($likeOperator) {
-                    $q->where('name', $likeOperator, "%{$this->search}%")
-                      ->orWhere('code', $likeOperator, "%{$this->search}%");
-                });
-            })
-            ->orderBy('name')
-            ->paginate(10, ['*'], 'gl_page');
+            $gradeLevels = GradeLevel::withCount('sections')
+                ->when($this->search && $this->activeTab === 'grade_levels', function ($query) use ($likeOperator) {
+                    $query->where(function ($q) use ($likeOperator) {
+                        $q->where('name', $likeOperator, "%{$this->search}%")
+                          ->orWhere('code', $likeOperator, "%{$this->search}%");
+                    });
+                })
+                ->orderBy('name')
+                ->paginate(10, ['*'], 'gl_page');
 
-        $sections = Section::with('gradeLevel')
-            ->when($this->search && $this->activeTab === 'sections', function ($query) use ($likeOperator) {
-                $query->where('name', $likeOperator, "%{$this->search}%");
-            })
-            ->when($this->sectionGradeFilter, fn ($q) => $q->where('grade_level_id', $this->sectionGradeFilter))
-            ->latest()
-            ->paginate(10, ['*'], 'sec_page');
+            $sections = Section::with('gradeLevel')
+                ->when($this->search && $this->activeTab === 'sections', function ($query) use ($likeOperator) {
+                    $query->where('name', $likeOperator, "%{$this->search}%");
+                })
+                ->when($this->sectionGradeFilter, fn ($q) => $q->where('grade_level_id', $this->sectionGradeFilter))
+                ->latest()
+                ->paginate(10, ['*'], 'sec_page');
+
+            $allGradeLevels = GradeLevel::orderBy('name')->get();
+        } catch (Exception $e) {
+            Log::error('Error rendering academic info view: ' . $e->getMessage());
+            $gradeLevels = collect()->paginate(10, ['*'], 'gl_page');
+            $sections = collect()->paginate(10, ['*'], 'sec_page');
+            $allGradeLevels = collect();
+        }
 
         return view('livewire.academic-info', [
             'gradeLevels' => $gradeLevels,
-            'allGradeLevels' => GradeLevel::orderBy('name')->get(['id', 'name']),
+            'allGradeLevels' => $allGradeLevels,
             'sections' => $sections,
         ]);
     }

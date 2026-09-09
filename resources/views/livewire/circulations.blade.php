@@ -91,12 +91,12 @@
                         <span class="flex h-7 w-7 items-center justify-center rounded-full border border-indigo-100 bg-indigo-50 text-xs font-bold text-indigo-600">1</span>
                         <div>
                             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-900">Borrower Identification</h2>
-                            <p class="text-xs text-slate-500">Scan RFID, card, or search by school ID</p>
+                            <p class="text-xs text-slate-500">Scan RFID card, or search by student/employee number</p>
                         </div>
                     </div>
 
                     <div class="space-y-1.5">
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500">Scan or Input Borrower ID / RFID</label>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500">Scan or Input Student/Employee # / RFID</label>
                         <div class="relative">
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
                                 <svg wire:loading.remove wire:target="patronInput" class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -122,7 +122,7 @@
                     @if ($selectedPatron)
                         <div class="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
                             <div class="flex items-center justify-between">
-                                <span class="text-sm font-bold text-slate-900">{{ $selectedPatron->first_name }} {{ $selectedPatron->last_name }}</span>
+                                <span class="text-sm font-bold text-slate-900 capitalize">{{ $selectedPatron->first_name }} {{ $selectedPatron->last_name }}</span>
                                 <div class="flex items-center gap-1.5">
                                     <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800">
                                         {{ $selectedPatron->status }}
@@ -141,8 +141,12 @@
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-2 border-t border-slate-200/80 pt-3 text-xs text-slate-600">
-                                <div><span class="font-medium text-slate-400">School ID:</span> <span class="font-mono font-semibold text-slate-800">{{ $selectedPatron->school_id }}</span></div>
-                                <div><span class="font-medium text-slate-400">Type:</span> <span class="font-semibold text-slate-800">{{ $selectedPatron->patronType?->name ?? 'N/A' }}</span></div>
+                                @if ($selectedPatron->patronType?->name == "student")
+                                    <div><span class="font-medium text-slate-400">Student #:</span> <span class="font-mono font-semibold text-slate-800">{{ $selectedPatron->school_id }}</span></div>
+                                @else
+                                    <div><span class="font-medium text-slate-400">Employee #:</span> <span class="font-mono font-semibold text-slate-800">{{ $selectedPatron->school_id }}</span></div>
+                                @endif
+                                <div><span class="font-medium text-slate-400">Type:</span> <span class="font-semibold text-slate-800 capitalize">{{ $selectedPatron->patronType?->name ?? 'N/A' }}</span></div>
                             </div>
 
                             @if (! $isTimedIn)
@@ -196,14 +200,21 @@
 
                     @if ($selectedAccession)
                         <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                            <div class="text-medium text-slate-500 uppercase">ISBN/ISSN: {{ $selectedAccession->catalog?->isbn_issn ?? 'N/A' }}</div>
                             <div class="flex items-center justify-between gap-2">
-                                <span class="text-sm font-bold leading-snug text-slate-900">{{ $selectedAccession->catalog?->title ?? 'N/A' }}</span>
+                                <span class="text-sm font-bold leading-snug text-slate-900 capitalize">{{ $selectedAccession->catalog?->title ?? 'N/A' }}</span>
                                 <span class="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider {{ strtolower($selectedAccession->status ?? '') === 'available' ? 'border border-emerald-200 bg-emerald-100 text-emerald-800' : 'border border-amber-200 bg-amber-100 text-amber-800' }}">
                                     {{ $selectedAccession->status }}
                                 </span>
                             </div>
-                            <div class="text-xs text-slate-500">
+                            <div class="text-xs text-slate-500 capitalize">
                                 <span>Author: {{ $selectedAccession->catalog?->author?->name ?? 'N/A' }}</span>
+                            </div>
+                            <div class="text-xs text-slate-500 capitalize">
+                                <span>Copyright Year: {{ $selectedAccession->catalog?->publication_year ?? 'N/A' }}</span>
+                            </div>
+                            <div class="text-xs text-slate-500 capitalize">
+                                <span>Call Number: {{ $selectedAccession->call_number ?? 'N/A' }}</span>
                             </div>
                         </div>
                     @else
@@ -263,18 +274,24 @@
                     <div class="flex items-center justify-between border-b border-slate-100 pb-4">
                         <div>
                             <h3 class="text-base font-bold text-slate-900">Return Inspection</h3>
-                            <p class="text-xs text-slate-500">Accession: <span class="font-mono font-medium text-slate-800">{{ $inspectedLoan->accession?->accession_number ?? 'N/A' }}</span></p>
+                            <p class="text-xs text-slate-500">Accession: <span class="font-mono font-medium text-slate-800 uppercase">{{ $inspectedLoan->accession?->accession_number ?? 'N/A' }}</span></p>
                         </div>
-                        <button type="button" wire:click="cancelInspection" class="text-xs font-semibold text-slate-500 hover:text-slate-800">Cancel</button>
+                        <button type="button" wire:click="cancelInspection" class="text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer">Cancel</button>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- LEFT SIDE: ITEM DETAILS & POLICY PENALTY SUMMARY -->
                         <div class="space-y-4 text-sm text-slate-600">
                             <div class="space-y-2">
-                                <p><strong class="text-slate-800 capitalize">Title:</strong> {{ $inspectedLoan->accession?->catalog?->title ?? 'N/A' }}</p>
-                                <p><strong class="text-slate-800">Borrower:</strong> {{ $inspectedLoan->patron?->first_name }} {{ $inspectedLoan->patron?->last_name }}</p>
-                                <p><strong class="text-slate-800">Due Date:</strong> {{ $inspectedLoan->due_at?->format('M d, Y') ?? 'N/A' }}</p>
+                                <p><strong class="text-slate-800">Title:</strong> <span class="capitalize">{{ $inspectedLoan->accession?->catalog?->title ?? 'N/A' }}</span></p>
+                                <p><strong class="text-slate-800">Borrower:</strong> <span class="capitalize">{{ $inspectedLoan->patron?->first_name }} {{ $inspectedLoan->patron?->last_name }}</span></p>
+                                <p><strong class="text-slate-800">Type:</strong> <span class="capitalize">{{ $inspectedLoan->patron?->patronType?->name ?? 'N/A' }}</span></p>
+                                <p><strong class="text-slate-800">Borrow Date:</strong> <span class="capitalize">{{ $inspectedLoan->borrowed_at?->format('M d, Y') ?? 'N/A' }}</span></p>
+                                @if ($inspectedLoan->patron?->patronType?->name)
+                                    @if (strtolower($inspectedLoan->patron?->patronType?->name) === 'student')
+                                        <p><strong class="text-slate-800">Due Date:</strong> <span class="capitalize">{{ $inspectedLoan->due_at?->format('M d, Y') ?? 'N/A' }}</span></p>
+                                    @endif
+                                @endif
                                 <p><strong class="text-slate-800">Book Cost/Price:</strong> <span class="font-semibold text-indigo-700">₱{{ number_format((float)$itemPrice, 2) }}</span></p>
                             </div>
 
@@ -378,8 +395,53 @@
                         <option value="all">All Logs</option>
                     </select>
 
-                    <button type="button" wire:click="exportExcel" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition">Excel</button>
-                    <button type="button" wire:click="exportPdf" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition">PDF</button>
+                    <!-- EXPORT DROPDOWN (ALPINE.JS) -->
+                    <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                        <button
+                            type="button"
+                            @click="open = !open"
+                            class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shadow-xs">
+                            <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Export
+                            <svg class="h-3 w-3 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        <div
+                            x-show="open"
+                            x-cloak
+                            x-transition:enter="transition ease-out duration-150"
+                            x-transition:enter-start="opacity-0 scale-95 transform"
+                            x-transition:enter-end="opacity-100 scale-100 transform"
+                            x-transition:leave="transition ease-in duration-100"
+                            x-transition:leave-start="opacity-100 scale-100 transform"
+                            x-transition:leave-end="opacity-0 scale-95 transform"
+                            class="absolute right-0 z-20 mt-2 w-40 rounded-xl border border-slate-200 bg-white py-1 shadow-lg ring-1 ring-black/5">
+                            <button
+                                type="button"
+                                wire:click="exportExcel"
+                                @click="open = false"
+                                class="flex w-full items-center gap-2 px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50">
+                                <svg class="h-4 w-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Export Excel
+                            </button>
+                            <button
+                                type="button"
+                                wire:click="exportPdf"
+                                @click="open = false"
+                                class="flex w-full items-center gap-2 px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50">
+                                <svg class="h-4 w-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                                Export PDF
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -391,10 +453,13 @@
                             <th class="px-4 py-3 whitespace-nowrap">Accession #</th>
                             <th class="px-4 py-3 whitespace-nowrap">Book Title</th>
                             <th class="px-4 py-3 whitespace-nowrap">Student/Employee #</th>
-                            <th class="px-4 py-3 whitespace-nowrap">Borrower Name</th>
-                            <th class="px-4 py-3 whitespace-nowrap">Borrowed At</th>
-                            <th class="px-4 py-3 whitespace-nowrap">Due At</th>
+                            <th class="px-4 py-3 whitespace-nowrap">Name</th>
+                            <th class="px-4 py-3 whitespace-nowrap">Type</th>
+                            <th class="px-4 py-3 whitespace-nowrap">Borrowed Date</th>
+                            <th class="px-4 py-3 whitespace-nowrap">Due Date</th>
+                            <th class="px-4 py-3 whitespace-nowrap">Returned Date</th>
                             <th class="px-4 py-3 whitespace-nowrap">Receipt #</th>
+                            <th class="px-4 py-3 whitespace-nowrap">Payment</th>
                             <th class="px-4 py-3 whitespace-nowrap">Fine Amount</th>
                             <th class="px-4 py-3 whitespace-nowrap">Condition</th>
                             <th class="px-4 py-3 whitespace-nowrap">Status</th>
@@ -404,8 +469,13 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100 border-t border-slate-100">
                         @forelse ($activeLoans as $loan)
+                            @php
+                                $isStudent = strtolower($loan->patron?->patronType?->name ?? '') === 'student';
+                                $statusLower = strtolower($loan->status ?? '');
+                                $conditionLower = strtolower($loan->condition ?? 'good');
+                            @endphp
                             <tr class="hover:bg-slate-50/50">
-                                <td class="px-4 py-3 font-mono font-medium text-slate-900 whitespace-nowrap">
+                                <td class="px-4 py-3 font-mono font-medium text-slate-900 uppercase whitespace-nowrap">
                                     {{ $loan->accession?->accession_number ?? 'N/A' }}
                                 </td>
                                 <td class="px-4 py-3 font-medium text-slate-800 capitalize whitespace-nowrap">
@@ -415,64 +485,57 @@
                                     {{ $loan->patron?->school_id ?? 'N/A' }}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
-                                    {{ $loan->patron?->first_name }} {{ $loan->patron?->middle_name ?? '' }} {{ $loan->patron?->last_name }} {{ $loan->patron?->suffix ?? '' }}
+                                    <span class="capitalize">{{ $loan->patron?->first_name }} {{ $loan->patron?->middle_name ?? '' }} {{ $loan->patron?->last_name }}</span> {{ strtoupper($loan->patron?->suffix) ?? '' }}
+                                </td>
+                                <td class="px-4 py-3 capitalize whitespace-nowrap">
+                                    {{ $loan->patron?->patronType?->name ?? 'N/A' }}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     {{ $loan->borrowed_at?->format('M d, Y h:i A') ?? '-' }}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
-                                    {{ $loan->due_at?->format('M d, Y') ?? '-' }}
+                                    {{ $isStudent ? ($loan->due_at?->format('M d, Y') ?? '-') : '-' }}
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    {{ $loan->returned_at?->format('M d, Y h:i A') ?? '-' }}
                                 </td>
                                 <td class="px-4 py-3 font-mono text-xs whitespace-nowrap">
                                     {{ $loan->receipt_number ?? '-' }}
                                 </td>
-                                <td class="px-4 py-3 font-semibold whitespace-nowrap {{ $loan->status === "returned" && $loan->is_paid === false ? 'text-rose-600' : 'text-slate-600' }}">
-                                    ₱{{ number_format((float) ($loan->fine_amount ?? 0), 2) }}
+                                <td class="px-4 py-3 font-mono text-xs whitespace-nowrap">
+                                    @if ($loan->returned_at && $loan->fine_amount > 0)
+                                        {{ $loan->is_paid ? 'Paid' : 'Unpaid' }}
+                                    @else
+                                        -
+                                    @endif
                                 </td>
-                                <!-- ADDED CONDITION COLUMN -->
+                                <td class="px-4 py-3 font-semibold whitespace-nowrap">
+                                    @if ($loan->returned_at && $loan->fine_amount > 0)
+                                        <span class="text-red-600">₱{{ number_format((float) $loan->fine_amount, 2) }}</span>
+                                    @else
+                                        <span class="text-slate-400">-</span>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
-                                    @php
-                                        $cond = strtolower($loan->condition ?? 'good');
-                                        $condClass = match($cond) {
-                                            'good' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                            'damaged' => 'bg-amber-50 text-amber-700 border-amber-200',
-                                            'lost' => 'bg-rose-50 text-rose-700 border-rose-200',
-                                            default => 'bg-slate-50 text-slate-700 border-slate-200',
-                                        };
-                                    @endphp
-                                    <span class="inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium capitalize {{ $condClass }}">
-                                        {{ $loan->condition ?? 'Good' }}
+                                    <span class="inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium capitalize {{ match($conditionLower) { 'good' => 'bg-emerald-50 text-emerald-700 border-emerald-200', 'damaged' => 'bg-amber-50 text-amber-700 border-amber-200', 'lost' => 'bg-rose-50 text-rose-700 border-rose-200', default => 'bg-slate-50 text-slate-700 border-slate-200' } }}">
+                                        {{ ucfirst($loan->condition ?? 'Good') }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
-                                    @php
-                                        $statusClass = match(strtolower($loan->status ?? '')) {
-                                            'borrowed' => 'bg-indigo-100 text-indigo-800 border-indigo-200',
-                                            'returned' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
-                                            'overdue' => 'bg-rose-100 text-rose-800 border-rose-200',
-                                            default => 'bg-slate-100 text-slate-800 border-slate-200',
-                                        };
-                                    @endphp
-                                    <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider {{ $statusClass }}">
+                                    <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider {{ match($statusLower) { 'borrowed' => 'bg-indigo-100 text-indigo-800 border-indigo-200', 'returned' => 'bg-emerald-100 text-emerald-800 border-emerald-200', 'overdue' => 'bg-rose-100 text-rose-800 border-rose-200', default => 'bg-slate-100 text-slate-800 border-slate-200' } }}">
                                         {{ $loan->status }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-500">
-                                    {{ $loan->user?->getFullNameAttribute() ?? 'System' }}
+                                    {{ $loan->user?->getFullNameAttribute() ?? 'System User' }}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-right">
-                                    @if (strtolower($loan->status ?? '') === 'borrowed' || strtolower($loan->status ?? '') === 'overdue')
-                                        <button
-                                            type="button"
-                                            wire:click="quickInspect('{{ $loan->accession?->accession_number }}')"
-                                            class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition">
+                                    @if (in_array($statusLower, ['borrowed', 'overdue']))
+                                        <button type="button" wire:click="quickInspect('{{ $loan->accession?->accession_number }}')" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition">
                                             Return / Inspect
                                         </button>
-                                    @elseif(strtolower($loan->status ?? '') === 'returned' && !$loan->is_paid && in_array(strtolower($loan->condition ?? ''), ['damaged', 'lost']))
-                                        <button
-                                            type="button"
-                                            wire:click="payFine('{{ $loan->accession?->accession_number }}')"
-                                            class="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 shadow-xs hover:bg-amber-100 transition">
+                                    @elseif ($statusLower === 'returned' && !$loan->is_paid && in_array($conditionLower, ['damaged', 'lost']))
+                                        <button type="button" wire:click="payFine({{ $loan->id }})" class="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 shadow-2xs hover:bg-amber-100 transition">
                                             Settle Fine
                                         </button>
                                     @else
@@ -482,7 +545,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="12" class="px-4 py-8 text-center text-xs font-medium text-slate-400">
+                                <td colspan="15" class="px-4 py-8 text-center text-xs font-medium text-slate-400">
                                     No circulation logs found matching criteria.
                                 </td>
                             </tr>
@@ -493,14 +556,14 @@
 
             <!-- Pagination -->
             @if (method_exists($activeLoans, 'links'))
-                <div class="pt-2">
+                <div class="p-4 pt-2">
                     {{ $activeLoans->links() }}
                 </div>
             @endif
         </div>
     @endif
 
-    <!-- EDIT / SETTLE PAYMENT MODAL -->
+     <!-- EDIT / SETTLE PAYMENT MODAL -->
     @if ($showEditPaymentModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
             <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-5">

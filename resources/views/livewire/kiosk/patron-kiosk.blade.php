@@ -3,8 +3,10 @@
     x-data="{
         timer: null,
         rfidBuffer: '',
+        maxBufferLength: 50,
 
         handleGlobalKey(e) {
+            // Allow typing inside input elements normally
             if (document.activeElement.tagName === 'INPUT') return;
 
             if (e.key === 'Enter') {
@@ -13,7 +15,12 @@
                     this.rfidBuffer = '';
                 }
             } else if (e.key.length === 1) {
-                this.rfidBuffer += e.key;
+                // Prevent buffer overflow from erratic keystrokes/spam
+                if (this.rfidBuffer.length < this.maxBufferLength) {
+                    this.rfidBuffer += e.key;
+                } else {
+                    this.rfidBuffer = ''; // Reset on overflow attempt
+                }
             }
         },
 
@@ -21,7 +28,7 @@
             clearTimeout(this.timer);
             this.timer = setTimeout(() => {
                 $wire.closeResultModal();
-            }, 3000);
+            }, 1000);
         }
     }"
     @window.keydown="handleGlobalKey($event)"
@@ -51,7 +58,7 @@
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Active Hours: 9:00 AM – 5:00 PM</span>
+            <span>Active Hours: 7:00 AM – 11:00 PM</span>
         </div>
 
         <!-- Animated Light Blue Scanner Icon -->
@@ -70,6 +77,7 @@
                 <input
                     type="text"
                     wire:model="rfid_number"
+                    maxlength="50"
                     placeholder="Type School ID / RFID & hit Enter..."
                     class="w-full px-3 py-2 text-xs bg-sky-50/50 text-slate-700 border border-sky-200 rounded-xl text-center focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 transition"
                     autofocus
