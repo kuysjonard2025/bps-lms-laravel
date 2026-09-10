@@ -68,21 +68,6 @@ class Catalogs extends Component
         ];
     }
 
-    protected function attributes(): array
-    {
-        return [
-            'title' => 'Title',
-            'isbn_issn' => 'ISBN/ISSN',
-            'edition' => 'Edition',
-            'publication_year' => 'Publication Year',
-            'description' => 'Description',
-            'author_id' => 'Author',
-            'asset_type_id' => 'Asset Type',
-            'publisher_id' => 'Publisher',
-            'general_reference_id' => 'General Reference',
-        ];
-    }
-
     public function updatedAuthorId($value): void
     {
         if (blank($value)) $this->author_id = null;
@@ -147,7 +132,19 @@ class Catalogs extends Component
         $this->cleanFields(['title', 'isbn_issn', 'edition', 'description']);
 
         // Capture the validated data into the $validated variable
-        $validated = $this->validate();
+        $validated = $this->validate(
+            attributes: [
+                'title' => 'Title',
+                'isbn_issn' => 'ISBN/ISSN',
+                'edition' => 'Edition',
+                'publication_year' => 'Publication Year',
+                'description' => 'Description',
+                'author_id' => 'Author',
+                'asset_type_id' => 'Asset Type',
+                'publisher_id' => 'Publisher',
+                'general_reference_id' => 'General Reference',
+            ]
+        );
 
         // Persist to DB
         if ($this->catalogIdBeingEdited) {
