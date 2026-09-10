@@ -457,12 +457,14 @@
                             <th class="px-4 py-3 whitespace-nowrap">Type</th>
                             <th class="px-4 py-3 whitespace-nowrap">Borrowed Date</th>
                             <th class="px-4 py-3 whitespace-nowrap">Due Date</th>
+                            <th class="px-4 py-3 whitespace-nowrap">Status</th>
+                            @if ($filterStatus === 'returned' || $filterStatus === 'all')
                             <th class="px-4 py-3 whitespace-nowrap">Returned Date</th>
                             <th class="px-4 py-3 whitespace-nowrap">Receipt #</th>
                             <th class="px-4 py-3 whitespace-nowrap">Payment</th>
                             <th class="px-4 py-3 whitespace-nowrap">Fine Amount</th>
+                            @endif
                             <th class="px-4 py-3 whitespace-nowrap">Condition</th>
-                            <th class="px-4 py-3 whitespace-nowrap">Status</th>
                             <th class="px-4 py-3 whitespace-nowrap">Processed By</th>
                             <th class="px-4 py-3 whitespace-nowrap text-right">Action</th>
                         </tr>
@@ -497,6 +499,12 @@
                                     {{ $isStudent ? ($loan->due_at?->format('M d, Y') ?? '-') : '-' }}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
+                                    <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider {{ match($statusLower) { 'borrowed' => 'bg-indigo-100 text-indigo-800 border-indigo-200', 'returned' => 'bg-emerald-100 text-emerald-800 border-emerald-200', 'overdue' => 'bg-rose-100 text-rose-800 border-rose-200', default => 'bg-slate-100 text-slate-800 border-slate-200' } }}">
+                                        {{ $loan->status }}
+                                    </span>
+                                </td>
+                                @if ($filterStatus === 'returned' || $filterStatus === 'all')
+                                <td class="px-4 py-3 whitespace-nowrap">
                                     {{ $loan->returned_at?->format('M d, Y h:i A') ?? '-' }}
                                 </td>
                                 <td class="px-4 py-3 font-mono text-xs whitespace-nowrap">
@@ -516,14 +524,10 @@
                                         <span class="text-slate-400">-</span>
                                     @endif
                                 </td>
+                                @endif
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     <span class="inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium capitalize {{ match($conditionLower) { 'good' => 'bg-emerald-50 text-emerald-700 border-emerald-200', 'damaged' => 'bg-amber-50 text-amber-700 border-amber-200', 'lost' => 'bg-rose-50 text-rose-700 border-rose-200', default => 'bg-slate-50 text-slate-700 border-slate-200' } }}">
                                         {{ ucfirst($loan->condition ?? 'Good') }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider {{ match($statusLower) { 'borrowed' => 'bg-indigo-100 text-indigo-800 border-indigo-200', 'returned' => 'bg-emerald-100 text-emerald-800 border-emerald-200', 'overdue' => 'bg-rose-100 text-rose-800 border-rose-200', default => 'bg-slate-100 text-slate-800 border-slate-200' } }}">
-                                        {{ $loan->status }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-500">
@@ -545,7 +549,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="15" class="px-4 py-8 text-center text-xs font-medium text-slate-400">
+                                <td colspan="{{ $filterStatus === 'returned' || $filterStatus === 'all' ? '15' : '11' }}" class="px-4 py-8 text-center text-xs font-medium text-slate-400">
                                     No circulation logs found matching criteria.
                                 </td>
                             </tr>

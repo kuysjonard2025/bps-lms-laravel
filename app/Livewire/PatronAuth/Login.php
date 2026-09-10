@@ -10,7 +10,7 @@ use Livewire\Component;
 
 class Login extends Component
 {
-    public string $patronId = '';
+    public string $borrowerNumber = '';
 
     public function mount(): void
     {
@@ -22,10 +22,10 @@ class Login extends Component
     public function login(): void
     {
         $this->validate([
-            'patronId' => 'required|string|max:50',
+            'borrowerNumber' => 'required|string|max:50',
         ]);
 
-        $cleanId = trim($this->patronId);
+        $cleanId = trim($this->borrowerNumber);
 
         // Search by School ID or RFID Tag
         $patron = Patron::where('school_id', $cleanId)
@@ -33,12 +33,12 @@ class Login extends Component
             ->first();
 
         if (! $patron) {
-            $this->addError('patronId', 'Student / Employee ID or RFID tag not found.');
+            $this->addError('borrowerNumber', 'Student / Employee ID or RFID tag not found.');
             return;
         }
 
         if (strtolower($patron->status) !== 'active') {
-            $this->addError('patronId', 'Your library account is currently inactive. Please approach the librarian.');
+            $this->addError('borrowerNumber', 'Your library account is currently inactive. Please approach the librarian.');
             return;
         }
 

@@ -8,6 +8,9 @@ class Sidebar extends Component
 {
     public function render()
     {
+        $user = auth()->user();
+        $isLibrarian = $user && $user->hasRole('librarian');
+
         $sections = [
             'Core' => [
                 [
@@ -17,7 +20,38 @@ class Sidebar extends Component
                 ],
             ],
 
-            'Maintenance' => [
+            'Process' => [
+                [
+                    'name' => 'Acquisitions',
+                    'route' => 'acquisitions',
+                    'icon' => 'shopping-cart',
+                ],
+                [
+                    'name' => 'Borrower Logs',
+                    'route' => 'patron-logs',
+                    'icon' => 'clock',
+                ],
+                [
+                    'name' => 'Circulations',
+                    'route' => 'circulations',
+                    'icon' => 'arrow-right',
+                ],
+                [
+                    'name' => 'Borrower Records',
+                    'route' => 'patron-records',
+                    'icon' => 'identification',
+                ],
+                [
+                    'name' => 'Inventory Management',
+                    'route' => 'inventory-management',
+                    'icon' => 'clipboard-document-list',
+                ],
+            ],
+        ];
+
+        // Append Maintenance and System Logs sections strictly for full Librarians
+        if ($isLibrarian) {
+            $sections['Maintenance'] = [
                 [
                     'name' => 'Asset Details',
                     'route' => 'asset-details',
@@ -53,37 +87,9 @@ class Sidebar extends Component
                     'route' => 'circulation-policy',
                     'icon' => 'adjustments-horizontal',
                 ],
-            ],
+            ];
 
-            'Process' => [
-                [
-                    'name' => 'Acquisitions',
-                    'route' => 'acquisitions',
-                    'icon' => 'shopping-cart',
-                ],
-                [
-                    'name' => 'Borrower Logs',
-                    'route' => 'patron-logs',
-                    'icon' => 'clock',
-                ],
-                [
-                    'name' => 'Circulations',
-                    'route' => 'circulations',
-                    'icon' => 'arrow-right',
-                ],
-                [
-                    'name' => 'Borrower Records',
-                    'route' => 'patron-records',
-                    'icon' => 'identification',
-                ],
-                [
-                    'name' => 'Inventory Management',
-                    'route' => 'inventory-management',
-                    'icon' => 'clipboard-document-list',
-                ],
-
-            ],
-            'System Log & Backup' => [
+            $sections['System Log & Backup'] = [
                 [
                     'name' => 'Authentication Logs',
                     'route' => 'authentication-logs',
@@ -99,8 +105,8 @@ class Sidebar extends Component
                     'route' => 'database-backups',
                     'icon' => 'server',
                 ]
-            ],
-        ];
+            ];
+        }
 
         return view('livewire.components.sidebar', compact('sections'));
     }

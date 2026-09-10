@@ -13,6 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -315,8 +316,10 @@ class Circulations extends Component
             $this->reset(['accessionInput', 'selectedAccession']);
             $this->dispatch('toast', message: 'Book issued successfully!', type: 'success');
         } catch (QueryException $e) {
+            Log::error('Database error during checkout: ' . $e->getMessage());
             $this->dispatch('toast', message: 'Database error occurred during checkout transaction.', type: 'error');
         } catch (\Exception $e) {
+            Log::error('Unexpected error during checkout: ' . $e->getMessage());
             $this->dispatch('toast', message: 'An unexpected error occurred during checkout.', type: 'error');
         }
     }
@@ -533,12 +536,12 @@ class Circulations extends Component
 
             // Calculate total paid fines from the retrieved dataset
             $totalPaidFineSum = $loans->filter(function ($loan) {
-                return $loan->returned_at && $loan->is_precision === true || $loan->is_paid === true;
+                return $loan->returned_at && $loan->is_paid === true;
             })->sum('fine_amount');
 
             $pdf = Pdf::loadView('pdf.circulations-report', [
-                'activeLoans'      => $loans,
-                'filterStatus'     => $this->filterStatus,
+                'activeLoans'    => $loans,
+                'filterStatus'   => $this->filterStatus,
                 'totalPaidFineSum' => $totalPaidFineSum,
             ])->setPaper('a4', 'landscape');
 

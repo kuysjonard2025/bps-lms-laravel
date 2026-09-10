@@ -145,7 +145,8 @@
             <tr>
                 <td style="width: 50%;">
                     <span class="meta-label">Generated On:</span> {{ now()->format('F d, Y g:i A') }}<br>
-                    <span class="meta-label">Search Filter:</span> {{ $search ?? 'None (All applied)' }}
+                    <span class="meta-label">Search Filter:</span> {{ $search ?? 'None (All applied)' }}<br>
+                    <span class="meta-label">Status Filter:</span> {{ ucwords($filterStatus ?? 'All') }}
                 </td>
                 <td style="width: 50%;">
                     <span class="meta-label">Total Records:</span> {{ count($activeLoans) }}<br>
@@ -156,34 +157,41 @@
         </table>
     </div>
 
-    <!-- Data Table with Deep Blue Headers -->
+    <!-- Data Table matching Live Blade View -->
     <table class="data-table">
         <thead>
             <tr>
-                <th style="width: 7%;">Accession #</th>
-                <th style="width: 13%;">Book Title</th>
-                <th style="width: 8%;">ID #</th>
-                <th style="width: 10%;">Name</th>
-                <th style="width: 6%;">Type</th>
-                <th style="width: 9%;">Borrowed Date</th>
-                <th style="width: 7%;">Due Date</th>
-                <th style="width: 7%;">Returned Date</th>
-                <th style="width: 7%;">Receipt #</th>
-                <th style="width: 7%;">Payment</th>
-                <th style="width: 7%;">Fine Amount</th>
-                <th style="width: 7%;">Condition</th>
+                <th style="width: 6%;">Accession #</th>
+                <th style="width: 12%;">Book Title</th>
+                <th style="width: 7%;">Student/Employee #</th>
+                <th style="width: 9%;">Name</th>
+                <th style="width: 5%;">Type</th>
+                <th style="width: 8%;">Borrowed Date</th>
+                <th style="width: 6%;">Due Date</th>
                 <th style="width: 6%;">Status</th>
-                <th style="width: 6%;">Processed</th>
+                @if ($filterStatus === 'returned' || $filterStatus === 'all')
+                <th style="width: 8%;">Returned Date</th>
+                <th style="width: 5%;">Receipt #</th>
+                <th style="width: 5%;">Payment</th>
+                <th style="width: 6%;">Fine Amount</th>
+                @endif
+                <th style="width: 6%;">Condition</th>
+                <th style="width: 7%;">Processed By</th>
             </tr>
         </thead>
         <tbody>
             @php
                 $totalFineSum = 0;
+                $totalPaidFineSum = 0;
+                $showReturnCols = ($filterStatus === 'returned' || $filterStatus === 'all');
+                $totalColumns = $showReturnCols ? 14 : 10;
             @endphp
             @forelse ($activeLoans as $loan)
                 @php
                     if (!($loan->is_paid === true)) {
                         $totalFineSum += (float) ($loan->fine_amount ?? 0);
+                    } else {
+                        $totalPaidFineSum += (float) ($loan->fine_amount ?? 0);
                     }
 
                     $cond = strtolower($loan->condition ?? 'good');
@@ -202,12 +210,17 @@
                         default => 'badge-default',
                     };
 
+                    $isStudent = strtolower($loan->patron?->patronType?->name ?? '') === 'student';
+
                     $borrowerName = trim(implode(' ', array_filter([
                         $loan->patron?->first_name,
                         $loan->patron?->middle_name,
                         $loan->patron?->last_name,
-                        $loan->patron?->suffix,
                     ])));
+                    $suffix = strtoupper($loan->patron?->suffix ?? '');
+                    if ($suffix) {
+                        $borrowerName .= ' ' . $suffix;
+                    }
 
                     $processedBy = method_exists($loan->user, 'getFullNameAttribute')
                         ? $loan->user?->getFullNameAttribute()
@@ -215,45 +228,35 @@
                 @endphp
                 <tr>
                     <td><strong>{{ strtoupper($loan->accession?->accession_number) ?? 'N/A' }}</strong></td>
-                    <td>{{ ucwords($loan->accession->catalog->title) ?? 'N/A' }}</td>
+                    <td>{{ ucwords($loan->accession?->catalog?->title) ?? 'N/A' }}</td>
                     <td>{{ $loan->patron?->school_id ?? 'N/A' }}</td>
                     <td>{{ $borrowerName ? ucwords($borrowerName) : 'N/A' }}</td>
                     <td>{{ ucwords($loan->patron?->patronType?->name) ?? 'N/A' }}</td>
                     <td>{{ $loan->borrowed_at?->format('M d, Y h:i A') ?? '-' }}</td>
-                    <td>{{ strtolower($loan->patron?->patronType?->name) === 'student' ? $loan->due_at?->format('M d, Y') : '-' }}</td>
+                    <td>{{ $isStudent ? ($loan->due_at?->format('M d, Y') ?? '-') : '-' }}</td>
+                    <td>
+                        <span class="badge {{ $statusBadge }}">{{ ucwords($loan->status ?? 'N/A') }}</span>
+                    </td>
+                    @if ($showReturnCols)
                     <td>{{ $loan->returned_at?->format('M d, Y h:i A') ?? '-' }}</td>
                     <td>{{ $loan->receipt_number ?? '-' }}</td>
-                    @if ($loan->returned_at)
-                        @if ($loan->fine_amount > 0)
-                            <td>{{ $loan->is_paid === true ? 'Paid' : 'Unpaid' }}</td>
+                    <td>
+                        @if ($loan->returned_at && $loan->fine_amount > 0)
+                            {{ $loan->is_paid === true ? 'Paid' : 'Unpaid' }}
                         @else
-                            <td>-</td>
+                            -
                         @endif
-
-                        @if ($loan->fine_amount > 0)
-                            <td>
-                                <span class="text-danger">
-                                    P{{ number_format((float) ($loan->fine_amount ?? 0), 2) }}
-                                </span>
-                            </td>
+                    </td>
+                    <td>
+                        @if ($loan->returned_at && $loan->fine_amount > 0)
+                            <span class="text-danger">P{{ number_format((float) $loan->fine_amount, 2) }}</span>
                         @else
-                            <td>
-                                <span class="text-success">
-                                    P{{ number_format((float) ($loan->fine_amount ?? 0), 2) }}
-                                </span>
-                            </td>
+                            <span style="color: #94a3b8;">-</span>
                         @endif
-                    @else
-                        <td>-</td>
-                        <td>
-                            <span class="empty-cell">₱{{ number_format((float) ($loan->fine_amount ?? 0), 2) }}</span>
-                        </td>
+                    </td>
                     @endif
                     <td>
                         <span class="badge {{ $condBadge }}">{{ ucwords($loan->condition ?? 'Good') }}</span>
-                    </td>
-                    <td>
-                        <span class="badge {{ $statusBadge }}">{{ ucwords($loan->status ?? 'N/A') }}</span>
                     </td>
                     <td>
                         {{ ucwords(strtolower($processedBy)) }}
@@ -261,21 +264,21 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="14" class="empty-cell">
+                    <td colspan="{{ $totalColumns }}" class="empty-cell">
                         No circulation records found matching criteria.
                     </td>
                 </tr>
             @endforelse
 
-            <!-- Grand Total Row -->
-            @if(count($activeLoans) > 0)
+            <!-- Grand Total Rows -->
+            @if($filterStatus === 'all' || $filterStatus === 'returned')
                 <tr class="total-row">
-                    <td colspan="10" style="text-align: right; text-transform: uppercase;">Grand Total (Unpaid Fines):</td>
-                    <td colspan="4">P{{ number_format($totalFineSum, 2) }}</td>
+                    <td colspan="{{ $showReturnCols ? 11 : 7 }}" style="text-align: right; text-transform: uppercase;">Grand Total (Unpaid Fines):</td>
+                    <td colspan="3">P{{ number_format($totalFineSum, 2) }}</td>
                 </tr>
                 <tr class="total-row">
-                    <td colspan="10" style="text-align: right; text-transform: uppercase;">Grand Total (Paid Fines):</td>
-                    <td colspan="4">P{{ number_format($totalPaidFineSum, 2) }}</td>
+                    <td colspan="{{ $showReturnCols ? 11 : 7 }}" style="text-align: right; text-transform: uppercase;">Grand Total (Paid Fines):</td>
+                    <td colspan="3">P{{ number_format($totalPaidFineSum, 2) }}</td>
                 </tr>
             @endif
         </tbody>

@@ -95,7 +95,7 @@
                             <div>
                                 <h2 class="text-lg font-bold text-slate-900 capitalize">{{ $selectedPatron->first_name }} {{ $selectedPatron->last_name }}</h2>
                                 <p class="text-xs text-slate-500">
-                                    Student/Employee #: <strong class="text-slate-700 font-mono">{{ $selectedPatron->school_id }}</strong> •
+                                    {{ $selectedPatron->patronType->name == 'student' ? 'Student' : 'Employee' }} #: <strong class="text-slate-700 font-mono">{{ $selectedPatron->school_id }}</strong> •
                                     Email: <span class="text-slate-700">{{ $selectedPatron->email ?? 'N/A' }}</span>
                                 </p>
                             </div>

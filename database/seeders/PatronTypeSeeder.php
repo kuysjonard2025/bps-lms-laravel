@@ -15,11 +15,11 @@ class PatronTypeSeeder extends Seeder
     {
         $patronTypes = [
             [
-                'name' => 'Student',
+                'name' => 'student',
                 // 'description' => 'Enrolled undergraduate or postgraduate students',
             ],
             [
-                'name' => 'Teacher',
+                'name' => 'teacher',
                 // 'description' => 'Academic teaching staff and professors',
             ],
             // [

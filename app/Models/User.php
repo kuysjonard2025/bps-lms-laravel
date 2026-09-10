@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Livewire\Traits\LogsActivity;
+use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -48,7 +49,29 @@ use Illuminate\Support\Str;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, LogsActivity;
+    use HasFactory, Notifiable, LogsActivity, HasRoles;
+
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        parent::booted();
+
+        // Automatically assign Spatie role on creation based on the 'role' column
+        static::created(function (User $user) {
+            if ($user->role) {
+                $user->assignRole($user->role);
+            }
+        });
+
+        // Automatically update Spatie role if the 'role' column changes
+        static::updated(function (User $user) {
+            if ($user->isDirty('role') && $user->role) {
+                $user->syncRoles([$user->role]);
+            }
+        });
+    }
 
     /**
      * Get the attributes that should be cast.

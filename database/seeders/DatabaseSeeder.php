@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
@@ -16,9 +17,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Safe creation: Only creates the user if 'role' => 'librarian' does not exist
-        User::firstOrCreate(
-            ['role' => 'librarian'], // Search criteria: Ensures only 1 librarian ever exists
+        // 1. Ensure Spatie roles exist
+        Role::firstOrCreate(['name' => 'librarian']);
+        Role::firstOrCreate(['name' => 'assistant']);
+
+        // 2. Create or find the admin user
+        $admin = User::firstOrCreate(
+            ['username' => 'admin'],
             [
                 'first_name'        => null,
                 'middle_name'       => null,
@@ -28,13 +33,15 @@ class DatabaseSeeder extends Seeder
                 'contact_number'    => null,
                 'email'             => null,
                 'email_verified_at' => null,
-                'username'          => 'admin', // Required for login!
+                'role'              => 'librarian',
                 'password'          => Hash::make('Admin2026'),
             ]
         );
 
-        // Optional: Generate 10 random fake users using the updated UserFactory
-        // User::factory(10)->create();
+        // 3. Explicitly assign the Spatie role to guarantee the pivot record exists
+        if (!$admin->hasRole('librarian')) {
+            $admin->assignRole('librarian');
+        }
 
         $this->call([
             PatronTypeSeeder::class,

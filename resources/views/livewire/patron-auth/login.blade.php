@@ -12,23 +12,23 @@
                         onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\'font-black text-blue-900 text-xl tracking-tighter\'>BPS</span>';"
                     >
                 </div>
-                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Library Patron Portal</h1>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Library Borrower Portal</h1>
                 <p class="text-xs text-slate-500">Enter your Student / Employee ID or scan your RFID tag to view your loan history.</p>
             </div>
 
             <form wire:submit="login" class="space-y-4">
                 <div class="space-y-1.5">
-                    <label for="patronId" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Student / Employee ID or RFID</label>
+                    <label for="borrowerNumber" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Student / Employee ID or RFID</label>
                     <input
                         type="text"
-                        id="patronId"
-                        wire:model="patronId"
+                        id="borrowerNumber"
+                        wire:model="borrowerNumber"
                         placeholder="e.g. 2024-0001 or Scan Tag"
-                        class="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-slate-800 transition outline-none @error('patronId') border-rose-300 bg-rose-50/30 @enderror"
+                        class="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-slate-800 transition outline-none @error('borrowerNumber') border-rose-300 bg-rose-50/30 @enderror"
                         autofocus
                         required
                     >
-                    @error('patronId')
+                    @error('borrowerNumber')
                         <p class="text-xs text-rose-600 mt-1 font-medium">{{ $message }}</p>
                     @enderror
                 </div>

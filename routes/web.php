@@ -29,6 +29,7 @@ use App\Livewire\Vendors;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Spatie\Permission\Middleware\RoleMiddleware;
 
 Route::middleware('guest')->group(function () {
     Route::get('/', LoginComponent::class)->name('login');
@@ -72,23 +73,29 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['profile.completed', 'verified'])->group(function () {
         Route::get('/dashboard', Dashboard::class)->name('dashboard');
 
-        Route::get('/asset-details', AssetDetails::class)->name('asset-details');
-        Route::get('/catalogs', Catalogs::class)->name('catalogs');
-        Route::get('/vendors', Vendors::class)->name('vendors');
-        Route::get('/accessions', Accessions::class)->name('accessions');
-        Route::get('/academic-info', AcademicInfo::class)->name('academic-info');
-        Route::get('/registrations', Registrations::class)->name('registrations');
-        Route::get('/circulation-policy', CirculationPolicy::class)->name('circulation-policy');
+        // Process (Accessible by both roles)
+        Route::middleware([RoleMiddleware::using('librarian|assistant')])->group(function () {
+            Route::get('/acquisitions', Acquisitions::class)->name('acquisitions');
+            Route::get('/borrower-logs', PatronLogs::class)->name('patron-logs');
+            Route::get('/circulations', Circulations::class)->name('circulations');
+            Route::get('/borrower-records', PatronRecords::class)->name('patron-records');
+            Route::get('/inventory-management', InventoryManagement::class)->name('inventory-management');
+        });
 
-        Route::get('/acquisitions', Acquisitions::class)->name('acquisitions');
-        Route::get('/borrower-logs', PatronLogs::class)->name('patron-logs');
-        Route::get('/circulations', Circulations::class)->name('circulations');
-        Route::get('/borrower-records', PatronRecords::class)->name('patron-records');
-        Route::get('/inventory-management', InventoryManagement::class)->name('inventory-management');
+        // Maintenance & System Reports (Strictly for full Librarians)
+        Route::middleware([RoleMiddleware::using('librarian')])->group(function () {
+            Route::get('/asset-details', AssetDetails::class)->name('asset-details');
+            Route::get('/catalogs', Catalogs::class)->name('catalogs');
+            Route::get('/vendors', Vendors::class)->name('vendors');
+            Route::get('/accessions', Accessions::class)->name('accessions');
+            Route::get('/academic-info', AcademicInfo::class)->name('academic-info');
+            Route::get('/registrations', Registrations::class)->name('registrations');
+            Route::get('/circulation-policy', CirculationPolicy::class)->name('circulation-policy');
 
-        Route::get('/authentication-logs', AuthenticationLogs::class)->name('authentication-logs');
-        Route::get('/user-activity-logs', UserActivityLogs::class)->name('user-activity-logs');
-        Route::get('/database-backups', DatabaseBackups::class)->name('database-backups');
+            Route::get('/authentication-logs', AuthenticationLogs::class)->name('authentication-logs');
+            Route::get('/user-activity-logs', UserActivityLogs::class)->name('user-activity-logs');
+            Route::get('/database-backups', DatabaseBackups::class)->name('database-backups');
+        });
     });
 
     Route::post('/logout', function () {
