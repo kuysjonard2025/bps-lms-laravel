@@ -68,6 +68,21 @@ class Catalogs extends Component
         ];
     }
 
+    protected function attribute(): array
+    {
+        return [
+            'title' => 'Title',
+            'isbn_issn' => 'ISBN/ISSN',
+            'edition' => 'Edition',
+            'publication_year' => 'Publication Year',
+            'description' => 'Description',
+            'author_id' => 'Author',
+            'asset_type_id' => 'Asset Type',
+            'publisher_id' => 'Publisher',
+            'general_reference_id' => 'General Reference',
+        ];
+    }
+
     public function updatedAuthorId($value): void
     {
         if (blank($value)) $this->author_id = null;
