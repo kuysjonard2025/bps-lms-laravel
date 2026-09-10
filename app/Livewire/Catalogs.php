@@ -68,7 +68,7 @@ class Catalogs extends Component
         ];
     }
 
-    protected function attribute(): array
+    protected function attributes(): array
     {
         return [
             'title' => 'Title',
