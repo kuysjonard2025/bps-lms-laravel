@@ -104,6 +104,7 @@
                     <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">ACQ #</th>
                     <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">Txn #</th>
                     <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">Delivery Type</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">ISBN/ISSN</th>
                     <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">Title</th>
                     <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">Author</th>
                     <th scope="col" class="px-3 sm:px-4 py-3 whitespace-nowrap">Asset Type</th>
@@ -128,6 +129,9 @@
                             <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full uppercase {{ $acq->delivery_type === 'donate' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700' }}">
                                 {{ $acq->delivery_type }}
                             </span>
+                        </td>
+                        <td>
+                            {{ $acq->catalog->isbn_issn ?? 'N/A' }}
                         </td>
                         <td class="px-3 sm:px-4 py-3 whitespace-nowrap capitalize">
                             {{ $acq->catalog->title ?? '—' }}

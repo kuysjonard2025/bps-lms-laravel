@@ -100,6 +100,22 @@ class Catalogs extends Component
         if (blank($value)) $this->general_reference_id = null;
     }
 
+    // Automatically convert empty strings for nullable fields to null
+    public function updatedIsbnIssn($value): void
+    {
+        if (blank($value)) $this->isbn_issn = null;
+    }
+
+    public function updatedEdition($value): void
+    {
+        if (blank($value)) $this->edition = null;
+    }
+
+    public function updatedDescription($value): void
+    {
+        if (blank($value)) $this->description = null;
+    }
+
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -142,6 +158,11 @@ class Catalogs extends Component
     {
         // Clean input fields
         $this->cleanFields(['title', 'isbn_issn', 'edition', 'description']);
+
+        // Explicitly force empty strings to null prior to validation check
+        $this->isbn_issn = blank($this->isbn_issn) ? null : $this->isbn_issn;
+        $this->edition = blank($this->edition) ? null : $this->edition;
+        $this->description = blank($this->description) ? null : $this->description;
 
         // Capture the validated data into the $validated variable
         $validated = $this->validate();
