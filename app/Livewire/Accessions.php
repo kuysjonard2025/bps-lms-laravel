@@ -144,8 +144,9 @@ class Accessions extends Component
 
             return Acquisition::with([
                 'catalog.author',
-                'catalog.assetType',
                 'catalog.publisher',
+                'catalog.generalReference',
+                'catalog.assetType',
                 'vendor',
             ])->find($this->acquisition_id);
         } catch (Exception $e) {

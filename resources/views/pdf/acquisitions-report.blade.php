@@ -51,6 +51,7 @@
                 <th style="width: 8%;">ACQ #</th>
                 <th style="width: 8%;">Txn #</th>
                 <th style="width: 8%;">Delivery Type</th>
+                <th style="width: 13%;">ISBN/ISSN</th>
                 <th style="width: 13%;">Title</th>
                 <th style="width: 10%;">Author</th>
                 <th style="width: 9%;">Asset Type</th>
@@ -68,6 +69,7 @@
                     <td>{{ strtoupper($acq->acquisition_number) }}</td>
                     <td>{{ strtoupper($acq->transaction_number) }}</td>
                     <td>{{ ucwords($acq->delivery_type) }}</td>
+                    <td>{{ strtoupper($acq->catalog->isbn_issn) ?? 'N/A' }}</td>
                     <td>{{ ucwords($acq->catalog->title ?? 'N/A') }}</td>
                     <td>{{ ucwords($acq->catalog->author->name ?? 'N/A') }}</td>
                     <td>{{ ucwords($acq->catalog->assetType->name ?? 'N/A') }}</td>

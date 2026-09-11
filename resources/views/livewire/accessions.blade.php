@@ -269,7 +269,7 @@
                             <option value="">Select Acquisition Log</option>
                             @foreach($acquisitions as $acq)
                                 <option value="{{ $acq->id }}">
-                                    {{ $acq->acquisition_number }} &mdash; {{ $acq->catalog->title ?? 'N/A' }} (Txn: {{ $acq->transaction_number }})
+                                    {{ $acq->acquisition_number }} &mdash; {{ ucwords($acq->catalog->title) }} (Txn: {{ $acq->transaction_number }})
                                 </option>
                             @endforeach
                         </select>
@@ -288,21 +288,21 @@
                             <div class="flex justify-between items-start border-b border-slate-200/80 pb-2.5">
                                 <div>
                                     <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Catalog & Asset Details</span>
-                                    <h4 class="text-sm font-bold text-slate-900 mt-0.5">{{ $cat->title ?? 'N/A' }}</h4>
+                                    <h4 class="text-sm font-bold text-slate-900 mt-0.5">{{ ucwords($cat->title) ?? 'N/A' }}</h4>
                                 </div>
                                 <span class="text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 rounded-full shrink-0">
-                                    {{ $cat->assetType->name ?? 'Standard Asset' }}
+                                    {{ ucwords($cat->assetType->name) ?? 'Standard Asset' }}
                                 </span>
                             </div>
 
                             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-[11px] text-slate-600">
                                 <div>
                                     <span class="block text-slate-400 text-[10px]">Author</span>
-                                    <strong class="text-slate-800">{{ $cat->author->name ?? 'N/A' }}</strong>
+                                    <strong class="text-slate-800">{{ ucwords($cat->author->name) ?? 'N/A' }}</strong>
                                 </div>
                                 <div>
                                     <span class="block text-slate-400 text-[10px]">Publisher</span>
-                                    <strong class="text-slate-800">{{ $cat->publisher->name ?? 'N/A' }}</strong>
+                                    <strong class="text-slate-800">{{ ucwords($cat->publisher->name) ?? 'N/A' }}</strong>
                                 </div>
                                 <div>
                                     <span class="block text-slate-400 text-[10px]">ISBN / ISSN</span>
@@ -310,7 +310,7 @@
                                 </div>
                                 <div>
                                     <span class="block text-slate-400 text-[10px]">Vendor</span>
-                                    <strong class="text-slate-800">{{ $this->selectedAcquisition->vendor->company_name ?? 'N/A' }}</strong>
+                                    <strong class="text-slate-800">{{ ucwords($this->selectedAcquisition->vendor->company_name) ?? 'N/A' }}</strong>
                                 </div>
                                 <div>
                                     <span class="block text-slate-400 text-[10px]">Transaction #</span>

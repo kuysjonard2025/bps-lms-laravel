@@ -154,7 +154,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="12" class="px-4 py-8 text-center text-gray-500">No acquisition records found.</td>
+                        <td colspan="13" class="px-4 py-8 text-center text-gray-500">No acquisition records found.</td>
                     </tr>
                 @endforelse
             </tbody>
