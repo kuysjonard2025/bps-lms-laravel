@@ -53,7 +53,7 @@
 
                 {{-- Visible on larger screens --}}
                 <div class="hidden md:flex items-center gap-2 whitespace-nowrap text-xs lg:text-sm">
-                    <span class="font-semibold text-gray-800">{{ auth()->user()->first_name }} {{ auth()->user()->last_name }}</span>
+                    <span class="font-semibold text-gray-800">{{ auth()->user()->getFullNameAttribute() }}</span>
                     <span class="capitalize bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[11px] font-semibold">
                         {{ str(auth()->user()->role)->replace('_', ' ') }}
                     </span>
