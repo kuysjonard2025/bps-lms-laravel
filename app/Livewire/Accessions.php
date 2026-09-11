@@ -143,6 +143,7 @@ class Accessions extends Component
             }
 
             return Acquisition::with([
+                'catalog',
                 'catalog.author',
                 'catalog.publisher',
                 'catalog.generalReference',
@@ -405,7 +406,7 @@ class Accessions extends Component
         try {
             $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
-            return Accession::with(['catalog.author', 'catalog.assetType', 'acquisition'])
+            return Accession::with(['catalog', 'catalog.author', 'catalog.publisher', 'catalog.generalReference', 'catalog.assetType', 'acquisition'])
                 ->when($this->search, function ($query) use ($likeOperator) {
                     $query->where(function ($q) use ($likeOperator) {
                         $q->where('accession_number', $likeOperator, "%{$this->search}%")
