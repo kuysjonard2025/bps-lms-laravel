@@ -104,6 +104,7 @@ class Registrations extends Component
     {
         try {
             $this->resetUserForm();
+            $this->u_role = 'assistant';
             $this->showUserModal = true;
         } catch (Exception $e) {
             Log::error('Error opening create user modal: ' . $e->getMessage());
@@ -123,7 +124,7 @@ class Registrations extends Component
             $this->u_last_name = $user->last_name ?? '';
             $this->u_suffix = $user->suffix ?? '';
             $this->u_username = $user->username;
-            $this->u_role = 'assistant';
+            $this->u_role = $user->role ?? 'assistant';
             $this->u_email = $user->email ?? '';
             $this->u_contact_number = $user->contact_number ?? '';
             $this->u_address = $user->address ?? '';
@@ -144,6 +145,9 @@ class Registrations extends Component
 
         $this->cleanFields($fields);
 
+        $userBeingEdited = $this->userIdBeingEdited ? User::find($this->userIdBeingEdited) : null;
+        $isLibrarian = $userBeingEdited && $userBeingEdited->role === 'librarian';
+
         $userFullNameRule = Rule::unique('users', 'first_name')
             ->where('first_name', $this->u_first_name)
             ->where('middle_name', $this->u_middle_name)
@@ -160,7 +164,7 @@ class Registrations extends Component
                 'required', 'string', 'max:20', 'alpha_dash',
                 Rule::unique('users', 'username')->ignore($this->userIdBeingEdited),
             ],
-            'u_role' => 'required|in:assistant',
+            'u_role' => $isLibrarian ? 'required|in:librarian' : 'required|in:assistant',
             'u_email' => [
                 'required', 'email', 'max:100',
                 Rule::unique('users', 'email')->ignore($this->userIdBeingEdited),
@@ -186,7 +190,7 @@ class Registrations extends Component
             'u_password' => 'Password',
         ]);
 
-        $role = $this->u_role;
+        $role = $isLibrarian ? 'librarian' : 'assistant';
         $data = [
             'first_name' => $this->u_first_name,
             'middle_name' => $this->u_middle_name,
