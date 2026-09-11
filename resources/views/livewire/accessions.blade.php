@@ -168,7 +168,7 @@
                                 </span>
                             </td>
                             <td class="hidden md:table-cell p-3 text-center font-mono text-slate-800 whitespace-nowrap">
-                                {{ ucwords($item->call_number) }}
+                                {{ strtoupper($item->call_number) }}
                             </td>
                             <td class="hidden sm:table-cell p-3 text-center whitespace-nowrap">
                                 <span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200/60">
@@ -319,6 +319,10 @@
                                 <div>
                                     <span class="block text-slate-400 text-[10px]">Unit Cost</span>
                                     <strong class="text-slate-800">{{ number_format($this->selectedAcquisition->unit_cost ?? 0, 2) }}</strong>
+                                </div>
+                                <div>
+                                    <span class="block text-slate-400 text-[10px]">Copyright Year</span>
+                                    <strong class="text-slate-800">{{ $this->selectedAcquisition->copyright_year ?? 'N/A' }}</strong>
                                 </div>
                             </div>
 
@@ -553,7 +557,7 @@
                             type="button"
                             class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition cursor-pointer flex items-center gap-2"
                         >
-                            <span>Download Niimbot Excel</span>
+                            <span>Download Accession Numbers (Excel)</span>
                         </button>
                     </div>
                 </div>
