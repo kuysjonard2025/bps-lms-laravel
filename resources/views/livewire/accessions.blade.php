@@ -322,7 +322,7 @@
                                 </div>
                                 <div>
                                     <span class="block text-slate-400 text-[10px]">Copyright Year</span>
-                                    <strong class="text-slate-800">{{ $this->selectedAcquisition->copyright_year ?? 'N/A' }}</strong>
+                                    <strong class="text-slate-800">{{ $this->selectedAcquisition->publication_year ?? 'N/A' }}</strong>
                                 </div>
                             </div>
 
