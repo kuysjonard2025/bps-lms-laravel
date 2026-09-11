@@ -57,11 +57,13 @@
                 <th style="width: 9%;">Accession #</th>
                 <th style="width: 10%;">Batch #</th>
                 <th style="width: 9%;">Acquisition #</th>
+                <th style="width: 14%;">ISBN/ISSN</th>
                 <th style="width: 14%;">Title</th>
                 <th style="width: 9%;">Author</th>
                 <th style="width: 10%;">Publisher</th>
                 <th style="width: 8%;" class="text-center">Gen. Ref</th>
                 <th style="width: 7%;" class="text-center">Asset Type</th>
+                <th style="width: 8%;" class="text-center">Copyright Year</th>
                 <th style="width: 8%;" class="text-center">Call Number</th>
                 <th style="width: 8%;" class="text-center">Condition</th>
                 <th style="width: 8%;" class="text-center">Status</th>
@@ -73,11 +75,13 @@
                     <td><strong>{{ strtoupper($item->accession_number) }}</strong></td>
                     <td>{{ strtoupper($item->batch_number) }}</td>
                     <td>{{ strtoupper($item->acquisition->acquisition_number ?? '—') }}</td>
+                    <td>{{ $item->catalog->isbn_issn ?? 'N/A' }}</td>
                     <td>{{ ucwords($item->catalog->title ?? 'N/A') }}</td>
                     <td>{{ ucwords($item->catalog->author->name ?? 'N/A') }}</td>
                     <td>{{ ucwords($item->catalog->publisher->name ?? 'N/A') }}</td>
                     <td class="text-center">{{ ucwords($item->catalog->generalReference->name ?? 'N/A') }}</td>
                     <td class="text-center">{{ ucwords($item->catalog->assetType->name ?? 'N/A') }}</td>
+                    <td class="text-center">{{ $item->catalog->copyright_year ?? 'N/A' }}</td>
                     <td class="text-center">{{ strtoupper($item->call_number ?? 'N/A') }}</td>
                     <td class="text-center">{{ ucfirst($item->condition ?? 'N/A') }}</td>
                     <td class="text-center">{{ ucfirst($item->status ?? 'N/A') }}</td>

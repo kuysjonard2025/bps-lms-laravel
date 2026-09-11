@@ -127,11 +127,13 @@
                         <th scope="col" class="p-3 pl-4 whitespace-nowrap">Accession #</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Batch #</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Acquisition #</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">ISBN/ISSN</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Catalog Title</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Author</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Publisher</th>
                         <th scope="col" class="p-3 whitespace-nowrap">General Reference</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Asset Type</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">Copyright Year</th>
                         <th scope="col" class="hidden md:table-cell p-3 text-center whitespace-nowrap">Call Number</th>
                         <th scope="col" class="hidden sm:table-cell p-3 text-center whitespace-nowrap">Condition</th>
                         <th scope="col" class="p-3 text-center whitespace-nowrap">Status</th>
@@ -150,6 +152,9 @@
                             <td class="p-3 font-mono font-semibold text-blue-600 whitespace-nowrap">
                                 {{ strtoupper($item->acquisition->acquisition_number ?? 'N/A') }}
                             </td>
+                            <td class="p-3 font-mono text-slate-600 whitespace-nowrap">
+                                {{ $item->catalog->isbn_issn ?? 'N/A' }}
+                            </td>
                             <td class="p-3 font-bold text-slate-900 whitespace-nowrap">
                                 {{ ucwords($item->catalog->title ?? '—') }}
                             </td>
@@ -166,6 +171,9 @@
                                 <span class="px-2 py-0.5 text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/80 rounded-full">
                                     {{ ucwords($item->catalog->assetType->name ?? 'N/A') }}
                                 </span>
+                            </td>
+                            <td class="p-3 whitespace-nowrap">
+                                {{ $item->catalog->publication_year ?? 'N/A' }}
                             </td>
                             <td class="hidden md:table-cell p-3 text-center font-mono text-slate-800 whitespace-nowrap">
                                 {{ strtoupper($item->call_number) }}
