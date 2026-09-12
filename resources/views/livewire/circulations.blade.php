@@ -207,8 +207,8 @@
                                     {{ $selectedAccession->status }}
                                 </span>
                             </div>
-                            <div class="flex items-center justify-between gap-2">
-                                <span class="text-sm font-semibold leading-snug text-slate-900 capitalize">Type: {{ $selectedAccession->catalog?->assetType?->name ?? 'N/A' }}</span>
+                            <div class="text-xs text-slate-500 capitalize">
+                                <span>Type: {{ $selectedAccession->catalog?->assetType?->name ?? 'N/A' }}</span>
                             </div>
                             <div class="text-xs text-slate-500 capitalize">
                                 <span>Author: {{ $selectedAccession->catalog?->author?->name ?? 'N/A' }}</span>
