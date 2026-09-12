@@ -78,7 +78,7 @@
                 <div>
                     <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Max Borrow Limit</span>
                     <span class="text-2xl font-bold text-gray-900 mt-1 block">
-                        {{ $limit?->max_borrow_limit ?? 3 }} <span class="text-xs font-normal text-gray-500">item(s)</span>
+                        {{ $limit?->max_borrow_limit ?? 0 }} <span class="text-xs font-normal text-gray-500">item(s)</span>
                     </span>
                 </div>
                 <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
@@ -93,7 +93,7 @@
                 <div>
                     <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Loan Duration</span>
                     <span class="text-2xl font-bold text-gray-900 mt-1 block">
-                        {{ $limit?->loan_duration_days ?? 7 }} <span class="text-xs font-normal text-gray-500">day(s)</span>
+                        {{ $limit?->loan_duration_days ?? 0 }} <span class="text-xs font-normal text-gray-500">day(s)</span>
                     </span>
                 </div>
                 <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
@@ -208,6 +208,7 @@
                     <button type="button" wire:click="closeModal" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
                 </div>
 
+                {{-- Changed wire:submit.prevent from savePolicy to save --}}
                 <form wire:submit.prevent="save" class="p-4 sm:p-6 space-y-4 overflow-y-auto">
                     <div>
                         <label for="name" class="block text-xs font-medium text-gray-700">Policy Name / Description <span class="text-red-500">*</span></label>
@@ -276,11 +277,11 @@
         </div>
     @endif
 
-    {{-- CREATE/EDIT POLICY LOAN LIMIT MODAL --}}
+    {{-- CREATE/EDIT LOAN LIMIT MODAL --}}
     @if($showLimitModal ?? false)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true">
             <div wire:click.self="closeLimitModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
-            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md z-10 overflow-hidden my-auto flex flex-col max-h-[90vh]">
+            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md z-10 overflow-hidden my-auto flex flex-col">
                 <div class="bg-gray-50 px-5 py-3.5 border-b border-gray-200 flex justify-between items-center shrink-0">
                     <h3 class="text-xs sm:text-sm font-bold text-gray-900">
                         {{ ($isEditing ?? false) ? 'Edit Loan Limit' : 'Configure Loan Limit' }}
@@ -288,7 +289,7 @@
                     <button type="button" wire:click="closeLimitModal" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
                 </div>
 
-                <form wire:submit.prevent="save" class="p-4 sm:p-6 space-y-4 overflow-y-auto">
+                <form wire:submit.prevent="save" class="p-4 sm:p-6 space-y-4">
                     <div>
                         <label class="block text-xs font-medium text-gray-700">Borrower Type</label>
                         <div class="mt-1 w-full text-xs rounded-md border border-gray-200 bg-gray-100 p-2 text-gray-600 font-semibold flex items-center justify-between cursor-not-allowed">
@@ -300,13 +301,13 @@
 
                     <div>
                         <label for="max_borrow_limit" class="block text-xs font-medium text-gray-700">Max Borrow Limit (Items) <span class="text-red-500">*</span></label>
-                        <input id="max_borrow_limit" type="number" min="1" max="100" wire:model.number="max_borrow_limit" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
+                        <input id="max_borrow_limit" type="number" min="1" max="10" wire:model.number="max_borrow_limit" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
                         @error('max_borrow_limit') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
                         <label for="loan_duration_days" class="block text-xs font-medium text-gray-700">Loan Duration (Days) <span class="text-red-500">*</span></label>
-                        <input id="loan_duration_days" type="number" min="1" max="365" wire:model.number="loan_duration_days" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
+                        <input id="loan_duration_days" type="number" min="1" max="30" wire:model.number="loan_duration_days" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
                         @error('loan_duration_days') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                     </div>
 

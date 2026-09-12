@@ -37,10 +37,10 @@ class CirculationPolicy extends Component
     // Policy Loan Limit Properties (Single Record)
     public ?int $limit_id = null;
     public ?int $limit_patron_type_id = null;
-    public ?int $max_borrow_limit = 3;
-    public ?int $loan_duration_days = 7;
+    public ?int $max_borrow_limit = 0;
+    public ?int $loan_duration_days = 0;
 
-    public string $studentTypeName = 'Student';
+    public string $studentTypeName = 'student';
     public bool $showModal = false;
     public bool $showLimitModal = false;
     public bool $isEditing = false;
@@ -51,7 +51,7 @@ class CirculationPolicy extends Component
         try {
             $this->resolveStudentPatronType();
         } catch (\Exception $e) {
-            $this->studentTypeName = 'Student';
+            $this->studentTypeName = 'student';
         }
     }
 
@@ -88,8 +88,8 @@ class CirculationPolicy extends Component
         if ($this->activeTab === 'limits') {
             return [
                 'limit_patron_type_id' => 'required|integer|exists:patron_types,id',
-                'max_borrow_limit' => 'required|integer|min:1|max:100',
-                'loan_duration_days' => 'required|integer|min:1|max:365',
+                'max_borrow_limit' => 'required|integer|min:1|max:10',
+                'loan_duration_days' => 'required|integer|min:1|max:30',
             ];
         }
 
@@ -114,7 +114,16 @@ class CirculationPolicy extends Component
         $this->isEditing = false;
 
         if ($this->activeTab === 'limits') {
-            $this->resetLimitForm();
+            $existingLimit = PolicyLoanLimit::first();
+            if ($existingLimit) {
+                $this->limit_id = $existingLimit->id;
+                $this->limit_patron_type_id = $existingLimit->patron_type_id;
+                $this->max_borrow_limit = $existingLimit->max_borrow_limit;
+                $this->loan_duration_days = $existingLimit->loan_duration_days;
+                $this->isEditing = true;
+            } else {
+                $this->resetLimitForm();
+            }
             $this->showLimitModal = true;
         } else {
             $this->resetPolicyForm();
@@ -185,8 +194,11 @@ class CirculationPolicy extends Component
             $validated = $this->validate();
 
             try {
+                $existingLimit = PolicyLoanLimit::first();
+                $targetId = $this->limit_id ?: ($existingLimit ? $existingLimit->id : null);
+
                 PolicyLoanLimit::updateOrCreate(
-                    ['id' => $this->limit_id],
+                    ['id' => $targetId],
                     [
                         'patron_type_id' => (int) $this->limit_patron_type_id,
                         'max_borrow_limit' => (int) $validated['max_borrow_limit'],
@@ -199,7 +211,7 @@ class CirculationPolicy extends Component
                 return;
             }
 
-            $message = $this->limit_id ? 'Loan limit updated successfully.' : 'Loan limit created successfully.';
+            $message = $targetId ? 'Loan limit updated successfully.' : 'Loan limit created successfully.';
             $this->closeLimitModal();
         } else {
             $fields = ['name', 'patron_type_id', 'asset_type_id', 'fine_per_day', 'max_fine_amount', 'is_active'];
@@ -267,7 +279,7 @@ class CirculationPolicy extends Component
                 ->when($currentPolicyId, fn ($q) => $q->where('id', '!=', $currentPolicyId))
                 ->update(['is_active' => false]);
         } catch (\Exception $e) {
-            // Log or ignore safely to prevent disruption
+            // Log or ignore safely
         }
     }
 
@@ -350,7 +362,7 @@ class CirculationPolicy extends Component
             $assetTypes = AssetType::orderBy('name')->get(['id', 'name']);
             $patronTypes = PatronType::orderBy('name')->get(['id', 'name']);
         } catch (\Exception $e) {
-            // Prevents full system/page crash if database error occurs during render
+            // Prevents full system crash
         }
 
         return view('livewire.circulation-policy', [

@@ -267,15 +267,16 @@ class Circulations extends Component
                 return;
             }
 
-            $loanDays = 7;
-            $maxBorrowLimit = 3;
-
+            // Check if policy loan limit is set for the patron type
             $policy = PolicyLoanLimit::where('patron_type_id', $patron->patron_type_id)->first();
 
-            if ($policy) {
-                $loanDays = $policy->loan_duration_days ?? 7;
-                $maxBorrowLimit = $policy->max_borrow_limit ?? 3;
+            if (! $policy) {
+                $this->dispatch('toast', message: 'Borrowing failed: Policy loan limit has not been set for this patron type.', type: 'error');
+                return;
             }
+
+            $loanDays = $policy->loan_duration_days ?? 7;
+            $maxBorrowLimit = $policy->max_borrow_limit ?? 3;
 
             $activeBorrowCount = Circulation::where('patron_id', $patron->id)
                 ->where('status', 'borrowed')

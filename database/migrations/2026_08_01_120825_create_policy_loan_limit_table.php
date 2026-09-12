@@ -11,8 +11,8 @@ return new class extends Migration
         Schema::create('policy_loan_limits', function (Blueprint $table) {
             $table->id();
             $table->foreignId('patron_type_id')->constrained('patron_types')->restrictOnDelete();
-            $table->unsignedInteger('max_borrow_limit')->default(3);
-            $table->unsignedInteger('loan_duration_days')->default(7);
+            $table->unsignedInteger('max_borrow_limit')->default(0);
+            $table->unsignedInteger('loan_duration_days')->default(0);
             $table->timestamps();
 
             // Index for quick lookup during the circulation/checkout process
