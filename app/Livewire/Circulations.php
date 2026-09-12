@@ -6,7 +6,8 @@ use App\Exports\CirculationsExport;
 use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\Accession;
 use App\Models\Circulation;
-use App\Models\CirculationPolicy;
+use App\Models\CirculationPenalty;
+use App\Models\PolicyLoanLimit;
 use App\Models\Patron;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -269,19 +270,11 @@ class Circulations extends Component
             $loanDays = 7;
             $maxBorrowLimit = 3;
 
-            $patronTypeName = strtolower($patron->patronType?->name ?? '');
-            $isStudent = str_contains($patronTypeName, 'student');
+            $policy = PolicyLoanLimit::where('patron_type_id', $patron->patron_type_id)->first();
 
-            if ($isStudent) {
-                $policy = CirculationPolicy::where('patron_type_id', $patron->patron_type_id)
-                    ->where('asset_type_id', $accession->catalog?->asset_type_id)
-                    ->where('is_active', true)
-                    ->first();
-
-                if ($policy) {
-                    $loanDays = $policy->loan_duration_days ?? 7;
-                    $maxBorrowLimit = $policy->max_borrow_limit ?? 3;
-                }
+            if ($policy) {
+                $loanDays = $policy->loan_duration_days ?? 7;
+                $maxBorrowLimit = $policy->max_borrow_limit ?? 3;
             }
 
             $activeBorrowCount = Circulation::where('patron_id', $patron->id)
@@ -293,9 +286,9 @@ class Circulations extends Component
                 return;
             }
 
-            DB::transaction(function () use ($patron, $accession, $loanDays, $isStudent) {
+            DB::transaction(function () use ($patron, $accession, $loanDays) {
                 $now = now();
-                $dueDate = $isStudent ? $now->copy()->addDays($loanDays) : null;
+                $dueDate = $now->copy()->addDays($loanDays);
 
                 Circulation::create([
                     'patron_id' => $patron->id,
@@ -369,26 +362,21 @@ class Circulations extends Component
             $this->overdueFineAmount = 0.00;
 
             if ($activeLoan->due_at && $now->greaterThan($activeLoan->due_at)) {
-                $patronTypeName = strtolower($activeLoan->patron?->patronType?->name ?? '');
-                $isStudent = str_contains($patronTypeName, 'student');
+                $finePerDay = 5.00;
+                $maxFine = 100.00;
 
-                if ($isStudent) {
-                    $finePerDay = 5.00;
-                    $maxFine = 100.00;
+                $penalty = CirculationPenalty::where('patron_type_id', $activeLoan->patron?->patron_type_id)
+                    ->where('asset_type_id', $activeLoan->accession?->catalog?->asset_type_id)
+                    ->where('is_active', true)
+                    ->first();
 
-                    $policy = CirculationPolicy::where('patron_type_id', $activeLoan->patron?->patron_type_id)
-                        ->where('asset_type_id', $activeLoan->accession?->catalog?->asset_type_id)
-                        ->where('is_active', true)
-                        ->first();
-
-                    if ($policy) {
-                        $finePerDay = $policy->fine_per_day ?? 5.00;
-                        $maxFine = $policy->max_fine_amount ?? 100.00;
-                    }
-
-                    $daysOverdue = max(0, Carbon::parse($activeLoan->due_at)->diffInDays($now));
-                    $this->overdueFineAmount = min($daysOverdue * $finePerDay, $maxFine);
+                if ($penalty) {
+                    $finePerDay = $penalty->fine_per_day ?? 5.00;
+                    $maxFine = $penalty->max_fine_amount ?? 100.00;
                 }
+
+                $daysOverdue = max(0, Carbon::parse($activeLoan->due_at)->diffInDays($now));
+                $this->overdueFineAmount = min($daysOverdue * $finePerDay, $maxFine);
             }
         } catch (\Exception $e) {
             $this->dispatch('toast', message: 'Error inspecting the return item.', type: 'error');

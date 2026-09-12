@@ -200,7 +200,9 @@
 
                     @if ($selectedAccession)
                         <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-                            {{ $selectedAccession->catalog?->isbn_issn ? '<div class="text-medium text-slate-500 uppercase">ISBN/ISSN: ' . $selectedAccession->catalog?->isbn_issn . '</div>' : '' }}
+                            @if ($selectedAccession->catalog?->isbn_issn)
+                                <div class="text-sm text-slate-600 uppercase">{{ $selectedAccession->catalog?->isbn_issn }}</div>
+                            @endif
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-sm font-bold leading-snug text-slate-900 capitalize italic">{{ $selectedAccession->catalog?->title ?? 'N/A' }}</span>
                                 <span class="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider {{ strtolower($selectedAccession->status ?? '') === 'available' ? 'border border-emerald-200 bg-emerald-100 text-emerald-800' : 'border border-amber-200 bg-amber-100 text-amber-800' }}">
@@ -343,6 +345,9 @@
                                 <div class="space-y-1">
                                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500">Additional Condition Fine / Fee</label>
                                     <input type="number" step="0.01" min="0" wire:model.live="manualFineAmount" placeholder="Enter fine amount..." class="w-full rounded-xl border border-slate-300 py-2 px-3 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none" />
+                                    @error('manualFineAmount')
+                                        <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
+                                    @enderror
                                     <p class="text-[11px] text-slate-400">Reference item cost above (₱{{ number_format((float)$itemPrice, 2) }}) when assessing replacement or repair fees.</p>
                                 </div>
                             @endif
@@ -499,7 +504,7 @@
                                     {{ $loan->patron?->patronType?->name ?? 'N/A' }}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
-                                    {{ $loan->borrowed_at?->format('M d, Y h:i A') ?? '-' }}
+                                    {{ $loan->borrowed_at?->format('M d, Y') ?? '-' }}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     {{ $isStudent ? ($loan->due_at?->format('M d, Y') ?? '-') : '-' }}
@@ -511,7 +516,7 @@
                                 </td>
                                 @if ($filterStatus === 'returned' || $filterStatus === 'all')
                                 <td class="px-4 py-3 whitespace-nowrap">
-                                    {{ $loan->returned_at?->format('M d, Y h:i A') ?? '-' }}
+                                    {{ $loan->returned_at?->format('M d, Y') ?? '-' }}
                                 </td>
                                 <td class="px-4 py-3 font-mono text-xs whitespace-nowrap">
                                     {{ $loan->receipt_number ?? '-' }}
@@ -573,7 +578,7 @@
         </div>
     @endif
 
-     <!-- EDIT / SETTLE PAYMENT MODAL -->
+    <!-- EDIT / SETTLE PAYMENT MODAL -->
     @if ($showEditPaymentModal)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
             <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-5">

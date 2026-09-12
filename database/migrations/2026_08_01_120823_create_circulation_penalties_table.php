@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('circulation_policies', function (Blueprint $table) {
+        Schema::create('circulation_penalties', function (Blueprint $table) {
             $table->id();
 
             // Unique descriptive name for clarity
@@ -17,10 +17,6 @@ return new class extends Migration
             // Foreign Keys
             $table->foreignId('patron_type_id')->constrained('patron_types')->restrictOnDelete();
             $table->foreignId('asset_type_id')->constrained('asset_types')->restrictOnDelete();
-
-            // Policy Rules
-            $table->unsignedInteger('max_borrow_limit')->default(3);
-            $table->unsignedInteger('loan_duration_days')->default(7);
 
             // Financials
             $table->decimal('fine_per_day', 8, 2)->default(5.00);
@@ -36,6 +32,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('circulation_policies');
+        Schema::dropIfExists('circulation_penalties');
     }
 };
