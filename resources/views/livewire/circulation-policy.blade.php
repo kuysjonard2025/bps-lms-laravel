@@ -3,7 +3,7 @@
     <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
             <h2 class="text-base sm:text-lg font-bold text-gray-900">Circulation Policy</h2>
-            <p class="text-xs text-gray-500">Configure borrowing policy rules and loan limits for patrons.</p>
+            <p class="text-xs text-gray-500">Configure policy rules for borrowing and returning materials.</p>
         </div>
 
         @if(($activeTab ?? 'circulation') !== 'limits')
@@ -27,7 +27,7 @@
             wire:click="switchTab('circulation')"
             class="pb-3 text-xs font-semibold border-b-2 transition cursor-pointer {{ ($activeTab ?? 'circulation') === 'circulation' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700' }}"
         >
-            Circulation Policies
+            Circulation Penalty
         </button>
         <button
             type="button"
@@ -181,7 +181,7 @@
                     @empty
                         <tr>
                             <td colspan="7" class="px-4 py-8 text-center text-gray-500">
-                                No student circulation policy rules found.
+                                No student circulation penalty rules found.
                             </td>
                         </tr>
                     @endforelse
@@ -196,7 +196,7 @@
         @endif
     @endif
 
-    {{-- CREATE/EDIT CIRCULATION POLICY MODAL --}}
+    {{-- CREATE/EDIT CIRCULATION PENALTY MODAL --}}
     @if($showModal ?? false)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true">
             <div wire:click.self="closeModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
