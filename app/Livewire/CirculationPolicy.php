@@ -31,7 +31,7 @@ class CirculationPolicy extends Component
     public bool $is_active = true;
 
     // Display property
-    public string $studentTypeName = 'Student';
+    public string $studentTypeName = 'student';
 
     // UI state
     public bool $showModal = false;
@@ -44,14 +44,15 @@ class CirculationPolicy extends Component
             $this->resolveStudentPatronType();
         } catch (\Exception $e) {
             // Fallback gracefully if database tables aren't migrated or seeded yet
-            $this->studentTypeName = 'Student';
+            $this->studentTypeName = 'student';
         }
     }
 
     private function resolveStudentPatronType(): void
     {
         try {
-            $studentType = PatronType::where('name', 'like', '%Student%')->first();
+            $likeOperator = env('DB_CONNECTION') === 'pgsql' ? 'ilike' : 'like';
+            $studentType = PatronType::where('name', $likeOperator, '%student%')->first();
             if ($studentType) {
                 $this->patron_type_id = $studentType->id;
                 $this->studentTypeName = $studentType->name;
