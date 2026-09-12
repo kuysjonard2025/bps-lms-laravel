@@ -362,9 +362,11 @@ class Circulations extends Component
             $this->overdueFineAmount = 0.00;
 
             if ($activeLoan->due_at && $now->greaterThan($activeLoan->due_at)) {
+                // Define default fallbacks
                 $finePerDay = 5.00;
                 $maxFine = 100.00;
 
+                // Check explicitly for an existing active circulation penalty policy
                 $penalty = CirculationPenalty::where('patron_type_id', $activeLoan->patron?->patron_type_id)
                     ->where('asset_type_id', $activeLoan->accession?->catalog?->asset_type_id)
                     ->where('is_active', true)
@@ -373,10 +375,18 @@ class Circulations extends Component
                 if ($penalty) {
                     $finePerDay = $penalty->fine_per_day ?? 5.00;
                     $maxFine = $penalty->max_fine_amount ?? 100.00;
+                } else {
+                    // Notify staff that a specific policy is missing while still collecting standard fallback fines
+                    $this->dispatch('toast', message: 'Notice: No active penalty policy found. Applied default system fine rate.', type: 'warning');
                 }
 
                 $daysOverdue = max(0, Carbon::parse($activeLoan->due_at)->diffInDays($now));
-                $this->overdueFineAmount = min($daysOverdue * $finePerDay, $maxFine);
+                $calculatedFine = $daysOverdue * $finePerDay;
+
+                // Apply max fine cap if specified, otherwise use calculated fine
+                $this->overdueFineAmount = $maxFine !== null
+                    ? min($calculatedFine, (float) $maxFine)
+                    : $calculatedFine;
             }
         } catch (\Exception $e) {
             $this->dispatch('toast', message: 'Error inspecting the return item.', type: 'error');
