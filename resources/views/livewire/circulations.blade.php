@@ -200,8 +200,9 @@
 
                     @if ($selectedAccession)
                         <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-                            <div class="text-medium text-slate-500 uppercase">ISBN/ISSN: {{ $selectedAccession->catalog?->isbn_issn ?? 'N/A' }}</div>
+                            {{ $selectedAccession->catalog?->isbn_issn ? '<div class="text-medium text-slate-500 uppercase">ISBN/ISSN: ' . $selectedAccession->catalog?->isbn_issn . '</div>' : '' }}
                             <div class="flex items-center justify-between gap-2">
+                                <span class="text-sm font-semibold leading-snug text-slate-900 capitalize">{{ $selectedAccession->catalog?->assetType?->name ?? 'N/A' }}</span>
                                 <span class="text-sm font-bold leading-snug text-slate-900 capitalize">{{ $selectedAccession->catalog?->title ?? 'N/A' }}</span>
                                 <span class="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider {{ strtolower($selectedAccession->status ?? '') === 'available' ? 'border border-emerald-200 bg-emerald-100 text-emerald-800' : 'border border-amber-200 bg-amber-100 text-amber-800' }}">
                                     {{ $selectedAccession->status }}

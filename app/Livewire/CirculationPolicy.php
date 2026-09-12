@@ -51,7 +51,7 @@ class CirculationPolicy extends Component
     private function resolveStudentPatronType(): void
     {
         try {
-            $likeOperator = env('DB_CONNECTION') === 'pgsql' ? 'ilike' : 'like';
+            $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
             $studentType = PatronType::where('name', $likeOperator, '%student%')->first();
             if ($studentType) {
                 $this->patron_type_id = $studentType->id;
