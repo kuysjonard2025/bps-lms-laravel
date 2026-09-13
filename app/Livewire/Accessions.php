@@ -125,7 +125,9 @@ class Accessions extends Component
                 return 0;
             }
 
-            $existingCount = Accession::where('acquisition_id', $this->acquisition_id)->count();
+            $existingCount = Accession::where('acquisition_id', $this->acquisition_id)
+                ->when($this->accessionIdBeingEdited, fn($q) => $q->where('id', '!=', $this->accessionIdBeingEdited))
+                ->count();
 
             return max(0, $acquisition->quantity - $existingCount);
         } catch (Exception $e) {
@@ -159,18 +161,19 @@ class Accessions extends Component
     public function updatedAcquisitionId($value): void
     {
         try {
+            if ($this->accessionIdBeingEdited) {
+                return; // Do not auto-mutate fields when editing an existing record
+            }
+
             if ($value) {
                 $acquisition = Acquisition::find($value);
                 if ($acquisition) {
                     $this->catalog_id = $acquisition->catalog_id;
+                    $remainingQty = $this->getRemainingQty();
 
-                    if (! $this->accessionIdBeingEdited) {
-                        $remainingQty = $this->getRemainingQty();
-
-                        $this->batch_qty = $remainingQty > 0 ? $remainingQty : 1;
-                        $this->batch_number = 'B-' . date('Ymd-Hi');
-                        $this->accession_number = $this->generateAccessionNumber();
-                    }
+                    $this->batch_qty = $remainingQty > 0 ? $remainingQty : 1;
+                    $this->batch_number = 'B-' . date('Ymd-Hi');
+                    $this->accession_number = $this->generateAccessionNumber();
                 }
             } else {
                 $this->catalog_id = null;
@@ -410,16 +413,16 @@ class Accessions extends Component
                 ->when($this->search, function ($query) use ($likeOperator) {
                     $query->where(function ($q) use ($likeOperator) {
                         $q->where('accession_number', $likeOperator, "%{$this->search}%")
-                          ->orWhere('batch_number', $likeOperator, "%{$this->search}%")
-                          ->orWhere('call_number', $likeOperator, "%{$this->search}%")
-                          ->orWhereHas('catalog', fn ($sub) => $sub->where('title', $likeOperator, "%{$this->search}%"));
+                            ->orWhere('batch_number', $likeOperator, "%{$this->search}%")
+                            ->orWhere('call_number', $likeOperator, "%{$this->search}%")
+                            ->orWhereHas('catalog', fn ($sub) => $sub->where('title', $likeOperator, "%{$this->search}%"));
                     });
                 })
                 ->when($this->statusFilter, fn ($q) => $q->where('status', $this->statusFilter))
                 ->orderBy('accession_number', $orderBy);
         } catch (Exception $e) {
             Log::error('Error building filtered accessions query: ' . $e->getMessage());
-            return Accession::whereRaw('1 = 0'); // Empty fallback query
+            return Accession::whereRaw('1 = 0');
         }
     }
 
