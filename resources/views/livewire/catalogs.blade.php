@@ -71,10 +71,10 @@
                             <td class="p-3 text-slate-600 whitespace-nowrap hidden lg:table-cell">{{ ucwords($catalog->publisher->name ?? '—') }}</td>
                             <td class="p-3 text-slate-600 whitespace-nowrap hidden lg:table-cell">{{ ucwords($catalog->generalReference->name ?? '—') }}</td>
                             <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-[11px]">
-                                {{ $catalog->isbn_issn ?: '—' }}
+                                {{ $catalog->isbn_issn ?: 'N/A' }}
                             </td>
                             <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-[11px]">
-                                {{ $catalog->publication_year ?: '—' }}
+                                {{ $catalog->publication_year ?: 'N/A' }}
                             </td>
                             <td class="p-3 pr-4 text-right whitespace-nowrap space-x-1">
                                 <button
