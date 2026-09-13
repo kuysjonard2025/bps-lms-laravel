@@ -190,7 +190,7 @@
                                 type="text"
                                 wire:model.live.debounce.300ms="accessionInput"
                                 wire:keydown.escape="$set('accessionInput', '')"
-                                wire:keydown.enter.prevent="processCheckout"
+                                wire:keydown.enter.prevent
                                 placeholder="Enter Accession No..."
                                 class="w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-4 text-sm text-slate-800 placeholder-slate-400 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                             />
