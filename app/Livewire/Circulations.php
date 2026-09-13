@@ -95,9 +95,10 @@ class Circulations extends Component
                 ->first();
 
             if ($this->selectedPatron) {
-                // Check if the patron has an attendance record for today
+                // Check if the patron has an active time-in record for today (not yet timed out)
                 $this->isTimedIn = PatronLog::where('patron_id', $this->selectedPatron->id)
                     ->whereDate('created_at', today())
+                    ->whereNull('time_out')
                     ->exists();
             } else {
                 $this->isTimedIn = true;
@@ -269,13 +270,14 @@ class Circulations extends Component
                 return;
             }
 
-            // Verify if patron has a time-in record for today
+            // Verify if patron has an active time-in record for today (not yet timed out)
             $hasTimedIn = PatronLog::where('patron_id', $patron->id)
                 ->whereDate('created_at', today())
+                ->whereNull('time_out')
                 ->exists();
 
             if (! $hasTimedIn) {
-                $this->dispatch('toast', message: 'Borrowing failed: Patron has not timed in today.', type: 'error');
+                $this->dispatch('toast', message: 'Borrowing failed: Patron has not timed in today or is already timed out.', type: 'error');
                 return;
             }
 
