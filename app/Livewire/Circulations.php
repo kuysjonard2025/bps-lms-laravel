@@ -254,7 +254,7 @@ class Circulations extends Component
 
         try {
             $patronCode = trim($this->patronInput);
-            $patron = Patron::with('patronType')
+            $patron = Patron::with(['patronType', 'type']) // adjusted or matching your relationship name for patron type (e.g. patronType or type)
                 ->where('school_id', $patronCode)
                 ->orWhere('rfid_tag', $patronCode)
                 ->first();
@@ -291,24 +291,31 @@ class Circulations extends Component
                 return;
             }
 
-            // Check if policy loan limit is set for the patron type
-            $policy = PolicyLoanLimit::where('patron_type_id', $patron->patron_type_id)->first();
+            // Check if patron is a student to apply Policy Loan Limit
+            $isStudent = strtolower($patron->patronType?->name ?? $patron->type ?? '') === 'student';
 
-            if (! $policy) {
-                $this->dispatch('toast', message: 'Borrowing failed: Policy loan limit has not been set for this patron type.', type: 'error');
-                return;
-            }
+            $loanDays = 7;
+            $maxBorrowLimit = 3;
 
-            $loanDays = $policy->loan_duration_days ?? 7;
-            $maxBorrowLimit = $policy->max_borrow_limit ?? 3;
+            if ($isStudent) {
+                $policy = PolicyLoanLimit::where('patron_type_id', $patron->patron_type_id)->first();
 
-            $activeBorrowCount = Circulation::where('patron_id', $patron->id)
-                ->where('status', 'borrowed')
-                ->count();
+                if (! $policy) {
+                    $this->dispatch('toast', message: 'Borrowing failed: Policy loan limit has not been set for this student patron type.', type: 'error');
+                    return;
+                }
 
-            if ($activeBorrowCount >= $maxBorrowLimit) {
-                $this->dispatch('toast', message: "Borrowing limit reached ({$maxBorrowLimit} items max).", type: 'error');
-                return;
+                $loanDays = $policy->loan_duration_days ?? 7;
+                $maxBorrowLimit = $policy->max_borrow_limit ?? 3;
+
+                $activeBorrowCount = Circulation::where('patron_id', $patron->id)
+                    ->where('status', 'borrowed')
+                    ->count();
+
+                if ($activeBorrowCount >= $maxBorrowLimit) {
+                    $this->dispatch('toast', message: "Borrowing limit reached ({$maxBorrowLimit} items max).", type: 'error');
+                    return;
+                }
             }
 
             $circulationRecord = null;
@@ -393,27 +400,34 @@ class Circulations extends Component
             $this->overdueFineAmount = 0.00;
 
             if ($activeLoan->due_at && $now->greaterThan($activeLoan->due_at)) {
-                $finePerDay = 5.00;
-                $maxFine = 100.00;
+                $isStudent = strtolower($activeLoan->patron?->patronType?->name ?? $activeLoan->patron?->type ?? '') === 'student';
 
-                $penalty = CirculationPenalty::where('patron_type_id', $activeLoan->patron?->patron_type_id)
-                    ->where('asset_type_id', $activeLoan->accession?->catalog?->asset_type_id)
-                    ->where('is_active', true)
-                    ->first();
+                if ($isStudent) {
+                    $finePerDay = 5.00;
+                    $maxFine = 100.00;
 
-                if ($penalty) {
-                    $finePerDay = $penalty->fine_per_day ?? 5.00;
-                    $maxFine = $penalty->max_fine_amount ?? 100.00;
+                    $penalty = CirculationPenalty::where('patron_type_id', $activeLoan->patron?->patron_type_id)
+                        ->where('asset_type_id', $activeLoan->accession?->catalog?->asset_type_id)
+                        ->where('is_active', true)
+                        ->first();
+
+                    if ($penalty) {
+                        $finePerDay = $penalty->fine_per_day ?? 5.00;
+                        $maxFine = $penalty->max_fine_amount ?? 100.00;
+                    } else {
+                        $this->dispatch('toast', message: 'Notice: No active penalty policy found for student. Applied default system fine rate.', type: 'warning');
+                    }
+
+                    $daysOverdue = max(0, Carbon::parse($activeLoan->due_at)->diffInDays($now));
+                    $calculatedFine = $daysOverdue * $finePerDay;
+
+                    $this->overdueFineAmount = $maxFine !== null
+                        ? min($calculatedFine, (float) $maxFine)
+                        : $calculatedFine;
                 } else {
-                    $this->dispatch('toast', message: 'Notice: No active penalty policy found. Applied default system fine rate.', type: 'warning');
+                    // Non-student patrons incur no automated overdue fine calculation
+                    $this->overdueFineAmount = 0.00;
                 }
-
-                $daysOverdue = max(0, Carbon::parse($activeLoan->due_at)->diffInDays($now));
-                $calculatedFine = $daysOverdue * $finePerDay;
-
-                $this->overdueFineAmount = $maxFine !== null
-                    ? min($calculatedFine, (float) $maxFine)
-                    : $calculatedFine;
             }
         } catch (\Exception $e) {
             $this->dispatch('toast', message: 'Error inspecting the return item.', type: 'error');
