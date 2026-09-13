@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Exports\CirculationsExport;
 use App\Livewire\Helpers\SanitizesInputs;
+use App\Mail\ItemBorrowedMail;
 use App\Models\Accession;
 use App\Models\Circulation;
 use App\Models\CirculationPenalty;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -309,11 +311,13 @@ class Circulations extends Component
                 return;
             }
 
-            DB::transaction(function () use ($patron, $accession, $loanDays) {
+            $circulationRecord = null;
+
+            DB::transaction(function () use ($patron, $accession, $loanDays, &$circulationRecord) {
                 $now = now();
                 $dueDate = $now->copy()->addDays($loanDays);
 
-                Circulation::create([
+                $circulationRecord = Circulation::create([
                     'patron_id' => $patron->id,
                     'accession_id' => $accession->id,
                     'user_id' => auth()->id(),
@@ -329,8 +333,12 @@ class Circulations extends Component
                 $accession->update(['status' => 'On Loan']);
             });
 
+            if ($patron->email && $circulationRecord) {
+                Mail::to($patron->email)->send(new ItemBorrowedMail($circulationRecord));
+            }
+
             $this->reset(['accessionInput', 'selectedAccession']);
-            $this->dispatch('toast', message: 'Book issued successfully!', type: 'success');
+            $this->dispatch('toast', message: 'Book issued successfully and email sent!', type: 'success');
         } catch (QueryException $e) {
             Log::error('Database error during checkout: ' . $e->getMessage());
             $this->dispatch('toast', message: 'Database error occurred during checkout transaction.', type: 'error');
