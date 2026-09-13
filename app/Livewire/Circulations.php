@@ -9,6 +9,7 @@ use App\Models\Circulation;
 use App\Models\CirculationPenalty;
 use App\Models\PolicyLoanLimit;
 use App\Models\Patron;
+use App\Models\Attendance; // Make sure your Attendance model is imported
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -82,6 +83,7 @@ class Circulations extends Component
             $code = trim(strip_tags($this->patronInput));
             if (empty($code)) {
                 $this->selectedPatron = null;
+                $this->isTimedIn = true;
                 return;
             }
 
@@ -89,8 +91,18 @@ class Circulations extends Component
                 ->where('school_id', $code)
                 ->orWhere('rfid_tag', $code)
                 ->first();
+
+            if ($this->selectedPatron) {
+                // Check if the patron has an attendance record for today
+                $this->isTimedIn = Attendance::where('patron_id', $this->selectedPatron->id)
+                    ->whereDate('created_at', today())
+                    ->exists();
+            } else {
+                $this->isTimedIn = true;
+            }
         } catch (\Exception $e) {
             $this->selectedPatron = null;
+            $this->isTimedIn = true;
         }
     }
 
@@ -255,6 +267,16 @@ class Circulations extends Component
                 return;
             }
 
+            // Verify if patron has a time-in record for today
+            $hasTimedIn = Attendance::where('patron_id', $patron->id)
+                ->whereDate('created_at', today())
+                ->exists();
+
+            if (! $hasTimedIn) {
+                $this->dispatch('toast', message: 'Borrowing failed: Patron has not timed in today.', type: 'error');
+                return;
+            }
+
             $accessionCode = trim($this->accessionInput);
             $accession = Accession::with('catalog')->where('accession_number', $accessionCode)->first();
             if (! $accession) {
@@ -363,11 +385,9 @@ class Circulations extends Component
             $this->overdueFineAmount = 0.00;
 
             if ($activeLoan->due_at && $now->greaterThan($activeLoan->due_at)) {
-                // Define default fallbacks
                 $finePerDay = 5.00;
                 $maxFine = 100.00;
 
-                // Check explicitly for an existing active circulation penalty policy
                 $penalty = CirculationPenalty::where('patron_type_id', $activeLoan->patron?->patron_type_id)
                     ->where('asset_type_id', $activeLoan->accession?->catalog?->asset_type_id)
                     ->where('is_active', true)
@@ -377,14 +397,12 @@ class Circulations extends Component
                     $finePerDay = $penalty->fine_per_day ?? 5.00;
                     $maxFine = $penalty->max_fine_amount ?? 100.00;
                 } else {
-                    // Notify staff that a specific policy is missing while still collecting standard fallback fines
                     $this->dispatch('toast', message: 'Notice: No active penalty policy found. Applied default system fine rate.', type: 'warning');
                 }
 
                 $daysOverdue = max(0, Carbon::parse($activeLoan->due_at)->diffInDays($now));
                 $calculatedFine = $daysOverdue * $finePerDay;
 
-                // Apply max fine cap if specified, otherwise use calculated fine
                 $this->overdueFineAmount = $maxFine !== null
                     ? min($calculatedFine, (float) $maxFine)
                     : $calculatedFine;
@@ -400,7 +418,6 @@ class Circulations extends Component
             return;
         }
 
-        // Apply validation rules ensuring damaged or lost conditions enforce a minimum fine of 50.00
         $rules = [
             'manualFineAmount' => in_array($this->returnCondition, ['damaged', 'lost']) ? 'required|numeric|min:50.00' : 'nullable|numeric|min:0',
         ];
@@ -533,7 +550,6 @@ class Circulations extends Component
         return response()->streamDownload(function () {
             $loans = $this->getFilteredLoansQuery()->orderBy('borrowed_at', 'desc')->get();
 
-            // Calculate total paid fines from the retrieved dataset
             $totalPaidFineSum = $loans->filter(function ($loan) {
                 return $loan->returned_at && $loan->is_paid === true;
             })->sum('fine_amount');
