@@ -232,19 +232,19 @@
                     <td>{{ $loan->patron?->school_id ?? 'N/A' }}</td>
                     <td>{{ $borrowerName ? ucwords($borrowerName) : 'N/A' }}</td>
                     <td>{{ ucwords($loan->patron?->patronType?->name) ?? 'N/A' }}</td>
-                    <td>{{ $loan->borrowed_at?->format('M d, Y h:i A') ?? '-' }}</td>
+                    <td>{{ $loan->borrowed_at?->format('M d, Y') ?? '-' }}</td>
                     <td>{{ $isStudent ? ($loan->due_at?->format('M d, Y') ?? '-') : '-' }}</td>
                     <td>
                         <span class="badge {{ $statusBadge }}">{{ ucwords($loan->status ?? 'N/A') }}</span>
                     </td>
                     @if ($showReturnCols)
-                    <td>{{ $loan->returned_at?->format('M d, Y h:i A') ?? '-' }}</td>
+                    <td>{{ $loan->returned_at?->format('M d, Y') ?? '-' }}</td>
                     <td>{{ $loan->receipt_number ?? '-' }}</td>
                     <td>
                         @if ($loan->returned_at && $loan->fine_amount > 0)
                             {{ $loan->is_paid === true ? 'Paid' : 'Unpaid' }}
                         @else
-                            -
+                            No Fine
                         @endif
                     </td>
                     <td>

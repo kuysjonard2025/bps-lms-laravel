@@ -525,7 +525,7 @@
                                     @if ($loan->returned_at && $loan->fine_amount > 0)
                                         {{ $loan->is_paid ? 'Paid' : 'Unpaid' }}
                                     @else
-                                        -
+                                        No Fine
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 font-semibold whitespace-nowrap">
