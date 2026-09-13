@@ -104,7 +104,7 @@ class CirculationsExport implements FromQuery, WithHeadings, WithMapping, Should
             : ($loan->user?->name ?? 'System User');
 
         // Payment column calculation
-        $paymentStatus = '-';
+        $paymentStatus = 'No Fine';
         if ($loan->returned_at && $loan->fine_amount > 0) {
             $paymentStatus = $loan->is_paid ? 'Paid' : 'Unpaid';
         }
@@ -119,7 +119,7 @@ class CirculationsExport implements FromQuery, WithHeadings, WithMapping, Should
             $isStudent ? ($loan->due_at?->format('M d, Y') ?? '-') : '-',
             $loan->returned_at?->format('M d, Y') ?? '-',
             $loan->receipt_number ?? '-',
-            $loan->returned_at && $loan->fine_amount > 0 ? ($loan->is_paid === true ? 'Paid' : 'Unpaid') : 'No Fine',
+            $paymentStatus,
             (float) ($loan->fine_amount ?? 0),
             ucfirst($loan->condition ?? 'Good'),
             ucfirst($loan->status ?? 'N/A'),
