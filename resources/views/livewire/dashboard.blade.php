@@ -117,7 +117,9 @@
                             <th class="p-3 pl-4 whitespace-nowrap">Accession #</th>
                             <th class="p-3 whitespace-nowrap">Title</th>
                             <th class="p-3 whitespace-nowrap">Author</th>
-                            <th class="p-3 whitespace-nowrap">Borrower</th>
+                            <th class="p-3 whitespace-nowrap">Student/Employee #</th>
+                            <th class="p-3 whitespace-nowrap">Borrower Name</th>
+                            <th class="p-3 whitespace-nowrap">Type</th>
                             <th class="p-3 whitespace-nowrap">Borrowed Date</th>
                             <th class="p-3 pr-4 whitespace-nowrap">Due Date</th>
                             <th class="p-3 whitespace-nowrap">Status</th>
@@ -126,7 +128,7 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($recentTransactions as $transaction)
                             <tr class="hover:bg-slate-50/60 transition-colors">
-                                <td class="p-3 pl-4 whitespace-nowrap font-mono text-slate-900">
+                                <td class="p-3 pl-4 uppercase whitespace-nowrap font-mono text-slate-900">
                                     {{ $transaction->accession?->accession_number ?? 'N/A' }}
                                 </td>
                                 <td class="p-3 text-slate-700 capitalize max-w-50 whitespace-nowrap font-semibold">
@@ -135,19 +137,20 @@
                                 <td class="p-3 text-slate-700 capitalize max-w-45 whitespace-nowrap">
                                     {{ $transaction->accession?->catalog?->author?->name ?? 'N/A' }}
                                 </td>
-                                <td class="p-3 font-medium text-slate-900 whitespace-nowrap">
-                                    <div class="font-bold">
-                                        {{ $transaction->patron?->first_name ?? 'N/A' }} {{ $transaction->patron?->last_name ?? '' }}
-                                    </div>
-                                    @if($transaction->patron?->card_number)
-                                        <div class="text-[10px] text-slate-400 font-mono">Card #: {{ $transaction->patron->card_number }}</div>
-                                    @endif
+                                <td class="p-3 whitespace-nowrap text-slate-500">
+                                    {{ $transaction->patron?->school_id ?? 'N/A' }}
+                                </td>
+                                <td class="p-3 font-medium capitalize text-slate-900 whitespace-nowrap">
+                                    {{ $transaction->patron?->first_name ?? 'N/A' }} {{ $transaction->patron?->last_name ?? '' }}
+                                </td>
+                                <td class="p-3 whitespace-nowrap text-slate-500 capitalize">
+                                    {{ $transaction->patron?->patronType?->name }}
                                 </td>
                                 <td class="p-3 whitespace-nowrap text-slate-500">
                                     {{ $transaction->borrowed_at ? $transaction->borrowed_at->format('M d, Y') : 'N/A' }}
                                 </td>
                                 <td class="p-3 pr-4 whitespace-nowrap text-slate-500">
-                                    {{ $transaction->due_at ? $transaction->due_at->format('M d, Y') : 'N/A' }}
+                                    {{  $transaction->patron?->patronType?->name == "student" ? $transaction->due_at->format('M d, Y') : 'N/A' }}
                                 </td>
                                 <td class="p-3 whitespace-nowrap">
                                     @if($transaction->returned_at)
