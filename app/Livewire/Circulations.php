@@ -9,7 +9,7 @@ use App\Models\Circulation;
 use App\Models\CirculationPenalty;
 use App\Models\PolicyLoanLimit;
 use App\Models\Patron;
-use App\Models\Attendance; // Make sure your Attendance model is imported
+use App\Models\PatronLogs;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -94,7 +94,7 @@ class Circulations extends Component
 
             if ($this->selectedPatron) {
                 // Check if the patron has an attendance record for today
-                $this->isTimedIn = Attendance::where('patron_id', $this->selectedPatron->id)
+                $this->isTimedIn = PatronLogs::where('patron_id', $this->selectedPatron->id)
                     ->whereDate('created_at', today())
                     ->exists();
             } else {
@@ -268,7 +268,7 @@ class Circulations extends Component
             }
 
             // Verify if patron has a time-in record for today
-            $hasTimedIn = Attendance::where('patron_id', $patron->id)
+            $hasTimedIn = PatronLogs::where('patron_id', $patron->id)
                 ->whereDate('created_at', today())
                 ->exists();
 
