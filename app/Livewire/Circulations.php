@@ -112,7 +112,7 @@ class Circulations extends Component
     public function updatedAccessionInput(): void
     {
         try {
-            $code = trim(strip_tags($this->accessionInput));
+            $code = strtolower(trim(strip_tags($this->accessionInput)));
             if (empty($code)) {
                 $this->selectedAccession = null;
                 return;
@@ -281,7 +281,7 @@ class Circulations extends Component
                 return;
             }
 
-            $accessionCode = trim($this->accessionInput);
+            $accessionCode = strtolower(trim($this->accessionInput));
             $accession = Accession::with('catalog')->where('accession_number', $accessionCode)->first();
             if (! $accession) {
                 $this->dispatch('toast', message: 'Accession / Book not found.', type: 'error');
@@ -339,7 +339,7 @@ class Circulations extends Component
                     'condition' => 'good',
                 ]);
 
-                $accession->update(['status' => 'On Loan']);
+                $accession->update(['status' => 'on loan']);
             });
 
             if ($patron->email && $circulationRecord) {
@@ -462,7 +462,7 @@ class Circulations extends Component
             $accession = $loan->accession;
 
             DB::transaction(function () use ($loan, $accession, $totalFine) {
-                $accessionStatus = 'Available';
+                $accessionStatus = 'available';
 
                 if ($this->returnCondition === 'damaged') {
                     $accessionStatus = 'under maintenance';
@@ -481,7 +481,7 @@ class Circulations extends Component
 
                 $accession?->update([
                     'status' => $accessionStatus,
-                    'condition' => ucfirst($this->returnCondition),
+                    'condition' => $this->returnCondition,
                 ]);
             });
 
@@ -513,7 +513,7 @@ class Circulations extends Component
                     'status' => 'returned',
                 ]);
 
-                $loan->accession?->update(['status' => 'Available']);
+                $loan->accession?->update(['status' => 'available']);
             });
 
             $this->dispatch('toast', message: 'Item returned directly.', type: 'success');

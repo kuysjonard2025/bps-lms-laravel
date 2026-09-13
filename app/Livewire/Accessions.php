@@ -32,23 +32,22 @@ class Accessions extends Component
     public string $statusFilter = '';
 
     public bool $showModal = false;
+    public bool $showEditModalOnly = false;
+    public string $activeEditTab = 'details';
     public bool $showDeleteModal = false;
     public bool $showExportModal = false;
     public ?int $accessionIdBeingEdited = null;
     public ?int $accessionIdBeingDeleted = null;
 
-    // Range Export fields for Niimbot
     public ?string $exportStartAccession = null;
     public ?string $exportEndAccession = null;
 
-    // Form fields
     public ?int $acquisition_id = null;
     public ?int $catalog_id = null;
     public string $accession_number = '';
     public string $batch_number = '';
     public int $batch_qty = 1;
     public string $call_number = '';
-    public bool $updateBatchCallNumber = false;
     public string $condition = 'new';
     public string $status = 'available';
     public ?string $remarks = null;
@@ -78,12 +77,14 @@ class Accessions extends Component
                     Rule::unique('accessions', 'accession_number')->ignore($this->accessionIdBeingEdited),
                 ];
 
-                $rules['status'][] = function ($attribute, $value, $fail) {
-                    $accession = Accession::find($this->accessionIdBeingEdited);
-                    if ($accession && in_array($accession->status, ['on loan', 'reserved']) && $value !== $accession->status) {
-                        $fail("Cannot change status directly while item state is '{$accession->status}'.");
-                    }
-                };
+                if (! $this->showEditModalOnly) {
+                    $rules['status'][] = function ($attribute, $value, $fail) {
+                        $accession = Accession::find($this->accessionIdBeingEdited);
+                        if ($accession && in_array($accession->status, ['on loan']) && $value !== $accession->status) {
+                            $fail("Cannot change status directly while item state is '{$accession->status}'.");
+                        }
+                    };
+                }
             } else {
                 $remainingQty = $this->getRemainingQty();
                 $minAllowed = $remainingQty > 0 ? 1 : 0;
@@ -162,7 +163,7 @@ class Accessions extends Component
     {
         try {
             if ($this->accessionIdBeingEdited) {
-                return; // Do not auto-mutate fields when editing an existing record
+                return;
             }
 
             if ($value) {
@@ -201,9 +202,11 @@ class Accessions extends Component
             $this->reset([
                 'acquisition_id', 'catalog_id', 'accession_number', 'batch_number',
                 'call_number', 'condition', 'status',
-                'remarks', 'accessionIdBeingEdited', 'updateBatchCallNumber',
+                'remarks', 'accessionIdBeingEdited',
             ]);
 
+            $this->showEditModalOnly = false;
+            $this->activeEditTab = 'details';
             $this->batch_qty = 1;
             $this->condition = 'new';
             $this->status = 'available';
@@ -220,19 +223,16 @@ class Accessions extends Component
     {
         try {
             $year = date('Y');
-            static $baseNum = null;
+            $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
-            if ($baseNum === null) {
-                $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
-                $latest = Accession::whereYear('created_at', $year)
-                    ->where('accession_number', $likeOperator, "acc-{$year}-%")
-                    ->orderByDesc('id')
-                    ->first();
+            $latest = Accession::whereYear('created_at', $year)
+                ->where('accession_number', $likeOperator, "acc-{$year}-%")
+                ->orderByDesc('id')
+                ->first();
 
-                $baseNum = 0;
-                if ($latest && preg_match('/-(\d+)$/', $latest->accession_number, $matches)) {
-                    $baseNum = (int) $matches[1];
-                }
+            $baseNum = 0;
+            if ($latest && preg_match('/-(\d+)$/', $latest->accession_number, $matches)) {
+                $baseNum = (int) $matches[1];
             }
 
             $nextNum = str_pad($baseNum + 1 + $offset, 5, '0', STR_PAD_LEFT);
@@ -247,12 +247,6 @@ class Accessions extends Component
     public function openEditModal(Accession $accession): void
     {
         try {
-            if (in_array($accession->status, ['on loan', 'reserved'])) {
-                $actionWord = $accession->status === 'on loan' ? 'on loan' : 'reserved';
-                $this->dispatch('toast', message: "Items currently {$actionWord} cannot be modified.", type: 'error');
-                return;
-            }
-
             $this->resetValidation();
             $this->accessionIdBeingEdited = $accession->id;
             $this->acquisition_id = $accession->acquisition_id;
@@ -263,7 +257,8 @@ class Accessions extends Component
             $this->condition = $accession->condition;
             $this->status = $accession->status;
             $this->remarks = $accession->remarks;
-            $this->updateBatchCallNumber = false;
+            $this->showEditModalOnly = false;
+            $this->activeEditTab = 'details';
             $this->showModal = true;
         } catch (Exception $e) {
             Log::error('Error opening edit modal: ' . $e->getMessage());
@@ -271,46 +266,78 @@ class Accessions extends Component
         }
     }
 
+    public function openEditCallNumberModal(Accession $accession): void
+    {
+        try {
+            $this->resetValidation();
+            $this->accessionIdBeingEdited = $accession->id;
+            $this->acquisition_id = $accession->acquisition_id;
+            $this->catalog_id = $accession->catalog_id;
+            $this->accession_number = $accession->accession_number;
+            $this->batch_number = $accession->batch_number;
+            $this->call_number = $accession->call_number;
+            $this->condition = $accession->condition;
+            $this->status = $accession->status;
+            $this->remarks = $accession->remarks;
+            $this->showEditModalOnly = true;
+            $this->activeEditTab = 'call_number';
+            $this->showModal = true;
+        } catch (Exception $e) {
+            Log::error('Error opening call number modal: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Could not open the call number update form.', type: 'error');
+        }
+    }
+
     public function saveAccession(): void
     {
         $fields = ['accession_number', 'batch_number', 'call_number', 'remarks'];
         $this->cleanFields($fields);
-        $this->validate();
+
+        if ($this->accessionIdBeingEdited && $this->showEditModalOnly) {
+            $this->validate([
+                'call_number' => 'required|string|max:50',
+            ]);
+        } else {
+            $this->validate();
+        }
 
         try {
             if ($this->accessionIdBeingEdited) {
                 $accession = Accession::findOrFail($this->accessionIdBeingEdited);
 
-                if (in_array($accession->status, ['on loan', 'reserved'])) {
-                    $actionWord = $accession->status === 'on loan' ? 'on loan' : 'reserved';
-                    $this->dispatch('toast', message: "Cannot edit an accession while it is currently {$actionWord}.", type: 'error');
-                    $this->showModal = false;
-                    return;
-                }
-
                 DB::transaction(function () use ($accession) {
-                    $accession->update([
-                        'acquisition_id'   => $this->acquisition_id,
-                        'catalog_id'       => $this->catalog_id,
-                        'accession_number' => $this->accession_number,
-                        'batch_number'     => $this->batch_number,
-                        'call_number'      => $this->call_number,
-                        'condition'        => $this->condition,
-                        'status'           => $this->status,
-                        'remarks'          => $this->remarks,
-                    ]);
+                    if ($this->showEditModalOnly || $this->activeEditTab === 'call_number') {
+                        $accession->update([
+                            'call_number' => $this->call_number,
+                        ]);
 
-                    if ($this->updateBatchCallNumber && $this->batch_number) {
-                        Accession::where('batch_number', $this->batch_number)
-                            ->where('id', '!=', $accession->id)
-                            ->whereNotIn('status', ['on loan', 'reserved'])
-                            ->update(['call_number' => $this->call_number]);
+                        if ($this->batch_number) {
+                            Accession::where('batch_number', $this->batch_number)
+                                ->update(['call_number' => $this->call_number]);
+                        }
+                    } else {
+                        if (in_array($accession->status, ['on loan'])) {
+                            $actionWord = $accession->status === 'on loan' ? 'on loan' : 'on loan';
+                            throw ValidationException::withMessages([
+                                'status' => "Cannot edit status/condition while item is currently {$actionWord}.",
+                            ]);
+                        }
+
+                        $accession->update([
+                            'acquisition_id'   => $this->acquisition_id,
+                            'catalog_id'       => $this->catalog_id,
+                            'accession_number' => $this->accession_number,
+                            'batch_number'     => $this->batch_number,
+                            'condition'        => $this->condition,
+                            'status'           => $this->status,
+                            'remarks'          => $this->remarks,
+                        ]);
                     }
                 });
 
-                $message = $this->updateBatchCallNumber
-                    ? "Accession record and related items in batch ({$this->batch_number}) updated successfully."
-                    : 'Accession record updated successfully.';
+                $message = ($this->showEditModalOnly || $this->activeEditTab === 'call_number')
+                    ? "Call number updated successfully for all items in batch ({$this->batch_number})."
+                    : 'Accession record condition/status updated successfully.';
             } else {
                 DB::transaction(function () {
                     $acquisition = Acquisition::where('id', $this->acquisition_id)->lockForUpdate()->first();

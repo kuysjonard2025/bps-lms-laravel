@@ -134,8 +134,8 @@
                         <th scope="col" class="p-3 whitespace-nowrap">General Reference</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Asset Type</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Copyright Year</th>
-                        <th scope="col" class="hidden md:table-cell p-3 text-center whitespace-nowrap">Call Number</th>
-                        <th scope="col" class="hidden sm:table-cell p-3 text-center whitespace-nowrap">Condition</th>
+                        <th scope="col" class="p-3 text-center whitespace-nowrap">Call Number</th>
+                        <th scope="col" class="p-3 text-center whitespace-nowrap">Condition</th>
                         <th scope="col" class="p-3 text-center whitespace-nowrap">Status</th>
                         <th scope="col" class="p-3 pr-4 text-right whitespace-nowrap">Actions</th>
                     </tr>
@@ -175,10 +175,10 @@
                             <td class="p-3 whitespace-nowrap">
                                 {{ $item->catalog->publication_year ?? 'N/A' }}
                             </td>
-                            <td class="hidden md:table-cell p-3 text-center font-mono text-slate-800 whitespace-nowrap">
-                                {{ strtoupper($item->call_number) }}
+                            <td class="p-3 text-center font-mono text-slate-800 whitespace-nowrap">
+                                    <span>{{ strtoupper($item->call_number) }}</span>
                             </td>
-                            <td class="hidden sm:table-cell p-3 text-center whitespace-nowrap">
+                            <td class="p-3 text-center whitespace-nowrap">
                                 <span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200/60">
                                     {{ ucwords($item->condition) }}
                                 </span>
@@ -259,225 +259,250 @@
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl z-10 max-h-[90vh] flex flex-col my-auto overflow-hidden border border-slate-100">
                 <div class="bg-slate-50 px-5 sm:px-6 py-4 border-b border-slate-200/80 flex justify-between items-center shrink-0">
                     <h3 class="text-sm font-bold text-slate-900">
-                        {{ $accessionIdBeingEdited ? 'Edit Accession Record' : 'Bulk Batch Accession Insertion' }}
+                        @if ($accessionIdBeingEdited)
+                            Edit Accession: <span class="font-mono text-blue-600 uppercase">{{ $accession_number }}</span>
+                        @else
+                            Bulk Batch Accession Insertion
+                        @endif
                     </h3>
                     <button wire:click="$set('showModal', false)" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer p-1">&times;</button>
                 </div>
 
+                {{-- Tab Navigation for Edit Mode --}}
+                @if ($accessionIdBeingEdited)
+                    <div class="flex border-b border-slate-200 bg-slate-50/50 px-6 pt-2 gap-2">
+                        <button
+                            type="button"
+                            wire:click="$set('activeEditTab', 'details')"
+                            class="px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer {{ $activeEditTab === 'details' ? 'border-blue-600 text-blue-600 bg-white rounded-t-xl border-x border-t border-slate-200/80' : 'border-transparent text-slate-500 hover:text-slate-700' }}"
+                        >
+                            [ Edit Item Details ]
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="$set('activeEditTab', 'call_number')"
+                            class="px-4 py-2 text-xs font-semibold border-b-2 transition cursor-pointer {{ $activeEditTab === 'call_number' ? 'border-blue-600 text-blue-600 bg-white rounded-t-xl border-x border-t border-slate-200/80' : 'border-transparent text-slate-500 hover:text-slate-700' }}"
+                        >
+                            [ Update Batch Call Number ]
+                        </button>
+                    </div>
+                @endif
+
                 <form wire:submit="saveAccession" class="p-5 sm:p-6 space-y-4 overflow-y-auto">
                     {{-- Acquisition Selection --}}
-                    <div>
-                        <label for="acquisition-source" class="block text-xs font-semibold text-slate-700">Acquisition Source *</label>
-                        <select
-                            id="acquisition-source"
-                            wire:model.live="acquisition_id"
-                            @disabled((bool)$accessionIdBeingEdited)
-                            class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-                        >
-                            <option value="">Select Acquisition Log</option>
-                            @foreach($acquisitions as $acq)
-                                <option value="{{ $acq->id }}">
-                                    {{ $acq->acquisition_number }} &mdash; {{ ucwords($acq->catalog->title) }} (Txn: {{ $acq->transaction_number }})
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('acquisition_id') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    {{-- Acquisition Metadata Preview --}}
-                    @if ($this->selectedAcquisition)
-                        @php
-                            $totalQty = $this->selectedAcquisition->quantity;
-                            $remainingCount = $this->getRemainingQty();
-                            $accessionedCount = max(0, $totalQty - $remainingCount);
-                            $cat = $this->selectedAcquisition->catalog;
-                        @endphp
-                        <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs space-y-3">
-                            <div class="flex justify-between items-start border-b border-slate-200/80 pb-2.5">
-                                <div>
-                                    <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Catalog & Asset Details</span>
-                                    <h4 class="text-sm font-bold text-slate-900 mt-0.5">{{ ucwords($cat->title) ?? 'N/A' }}</h4>
-                                </div>
-                                <span class="text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 rounded-full shrink-0">
-                                    {{ ucwords($cat->assetType->name) ?? 'Standard Asset' }}
-                                </span>
-                            </div>
-
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-[11px] text-slate-600">
-                                <div>
-                                    <span class="block text-slate-400 text-[10px]">Author</span>
-                                    <strong class="text-slate-800">{{ ucwords($cat->author->name) ?? 'N/A' }}</strong>
-                                </div>
-                                <div>
-                                    <span class="block text-slate-400 text-[10px]">Publisher</span>
-                                    <strong class="text-slate-800">{{ ucwords($cat->publisher->name) ?? 'N/A' }}</strong>
-                                </div>
-                                <div>
-                                    <span class="block text-slate-400 text-[10px]">ISBN / ISSN</span>
-                                    <strong class="text-slate-800 font-mono">{{ $cat->isbn_issn ?? 'N/A' }}</strong>
-                                </div>
-                                <div>
-                                    <span class="block text-slate-400 text-[10px]">Vendor</span>
-                                    <strong class="text-slate-800">{{ ucwords($this->selectedAcquisition->vendor->company_name) ?? 'N/A' }}</strong>
-                                </div>
-                                <div>
-                                    <span class="block text-slate-400 text-[10px]">Transaction #</span>
-                                    <strong class="text-slate-800 font-mono">{{ $this->selectedAcquisition->transaction_number ?? 'N/A' }}</strong>
-                                </div>
-                                <div>
-                                    <span class="block text-slate-400 text-[10px]">Unit Cost</span>
-                                    <strong class="text-slate-800">{{ number_format($this->selectedAcquisition->unit_cost ?? 0, 2) }}</strong>
-                                </div>
-                                <div>
-                                    <span class="block text-slate-400 text-[10px]">Copyright Year</span>
-                                    <strong class="text-slate-800">{{ $cat->publication_year ?? 'N/A' }}</strong>
-                                </div>
-                            </div>
-
-                            {{-- Quantity Summary Metrics --}}
-                            <div class="pt-3 border-t border-slate-200/80 grid grid-cols-3 gap-2 text-center">
-                                <div class="bg-white p-2 rounded-xl border border-slate-200/80">
-                                    <span class="block text-[10px] text-slate-400 uppercase font-bold">Total Acquired</span>
-                                    <span class="text-xs sm:text-sm font-bold text-slate-800 font-mono mt-0.5 block">{{ $totalQty }}</span>
-                                </div>
-                                <div class="bg-emerald-50/60 p-2 rounded-xl border border-emerald-100">
-                                    <span class="block text-[10px] text-emerald-700 uppercase font-bold">Accessioned</span>
-                                    <span class="text-xs sm:text-sm font-bold text-emerald-800 font-mono mt-0.5 block">{{ $accessionedCount }}</span>
-                                </div>
-                                <div class="bg-blue-50/60 p-2 rounded-xl border border-blue-100">
-                                    <span class="block text-[10px] text-blue-700 uppercase font-bold">Remaining</span>
-                                    <span class="text-xs sm:text-sm font-bold text-blue-800 font-mono mt-0.5 block">{{ $remainingCount }}</span>
-                                </div>
-                            </div>
+                    @if(!$showEditModalOnly && $activeEditTab !== 'call_number')
+                        <div>
+                            <label for="acquisition-source" class="block text-xs font-semibold text-slate-700">Acquisition Source *</label>
+                            <select
+                                id="acquisition-source"
+                                wire:model.live="acquisition_id"
+                                @disabled((bool)$accessionIdBeingEdited)
+                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+                            >
+                                <option value="">Select Acquisition Log</option>
+                                @foreach($acquisitions as $acq)
+                                    <option value="{{ $acq->id }}">
+                                        {{ $acq->acquisition_number }} &mdash; {{ ucwords($acq->catalog->title) }} (Txn: {{ $acq->transaction_number }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('acquisition_id') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                         </div>
-                    @endif
 
-                    @if (!$accessionIdBeingEdited)
-                        @php $remainingQty = $this->getRemainingQty(); @endphp
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-4 bg-blue-50/40 border border-blue-100/80 rounded-2xl">
-                            <div>
-                                <label for="batch-qty" class="block text-xs font-bold text-blue-900">Batch Quantity to Create *</label>
-                                <input
-                                    id="batch-qty"
-                                    type="number"
-                                    wire:model="batch_qty"
-                                    min="{{ $remainingQty > 0 ? 1 : 0 }}"
-                                    max="{{ $remainingQty }}"
-                                    @disabled($remainingQty === 0)
-                                    class="mt-1 w-full text-xs font-bold rounded-xl border border-blue-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                >
-                                @if ($remainingQty === 0)
-                                    <span class="text-[10px] text-rose-600 font-semibold block mt-1">All copies for this acquisition are fully accessioned.</span>
-                                @else
-                                    <span class="text-[10px] text-slate-500 block mt-1">Generates sequential barcodes automatically.</span>
-                                @endif
-                                @error('batch_qty') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
-                            </div>
+                        {{-- Acquisition Metadata Preview --}}
+                        @if ($this->selectedAcquisition)
+                            @php
+                                $totalQty = $this->selectedAcquisition->quantity;
+                                $remainingCount = $this->getRemainingQty();
+                                $accessionedCount = max(0, $totalQty - $remainingCount);
+                                $cat = $this->selectedAcquisition->catalog;
+                            @endphp
+                            <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl text-xs space-y-3">
+                                <div class="flex justify-between items-start border-b border-slate-200/80 pb-2.5">
+                                    <div>
+                                        <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Catalog & Asset Details</span>
+                                        <h4 class="text-sm font-bold text-slate-900 mt-0.5">{{ ucwords($cat->title) ?? 'N/A' }}</h4>
+                                    </div>
+                                    <span class="text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 rounded-full shrink-0">
+                                        {{ ucwords($cat->assetType->name) ?? 'Standard Asset' }}
+                                    </span>
+                                </div>
 
-                            <div>
-                                <label for="batch-number" class="block text-xs font-semibold text-slate-500">Batch Reference Number (Auto)</label>
-                                <input
-                                    id="batch-number"
-                                    type="text"
-                                    wire:model="batch_number"
-                                    disabled
-                                    readonly
-                                    class="mt-1 w-full text-xs font-mono rounded-xl border border-slate-200 p-2.5 bg-slate-100 text-slate-500 cursor-not-allowed select-none"
-                                >
-                                <span class="text-[10px] text-slate-400 block mt-1">System-generated timestamp identifier.</span>
-                                @error('batch_number') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-                    @else
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                            <div>
-                                <label for="accession-number" class="block text-xs font-semibold text-slate-500">Accession Number (Auto-Generated)</label>
-                                <input
-                                    id="accession-number"
-                                    type="text"
-                                    wire:model="accession_number"
-                                    disabled
-                                    readonly
-                                    class="mt-1 w-full text-xs font-mono rounded-xl border border-slate-200 p-2.5 bg-slate-100 text-slate-500 cursor-not-allowed select-none"
-                                >
-                                <span class="text-[10px] text-slate-400 block mt-1">System identifier cannot be modified.</span>
-                                @error('accession_number') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label for="edit-batch-number" class="block text-xs font-semibold text-slate-500">Batch Reference Number (Auto)</label>
-                                <input
-                                    id="edit-batch-number"
-                                    type="text"
-                                    wire:model="batch_number"
-                                    disabled
-                                    readonly
-                                    class="mt-1 w-full text-xs font-mono rounded-xl border border-slate-200 p-2.5 bg-slate-100 text-slate-500 cursor-not-allowed select-none"
-                                >
-                                @error('batch_number') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-                    @endif
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-[11px] text-slate-600">
+                                    <div>
+                                        <span class="block text-slate-400 text-[10px]">Author</span>
+                                        <strong class="text-slate-800">{{ ucwords($cat->author->name) ?? 'N/A' }}</strong>
+                                    </div>
+                                    <div>
+                                        <span class="block text-slate-400 text-[10px]">Publisher</span>
+                                        <strong class="text-slate-800">{{ ucwords($cat->publisher->name) ?? 'N/A' }}</strong>
+                                    </div>
+                                    <div>
+                                        <span class="block text-slate-400 text-[10px]">ISBN / ISSN</span>
+                                        <strong class="text-slate-800 font-mono">{{ $cat->isbn_issn ?? 'N/A' }}</strong>
+                                    </div>
+                                    <div>
+                                        <span class="block text-slate-400 text-[10px]">Vendor</span>
+                                        <strong class="text-slate-800">{{ ucwords($this->selectedAcquisition->vendor->company_name) ?? 'N/A' }}</strong>
+                                    </div>
+                                    <div>
+                                        <span class="block text-slate-400 text-[10px]">Transaction #</span>
+                                        <strong class="text-slate-800 font-mono">{{ $this->selectedAcquisition->transaction_number ?? 'N/A' }}</strong>
+                                    </div>
+                                    <div>
+                                        <span class="block text-slate-400 text-[10px]">Unit Cost</span>
+                                        <strong class="text-slate-800">{{ number_format($this->selectedAcquisition->unit_cost ?? 0, 2) }}</strong>
+                                    </div>
+                                    <div>
+                                        <span class="block text-slate-400 text-[10px]">Copyright Year</span>
+                                        <strong class="text-slate-800">{{ $cat->publication_year ?? 'N/A' }}</strong>
+                                    </div>
+                                </div>
 
-                    {{-- Call Number --}}
-                    <div>
-                        <label for="call-number" class="block text-xs font-semibold text-slate-700">Call Number *</label>
-                        <input
-                            id="call-number"
-                            type="text"
-                            wire:model="call_number"
-                            maxlength="50"
-                            placeholder="e.g. 823.912 R59"
-                            class="mt-1 w-full text-xs font-mono rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                        >
-                        @error('call_number') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
-
-                        @if ($accessionIdBeingEdited)
-                            <div class="mt-3 p-3 bg-blue-50/60 border border-blue-100/80 rounded-xl flex items-center gap-2.5">
-                                <input
-                                    type="checkbox"
-                                    id="updateBatchCallNumber"
-                                    wire:model="updateBatchCallNumber"
-                                    class="rounded border-blue-300 text-blue-600 focus:ring-blue-500/20 h-4 w-4 cursor-pointer"
-                                >
-                                <label for="updateBatchCallNumber" class="text-xs font-medium text-blue-900 cursor-pointer select-none">
-                                    Apply this Call Number to all items in batch (<span class="font-mono font-bold text-blue-700">{{ $batch_number }}</span>)
-                                </label>
+                                {{-- Quantity Summary Metrics --}}
+                                <div class="pt-3 border-t border-slate-200/80 grid grid-cols-3 gap-2 text-center">
+                                    <div class="bg-white p-2 rounded-xl border border-slate-200/80">
+                                        <span class="block text-[10px] text-slate-400 uppercase font-bold">Total Acquired</span>
+                                        <span class="text-xs sm:text-sm font-bold text-slate-800 font-mono mt-0.5 block">{{ $totalQty }}</span>
+                                    </div>
+                                    <div class="bg-emerald-50/60 p-2 rounded-xl border border-emerald-100">
+                                        <span class="block text-[10px] text-emerald-700 uppercase font-bold">Accessioned</span>
+                                        <span class="text-xs sm:text-sm font-bold text-emerald-800 font-mono mt-0.5 block">{{ $accessionedCount }}</span>
+                                    </div>
+                                    <div class="bg-blue-50/60 p-2 rounded-xl border border-blue-100">
+                                        <span class="block text-[10px] text-blue-700 uppercase font-bold">Remaining</span>
+                                        <span class="text-xs sm:text-sm font-bold text-blue-800 font-mono mt-0.5 block">{{ $remainingCount }}</span>
+                                    </div>
+                                </div>
                             </div>
                         @endif
-                    </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div>
-                            <label for="accession-condition" class="block text-xs font-semibold text-slate-700">Condition *</label>
-                            <select
-                                id="accession-condition"
-                                wire:model="condition"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all bg-white"
-                            >
-                                <option value="new">New</option>
-                                <option value="good">Good</option>
-                                <option value="damaged">Damaged</option>
-                                <option value="lost">Lost</option>
-                            </select>
-                            @error('condition') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
-                        </div>
+                        @if (!$accessionIdBeingEdited)
+                            @php $remainingQty = $this->getRemainingQty(); @endphp
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-4 bg-blue-50/40 border border-blue-100/80 rounded-2xl">
+                                <div>
+                                    <label for="batch-qty" class="block text-xs font-bold text-blue-900">Batch Quantity to Create *</label>
+                                    <input
+                                        id="batch-qty"
+                                        type="number"
+                                        wire:model="batch_qty"
+                                        min="{{ $remainingQty > 0 ? 1 : 0 }}"
+                                        max="{{ $remainingQty }}"
+                                        @disabled($remainingQty === 0)
+                                        class="mt-1 w-full text-xs font-bold rounded-xl border border-blue-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                    >
+                                    @if ($remainingQty === 0)
+                                        <span class="text-[10px] text-rose-600 font-semibold block mt-1">All copies for this acquisition are fully accessioned.</span>
+                                    @else
+                                        <span class="text-[10px] text-slate-500 block mt-1">Generates sequential barcodes automatically.</span>
+                                    @endif
+                                    @error('batch_qty') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
+                                </div>
 
+                                <div>
+                                    <label for="batch-number" class="block text-xs font-semibold text-slate-500">Batch Reference Number (Auto)</label>
+                                    <input
+                                        id="batch-number"
+                                        type="text"
+                                        wire:model="batch_number"
+                                        disabled
+                                        readonly
+                                        class="mt-1 w-full text-xs font-mono rounded-xl border border-slate-200 p-2.5 bg-slate-100 text-slate-500 cursor-not-allowed select-none"
+                                    >
+                                    <span class="text-[10px] text-slate-400 block mt-1">System-generated timestamp identifier.</span>
+                                    @error('batch_number') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        @else
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <div>
+                                    <label for="accession-number" class="block text-xs font-semibold text-slate-500">Accession Number (Auto-Generated)</label>
+                                    <input
+                                        id="accession-number"
+                                        type="text"
+                                        wire:model="accession_number"
+                                        disabled
+                                        readonly
+                                        class="mt-1 w-full text-xs font-mono uppercase rounded-xl border border-slate-200 p-2.5 bg-slate-100 text-slate-500 cursor-not-allowed select-none"
+                                    >
+                                    <span class="text-[10px] text-slate-400 block mt-1">System identifier cannot be modified.</span>
+                                    @error('accession_number') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+                                <div>
+                                    <label for="edit-batch-number" class="block text-xs font-semibold text-slate-500">Batch Reference Number (Auto)</label>
+                                    <input
+                                        id="edit-batch-number"
+                                        type="text"
+                                        wire:model="batch_number"
+                                        disabled
+                                        readonly
+                                        class="mt-1 w-full text-xs font-mono uppercase rounded-xl border border-slate-200 p-2.5 bg-slate-100 text-slate-500 cursor-not-allowed select-none"
+                                    >
+                                    @error('batch_number') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        @endif
+                    @endif
+
+                    {{-- Call Number Tab View --}}
+                    @if (!$accessionIdBeingEdited || $activeEditTab === 'call_number')
                         <div>
-                            <label for="accession-status" class="block text-xs font-semibold text-slate-700">Circulation Status *</label>
-                            <select
-                                id="accession-status"
-                                wire:model="status"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all bg-white"
+                            <label for="call-number" class="block text-xs font-semibold text-slate-700">Call Number *</label>
+                            <input
+                                id="call-number"
+                                type="text"
+                                wire:model="call_number"
+                                maxlength="50"
+                                placeholder="e.g. 823.912 R59"
+                                class="mt-1 w-full text-xs font-mono rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                             >
-                                <option value="available">Available</option>
-                                <option value="on loan" disabled class="bg-slate-100 text-slate-400">On Loan (Auto-set via Circulation)</option>
-                                <option value="reserved">Reserved</option>
-                                <option value="under maintenance">Under Maintenance</option>
-                                <option value="dumped">Dumped</option>
-                            </select>
-                            @error('status') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
+                            @error('call_number') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
+
+                            <p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200/80 p-3 rounded-xl font-medium mt-3">
+                                Updating this call number will modify all items associated with Batch Reference Number <span class="font-mono font-bold">{{ $batch_number }}</span>.
+                            </p>
                         </div>
-                    </div>
+                    @endif
+
+                    {{-- Condition & Status fields --}}
+                    @if(!$accessionIdBeingEdited || $activeEditTab === 'details')
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                            <div>
+                                <label for="accession-condition" class="block text-xs font-semibold text-slate-700">Condition *</label>
+                                <select
+                                    id="accession-condition"
+                                    wire:model="condition"
+                                    class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all bg-white"
+                                >
+                                    <option value="">Select Condition</option>
+                                    <option value="new">New</option>
+                                    <option value="good">Good</option>
+                                    <option value="damaged">Damaged</option>
+                                    <option value="lost">Lost</option>
+                                </select>
+                                @error('condition') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label for="accession-status" class="block text-xs font-semibold text-slate-700">Circulation Status *</label>
+                                <select
+                                    id="accession-status"
+                                    wire:model="status"
+                                    class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all bg-white"
+                                >
+                                    <option value="available">Available</option>
+                                    <option value="on loan" disabled class="bg-slate-100 text-slate-400">On Loan (Auto-set via Circulation)</option>
+                                    <option value="reserved">Reserved</option>
+                                    <option value="under maintenance">Under Maintenance</option>
+                                    <option value="dumped">Dumped</option>
+                                </select>
+                                @error('status') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-1">
+                            Note: Condition and Circulation Status modifications apply strictly to the currently selected accession number (<span class="font-mono font-bold">{{ $accession_number }}</span>), leaving other items in the batch untouched.
+                        </p>
+                    @endif
 
                     {{-- Modal Actions --}}
                     <div class="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 shrink-0">
@@ -494,13 +519,20 @@
                             wire:loading.attr="disabled"
                             class="w-full sm:w-auto px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {{-- Loading Spinner --}}
                             <svg wire:loading wire:target="saveAccession" class="animate-spin w-3.5 h-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
 
-                            <span>{{ $accessionIdBeingEdited ? 'Update Accession' : 'Generate Accession Copies' }}</span>
+                            <span>
+                                @if($accessionIdBeingEdited && $activeEditTab === 'call_number')
+                                    Update Batch Call Number
+                                @elseif($accessionIdBeingEdited)
+                                    Update Item Details
+                                @else
+                                    Generate Accession Copies
+                                @endif
+                            </span>
                         </button>
                     </div>
                 </form>
@@ -585,7 +617,6 @@
             <div wire:click="$set('showDeleteModal', false)" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"></div>
 
             <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md z-10 p-6 my-auto overflow-hidden border border-slate-100 text-center">
-                {{-- Centered Warning Icon Badge --}}
                 <div class="w-12 h-12 rounded-full bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
