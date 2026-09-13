@@ -3,9 +3,9 @@
 
 You have successfully borrowed an item from the library. Here are your loan details:
 
-- **Book Title:** {{ ucwords($circulation->accession->catalog->title ?? 'N/A') }}
 - **Accession Number:** {{ strtoupper($circulation->accession->accession_number ?? 'N/A') }}
-- **Borrowed Date:** {{ $circulation->borrowed_at->format('M d, Y h:i A') }}
+- **Book Title:** {{ ucwords($circulation->accession->catalog->title ?? 'N/A') }}
+- **Borrowed Date:** {{ $circulation->borrowed_at->format('M d, Y') }}
 - **Due Date:** {{ \Carbon\Carbon::parse($circulation->due_at)->format('M d, Y') }}
 - **Processed By:** {{ auth()->user()->getFullNameAttribute() ?? 'System User' }}
 - **Role:** {{ ucwords(auth()->user()->role) ?? 'System' }}

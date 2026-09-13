@@ -254,7 +254,7 @@ class Circulations extends Component
 
         try {
             $patronCode = trim($this->patronInput);
-            $patron = Patron::with(['patronType', 'type']) // adjusted or matching your relationship name for patron type (e.g. patronType or type)
+            $patron = Patron::with(['patronType'])
                 ->where('school_id', $patronCode)
                 ->orWhere('rfid_tag', $patronCode)
                 ->first();
