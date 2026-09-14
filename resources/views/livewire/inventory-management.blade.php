@@ -31,8 +31,8 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Total Physical</span>
-                <span class="text-xl font-bold text-slate-900">{{ number_format($stats['total_items']) }}</span>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Total Acquired</span>
+                <span class="text-xl font-bold text-slate-900">{{ number_format($stats['total_acquired']) }}</span>
             </div>
             <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center">📦</div>
         </div>
@@ -108,6 +108,8 @@
                         <th class="p-3 whitespace-nowrap">Author</th>
                         <th class="p-3 whitespace-nowrap">Asset Type</th>
                         <th class="p-3 text-center whitespace-nowrap">Total</th>
+                        <th class="p-3 text-center whitespace-nowrap">Physical</th>
+                        <th class="p-3 text-center whitespace-nowrap">Pending</th>
                         <th class="p-3 text-center whitespace-nowrap">Available</th>
                         <th class="p-3 text-center whitespace-nowrap">On Loan</th>
                         <th class="p-3 text-center whitespace-nowrap">Reserved</th>
@@ -120,6 +122,10 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse ($catalogs as $catalog)
+                        @php
+                            $totalStock = max($catalog->total_acquired_quantity ?? 0, $catalog->physical_copies);
+                            $pendingAccession = max(0, $totalStock - $catalog->physical_copies);
+                        @endphp
                         <tr class="hover:bg-slate-50/60 transition">
                             <td class="p-3 pl-4 whitespace-nowrap font-bold text-slate-900 text-xs capitalize">
                                 {{ $catalog->title }}
@@ -133,7 +139,13 @@
                                     {{ $catalog->assetType->name ?? 'Standard' }}
                                 </span>
                             </td>
-                            <td class="p-3 whitespace-nowrap text-center font-bold text-slate-900">{{ $catalog->total_copies }}</td>
+                            <td class="p-3 whitespace-nowrap text-center font-bold text-slate-900">{{ $totalStock }}</td>
+                            <td class="p-3 whitespace-nowrap text-center text-slate-600">{{ $catalog->physical_copies }}</td>
+                            <td class="p-3 whitespace-nowrap text-center">
+                                <span class="px-2 py-0.5 rounded-full font-bold {{ $pendingAccession > 0 ? 'bg-amber-50 text-amber-700' : 'bg-slate-50 text-slate-400' }}">
+                                    {{ $pendingAccession }}
+                                </span>
+                            </td>
                             <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700">{{ $catalog->available_copies }}</span></td>
                             <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold bg-indigo-50 text-indigo-700">{{ $catalog->on_loan_copies }}</span></td>
                             <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold bg-purple-50 text-purple-700">{{ $catalog->reserved_copies }}</span></td>
@@ -145,7 +157,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="12" class="text-center py-8 text-slate-400">No inventory entries found.</td>
+                            <td colspan="14" class="text-center py-8 text-slate-400">No inventory entries found.</td>
                         </tr>
                     @endforelse
                 </tbody>
