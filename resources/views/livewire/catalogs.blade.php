@@ -47,12 +47,12 @@
             <table class="w-full text-left border-collapse text-xs text-slate-600">
                 <thead>
                     <tr class="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase text-[11px] tracking-wider">
+                        <th scope="col" class="p-3 whitespace-nowrap">ISBN</th>
                         <th scope="col" class="p-3 pl-4 whitespace-nowrap">Title</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Author</th>
-                        <th scope="col" class="p-3 whitespace-nowrap hidden md:table-cell">Asset Type</th>
-                        <th scope="col" class="p-3 whitespace-nowrap hidden lg:table-cell">Publisher</th>
-                        <th scope="col" class="p-3 whitespace-nowrap hidden lg:table-cell">Reference</th>
-                        <th scope="col" class="p-3 whitespace-nowrap">ISBN</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">Asset Type</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">Publisher</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">Reference</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Copyright Year</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Edition</th>
                         <th scope="col" class="p-3 pr-4 text-right whitespace-nowrap">Actions</th>
@@ -61,6 +61,9 @@
                 <tbody class="divide-y divide-slate-100">
                     @forelse($catalogs as $catalog)
                         <tr wire:key="catalog-row-{{ $catalog->id }}" class="hover:bg-slate-50/60 transition-colors">
+                            <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-[11px]">
+                                {{ $catalog->isbn_issn ?: 'N/A' }}
+                            </td>
                             <td class="p-3 pl-4 font-medium text-slate-900 max-w-[200px] truncate whitespace-nowrap">
                                 <div class="font-bold truncate" title="{{ ucwords($catalog->title) }}">{{ ucwords($catalog->title) }}</div>
                                 @if($catalog->edition)
@@ -68,12 +71,9 @@
                                 @endif
                             </td>
                             <td class="p-3 text-slate-700 whitespace-nowrap font-medium">{{ ucwords($catalog->author->name ?? '—') }}</td>
-                            <td class="p-3 text-slate-600 whitespace-nowrap hidden md:table-cell">{{ ucwords($catalog->assetType->name ?? '—') }}</td>
-                            <td class="p-3 text-slate-600 whitespace-nowrap hidden lg:table-cell">{{ ucwords($catalog->publisher->name ?? '—') }}</td>
-                            <td class="p-3 text-slate-600 whitespace-nowrap hidden lg:table-cell">{{ ucwords($catalog->generalReference->name ?? '—') }}</td>
-                            <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-[11px]">
-                                {{ $catalog->isbn_issn ?: 'N/A' }}
-                            </td>
+                            <td class="p-3 text-slate-600 whitespace-nowrap">{{ ucwords($catalog->assetType->name ?? '—') }}</td>
+                            <td class="p-3 text-slate-600 whitespace-nowrap">{{ ucwords($catalog->publisher->name ?? '—') }}</td>
+                            <td class="p-3 text-slate-600 whitespace-nowrap">{{ ucwords($catalog->generalReference->name ?? '—') }}</td>
                             <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-[11px]">
                                 {{ $catalog->publication_year ?: 'N/A' }}
                             </td>
