@@ -121,12 +121,12 @@
         <div class="grid grid-cols-2 gap-3">
             <a href="{{ Route::has('kiosk.login') ? route('kiosk.login') : '#' }}" wire:navigate class="flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-blue-50 hover:border-blue-200 transition-all group">
                 <x-heroicon-o-clipboard-document-list class="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition" />
-                <span class="text-xs font-semibold text-slate-700 group-hover:text-blue-700">Patron Time Logs</span>
+                <span class="text-xs font-semibold text-slate-700 group-hover:text-blue-700">Borrower Time Logs</span>
             </a>
 
             <a href="{{ Route::has('patron.portal') ? route('patron.portal') : '#' }}" wire:navigate class="flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-blue-50 hover:border-blue-200 transition-all group">
                 <x-heroicon-o-identification class="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition" />
-                <span class="text-xs font-semibold text-slate-700 group-hover:text-blue-700">Patron Records Portal</span>
+                <span class="text-xs font-semibold text-slate-700 group-hover:text-blue-700">Borrower Records Portal</span>
             </a>
         </div>
     </div>
