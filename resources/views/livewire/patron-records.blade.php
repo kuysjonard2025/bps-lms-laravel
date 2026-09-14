@@ -48,10 +48,10 @@
                             </div>
                             <div>
                                 <h3 class="text-xs font-bold text-slate-900 capitalize">{{ $p->first_name }} {{ $p->last_name }}</h3>
-                                <p class="text-[11px] text-slate-500 font-mono">ID: {{ $p->school_id }}</p>
+                                <p class="text-[11px] text-slate-500 font-mono">{{ $p->patronType->name == "student" ? "Student" : "Teacher" }} #: {{ $p->school_id }}</p>
                                 <div class="flex items-center gap-1.5 mt-0.5">
                                     <span class="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-slate-100 text-slate-600 capitalize">
-                                        {{ $p->patronType->name ?? 'Standard' }}
+                                        {{ $p->patronType->name ?? 'Unknown' }}
                                     </span>
                                     <span class="text-[10px] font-semibold {{ $p->status === 'active' ? 'text-emerald-600' : 'text-rose-600' }}">
                                         • {{ ucfirst($p->status) }}
@@ -111,7 +111,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                             <span class="text-slate-400 text-[10px] block uppercase font-bold">Type</span>
-                            <strong class="text-slate-800">{{ $selectedPatron->patronType->name ?? 'N/A' }}</strong>
+                            <strong class="text-slate-800 capitalize">{{ $selectedPatron->patronType->name ?? 'N/A' }}</strong>
                         </div>
                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                             <span class="text-slate-400 text-[10px] block uppercase font-bold">Grade / Section</span>
@@ -149,9 +149,10 @@
                             <thead class="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
                                 <tr>
                                     <th class="p-3 pl-4 whitespace-nowrap">Accession No.</th>
+                                    <th class="p-3 whitespace-nowrap">ISBN</th>
                                     <th class="p-3 whitespace-nowrap">Book Title</th>
                                     <th class="p-3 whitespace-nowrap">Author</th>
-                                    <th class="p-3 whitespace-nowrap">ISBN</th>
+                                    <th class="p-3 whitespace-nowrap">Type</th>
                                     <th class="p-3 whitespace-nowrap">Borrowed Date</th>
                                     <th class="p-3 whitespace-nowrap">Due Date</th>
                                     <th class="p-3 whitespace-nowrap">Returned Date</th>
@@ -162,17 +163,20 @@
                             <tbody class="divide-y divide-slate-100">
                                 @forelse ($patronLoans as $loan)
                                     <tr class="hover:bg-slate-50/60 transition">
-                                        <td class="p-3 pl-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                                        <td class="p-3 pl-4 font-mono text-[11px] text-slate-500 uppercase whitespace-nowrap">
                                             {{ $loan->accession->accession_number ?? 'N/A' }}
                                         </td>
+                                        <td class="p-3 font-mono text-[11px] text-slate-500 uppercase whitespace-nowrap">
+                                            {{ $loan->accession->catalog->isbn_issn ?? 'N/A' }}
+                                        </td>
                                         <td class="p-3 font-bold text-slate-900 capitalize whitespace-nowrap">
-                                            {{ $loan->accession->catalog->title ?? 'N/A' }}
+                                            {{ $loan->accession->catalog->title ?? '-' }}
                                         </td>
                                         <td class="p-3 text-slate-500 capitalize whitespace-nowrap">
                                             {{ $loan->accession->catalog->author->name ?? '—' }}
                                         </td>
-                                        <td class="p-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
-                                            {{ $loan->accession->catalog->isbn_issn ?? '—' }}
+                                        <td class="p-3 text-slate-500 capitalize whitespace-nowrap">
+                                            {{ $loan->accession->catalog->assetType->name ?? '—' }}
                                         </td>
                                         <td class="p-3 text-slate-500 whitespace-nowrap">
                                             {{ $loan->borrowed_at ? \Carbon\Carbon::parse($loan->borrowed_at)->format('M d, Y') : '—' }}
