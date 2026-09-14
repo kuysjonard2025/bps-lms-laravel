@@ -1,9 +1,9 @@
 <div class="p-6 space-y-6">
-    {{-- Header Layout Aligned with Acquisitions View --}}
+    {{-- Header Layout --}}
     <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-xl font-bold text-slate-900 tracking-tight">Inventory Management</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Manage title-level inventory stock counts, active loans, reserved items, and condition reports.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Manage title-level inventory stock counts, accessions status, and condition metrics.</p>
         </div>
 
         <div class="flex items-center gap-2">
@@ -28,10 +28,10 @@
     </div>
 
     {{-- Stats Row --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Total Physical Copies</span>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Total Physical</span>
                 <span class="text-xl font-bold text-slate-900">{{ number_format($stats['total_items']) }}</span>
             </div>
             <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center">📦</div>
@@ -39,7 +39,7 @@
 
         <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Available Copies</span>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Available</span>
                 <span class="text-xl font-bold text-emerald-600">{{ number_format($stats['total_available']) }}</span>
             </div>
             <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 font-bold flex items-center justify-center">✅</div>
@@ -47,7 +47,7 @@
 
         <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Currently On Loan</span>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">On Loan</span>
                 <span class="text-xl font-bold text-indigo-600">{{ number_format($stats['total_on_loan']) }}</span>
             </div>
             <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center">📖</div>
@@ -68,6 +68,14 @@
             </div>
             <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 font-bold flex items-center justify-center">⚠️</div>
         </div>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Dumped</span>
+                <span class="text-xl font-bold text-slate-600">{{ number_format($stats['total_dumped']) }}</span>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 font-bold flex items-center justify-center">🗑️</div>
+        </div>
     </div>
 
     {{-- Main Panel with Search and Filters --}}
@@ -77,7 +85,7 @@
                 <input
                     type="text"
                     wire:model.live.debounce.300ms="search"
-                    placeholder="Search Title, Author, ISBN, Call Number..."
+                    placeholder="Search Title, Author, ISBN, Accession No..."
                     class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
                 >
                 <span class="absolute left-3 top-2.5 text-slate-400">🔍</span>
@@ -104,6 +112,7 @@
                         <th class="p-3 text-center whitespace-nowrap">On Loan</th>
                         <th class="p-3 text-center whitespace-nowrap">Reserved</th>
                         <th class="p-3 text-center whitespace-nowrap">Maintenance</th>
+                        <th class="p-3 text-center whitespace-nowrap">Dumped</th>
                         <th class="p-3 text-center whitespace-nowrap">Damaged</th>
                         <th class="p-3 text-center whitespace-nowrap">Lost</th>
                         <th class="p-3 pr-4 text-center whitespace-nowrap">Batches</th>
@@ -129,13 +138,14 @@
                             <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold bg-indigo-50 text-indigo-700">{{ $catalog->on_loan_copies }}</span></td>
                             <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold bg-purple-50 text-purple-700">{{ $catalog->reserved_copies }}</span></td>
                             <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold bg-amber-50 text-amber-700">{{ $catalog->maintenance_copies }}</span></td>
+                            <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold {{ $catalog->dumped_copies > 0 ? 'bg-slate-200 text-slate-700' : 'bg-slate-50 text-slate-400' }}">{{ $catalog->dumped_copies }}</span></td>
                             <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold {{ $catalog->damaged_copies > 0 ? 'bg-rose-50 text-rose-700' : 'bg-slate-50 text-slate-400' }}">{{ $catalog->damaged_copies }}</span></td>
                             <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold {{ $catalog->lost_copies > 0 ? 'bg-rose-50 text-rose-700' : 'bg-slate-50 text-slate-400' }}">{{ $catalog->lost_copies }}</span></td>
                             <td class="p-3 pr-4 whitespace-nowrap text-center font-mono text-slate-600">{{ $catalog->acquisition_batches }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="text-center py-8 text-slate-400">No inventory entries found.</td>
+                            <td colspan="12" class="text-center py-8 text-slate-400">No inventory entries found.</td>
                         </tr>
                     @endforelse
                 </tbody>

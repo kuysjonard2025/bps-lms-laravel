@@ -5,7 +5,7 @@ namespace App\Livewire;
 use App\Models\Catalog;
 use App\Models\AssetType;
 use App\Models\Accession;
-use App\Models\Circulation;
+use App\Models\Acquisition;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -31,19 +31,12 @@ class InventoryManagement extends Component
             ->withCount([
                 'accessions as total_copies',
                 'accessions as available_copies' => fn ($q) => $q->where('status', 'available'),
-                'accessions as on_loan_copies' => fn ($q) => $q->whereHas('circulations', fn ($c) => $c->where('status', 'borrowed')->whereNull('returned_at')),
+                'accessions as on_loan_copies' => fn ($q) => $q->where('status', 'on loan'),
                 'accessions as reserved_copies' => fn ($q) => $q->where('status', 'reserved'),
                 'accessions as maintenance_copies' => fn ($q) => $q->where('status', 'under maintenance'),
-                'accessions as damaged_copies' => fn ($q) => $q->where(function ($sub) {
-                    $sub->whereIn('condition', ['damaged', 'Damaged'])
-                        ->orWhereIn('status', ['damaged', 'Damaged', 'under maintenance'])
-                        ->orWhereHas('circulations', fn ($c) => $c->where('condition', 'damaged'));
-                }),
-                'accessions as lost_copies' => fn ($q) => $q->where(function ($sub) {
-                    $sub->whereIn('condition', ['lost', 'Lost', 'missing'])
-                        ->orWhereIn('status', ['lost', 'Lost', 'missing'])
-                        ->orWhereHas('circulations', fn ($c) => $c->where('condition', 'lost'));
-                }),
+                'accessions as damaged_copies' => fn ($q) => $q->where(fn ($sub) => $sub->where('condition', 'damaged')->orWhere('status', 'damaged')),
+                'accessions as lost_copies' => fn ($q) => $q->where(fn ($sub) => $sub->whereIn('condition', ['lost', 'missing'])->orWhereIn('status', ['lost', 'missing'])),
+                'accessions as dumped_copies' => fn ($q) => $q->where(fn ($sub) => $sub->where('condition', 'dumped')->orWhere('status', 'dumped')),
                 'accessions as acquisition_batches' => fn ($q) => $q->select(DB::raw('count(distinct(acquisition_id))')),
             ])
             ->when($this->assetTypeFilter !== 'all', fn ($q) => $q->where('asset_type_id', $this->assetTypeFilter))
@@ -52,7 +45,7 @@ class InventoryManagement extends Component
                     $sub->where('title', $likeOperator, "%{$this->search}%")
                         ->orWhere('isbn_issn', $likeOperator, "%{$this->search}%")
                         ->orWhereHas('author', fn ($a) => $a->where('name', $likeOperator, "%{$this->search}%"))
-                        ->orWhereHas('accessions', fn ($acc) => $acc->where('call_number', $likeOperator, "%{$this->search}%"));
+                        ->orWhereHas('accessions', fn ($acc) => $acc->where('call_number', $likeOperator, "%{$this->search}%")->orWhere('accession_number', $likeOperator, "%{$this->search}%"));
                 });
             })
             ->latest();
@@ -63,17 +56,10 @@ class InventoryManagement extends Component
         return [
             'total_items'     => Accession::count(),
             'total_available' => Accession::where('status', 'available')->count(),
-            'total_on_loan'   => Circulation::where('status', 'borrowed')->whereNull('returned_at')->count(),
-            'total_damaged'   => Accession::where(function ($q) {
-                                     $q->whereIn('condition', ['damaged', 'Damaged'])
-                                       ->orWhereIn('status', ['damaged', 'Damaged'])
-                                       ->orWhereHas('circulations', fn ($c) => $c->where('condition', 'damaged'));
-                                 })->count(),
-            'total_lost'      => Accession::where(function ($q) {
-                                     $q->whereIn('condition', ['lost', 'Lost', 'missing'])
-                                       ->orWhereIn('status', ['lost', 'Lost', 'missing'])
-                                       ->orWhereHas('circulations', fn ($c) => $c->where('condition', 'lost'));
-                                 })->count(),
+            'total_on_loan'   => Accession::where('status', 'on loan')->count(),
+            'total_damaged'   => Accession::where(fn ($q) => $q->where('condition', 'damaged')->orWhere('status', 'damaged'))->count(),
+            'total_lost'      => Accession::where(fn ($q) => $q->whereIn('condition', ['lost', 'missing'])->orWhereIn('status', ['lost', 'missing']))->count(),
+            'total_dumped'    => Accession::where(fn ($q) => $q->where('condition', 'dumped')->orWhere('status', 'dumped'))->count(),
         ];
     }
 
@@ -88,22 +74,20 @@ class InventoryManagement extends Component
 
         return response()->stream(function() use ($catalogs, $stats, $searchFilterText, $assetTypeText) {
             $file = fopen('php://output', 'w');
-
-            // Add UTF-8 BOM for proper Excel compatibility
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
             fputcsv($file, ['BPS LIBRARY MANAGEMENT SYSTEM']);
             fputcsv($file, ['Inventory Summary Report']);
-            fputcsv($file, ['Generated On: ' . date('F d, Y h:i A'), '', '', '', '', '', '', 'Generated By: ' . (auth()->user()->name ?? 'System User')]);
-            fputcsv($file, ['Search Filter: ' . $searchFilterText, '', '', '', '', '', '', 'Asset Type Filter: ' . $assetTypeText]);
+            fputcsv($file, ['Generated On: ' . date('F d, Y h:i A'), '', '', '', '', '', '', '', 'Generated By: ' . (auth()->user()->name ?? 'System User')]);
+            fputcsv($file, ['Search Filter: ' . $searchFilterText, '', '', '', '', '', '', '', 'Asset Type Filter: ' . $assetTypeText]);
             fputcsv($file, []);
 
             fputcsv($file, ['OVERVIEW STATISTICS']);
-            fputcsv($file, ['Total Physical Copies', 'Available Copies', 'Currently on Loan', 'Damaged Copies', 'Lost Copies']);
-            fputcsv($file, [$stats['total_items'], $stats['total_available'], $stats['total_on_loan'], $stats['total_damaged'], $stats['total_lost']]);
+            fputcsv($file, ['Total Physical Copies', 'Available Copies', 'Currently on Loan', 'Damaged Copies', 'Lost Copies', 'Dumped Copies']);
+            fputcsv($file, [$stats['total_items'], $stats['total_available'], $stats['total_on_loan'], $stats['total_damaged'], $stats['total_lost'], $stats['total_dumped']]);
             fputcsv($file, []);
 
-            fputcsv($file, ['Title', 'Author', 'Asset Type', 'Total', 'Available', 'On Loan', 'Reserved', 'Maintenance', 'Damaged', 'Lost', 'Batches']);
+            fputcsv($file, ['Title', 'Author', 'Asset Type', 'Total', 'Available', 'On Loan', 'Reserved', 'Maintenance', 'Damaged', 'Lost', 'Dumped', 'Batches']);
 
             foreach ($catalogs as $catalog) {
                 fputcsv($file, [
@@ -117,6 +101,7 @@ class InventoryManagement extends Component
                     $catalog->maintenance_copies,
                     $catalog->damaged_copies,
                     $catalog->lost_copies,
+                    $catalog->dumped_copies,
                     $catalog->acquisition_batches,
                 ]);
             }
@@ -144,7 +129,6 @@ class InventoryManagement extends Component
 
         $filename = 'inventory-summary-' . date('Y-m-d_H-i-s') . '.pdf';
 
-        // Return a direct raw Symfony Response to prevent Livewire from intercepting/JSON-encoding the binary stream
         return response()->streamDownload(function () use ($pdf) {
             echo $pdf->output();
         }, $filename, [
