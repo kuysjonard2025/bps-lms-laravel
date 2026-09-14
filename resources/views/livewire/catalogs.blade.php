@@ -54,6 +54,7 @@
                         <th scope="col" class="p-3 whitespace-nowrap hidden lg:table-cell">Reference</th>
                         <th scope="col" class="p-3 whitespace-nowrap">ISBN</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Copyright Year</th>
+                        <th scope="col" class="p-3 whitespace-nowrap">Edition</th>
                         <th scope="col" class="p-3 pr-4 text-right whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
@@ -75,6 +76,9 @@
                             </td>
                             <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-[11px]">
                                 {{ $catalog->publication_year ?: 'N/A' }}
+                            </td>
+                            <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-[11px]">
+                                {{ $catalog->edition ?: 'N/A' }}
                             </td>
                             <td class="p-3 pr-4 text-right whitespace-nowrap space-x-1">
                                 <button
