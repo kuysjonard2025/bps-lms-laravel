@@ -21,7 +21,7 @@ class PatronKiosk extends Component
 
     // Define operating hours
     private string $startTime = '07:00'; // Original: 9:00 AM
-    private string $endTime = '17:00'; // Original: 5:00 PM
+    private string $endTime = '23:00'; // Original: 5:00 PM - 17:00
 
     #[Layout('components.layouts.kiosk')]
     #[Title('Borrower RFID Kiosk')]
