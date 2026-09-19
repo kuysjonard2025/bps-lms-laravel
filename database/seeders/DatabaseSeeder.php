@@ -23,18 +23,11 @@ class DatabaseSeeder extends Seeder
 
         // 2. Create or find the admin user
         $admin = User::firstOrCreate(
-            ['username' => 'admin'],
+            ['id' => 1], // Fixed database anchor
             [
-                'first_name'        => null,
-                'middle_name'       => null,
-                'last_name'         => null,
-                'suffix'            => null,
-                'address'           => null,
-                'contact_number'    => null,
-                'email'             => null,
-                'email_verified_at' => null,
-                'role'              => 'librarian',
-                'password'          => Hash::make('Admin2026'),
+                'username' => 'admin',
+                'role'     => 'librarian',
+                'password' => Hash::make('Admin2026'),
             ]
         );
 
