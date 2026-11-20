@@ -89,7 +89,7 @@ class Sidebar extends Component
                 ],
                 [
                     'name' => 'Kiosk Settings',
-                    'route' => 'kiosk-settings',
+                    'route' => 'kiosk.settings',
                     'icon' => 'key',
                 ],
             ];
