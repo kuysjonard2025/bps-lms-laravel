@@ -1,275 +1,283 @@
 <div class="space-y-6">
-    {{-- Header Container --}}
-    <div class="bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    {{-- Page Header --}}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h2 class="text-base sm:text-lg font-bold text-gray-900">Circulation Policy</h2>
-            <p class="text-xs text-gray-500">Configure policy rules for borrowing and returning materials.</p>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight">Circulation Policies</h1>
+            <p class="text-xs sm:text-sm text-gray-500 mt-0.5">
+                Borrowing limits apply to <span class="font-semibold text-gray-700">{{ \Illuminate\Support\Str::headline($studentTypeName) }}</span> patrons; damage &amp; lost charges are handled in Circulations.
+            </p>
         </div>
 
-        @if(($activeTab ?? 'circulation') !== 'limits')
-            <button
-                type="button"
-                wire:click="openCreateModal"
-                class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition cursor-pointer flex items-center justify-center gap-2 shadow-xs shrink-0 whitespace-nowrap"
-            >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                <span>New Policy</span>
-            </button>
-        @endif
-    </div>
-
-    {{-- Tabs Navigation --}}
-    <div class="flex border-b border-gray-200 gap-6">
         <button
+            wire:click="openCreateModal"
             type="button"
-            wire:click="switchTab('circulation')"
-            class="pb-3 text-xs font-semibold border-b-2 transition cursor-pointer {{ ($activeTab ?? 'circulation') === 'circulation' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700' }}"
+            class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white bg-[#4D9EFF] hover:bg-blue-600 rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
         >
-            Circulation Penalty
-        </button>
-        <button
-            type="button"
-            wire:click="switchTab('limits')"
-            class="pb-3 text-xs font-semibold border-b-2 transition cursor-pointer {{ ($activeTab ?? 'circulation') === 'limits' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700' }}"
-        >
-            Policy Loan Limit
-        </button>
-    </div>
-
-    {{-- Filter & Search Bar (Only for circulation policies) --}}
-    @if(($activeTab ?? 'circulation') !== 'limits')
-        <div class="bg-white p-3.5 rounded-xl border border-gray-200 shadow-xs">
-            <div class="relative w-full sm:w-80">
-                <input
-                    wire:model.live.debounce.300ms="search"
-                    type="text"
-                    placeholder="Search policy name or asset type..."
-                    class="w-full pl-9 pr-8 py-2 text-xs bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                >
-                <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                </svg>
-            </div>
-        </div>
-    @endif
-
-    {{-- Content Matrix --}}
-    @if(($activeTab ?? 'circulation') === 'limits')
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {{-- Borrower Type Card --}}
-            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
-                <div>
-                    <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Borrower Type</span>
-                    <span class="text-lg font-bold text-gray-900 mt-1 block capitalize">
-                        {{ $limit?->patronType?->name ?? ($studentTypeName ?? 'Student') }}
-                    </span>
-                </div>
-                <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-semibold">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                    </svg>
-                </div>
-            </div>
-
-            {{-- Max Borrow Limit Card --}}
-            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
-                <div>
-                    <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Max Borrow Limit</span>
-                    <span class="text-2xl font-bold text-gray-900 mt-1 block">
-                        {{ $limit?->max_borrow_limit ?? 0 }} <span class="text-xs font-normal text-gray-500">item(s)</span>
-                    </span>
-                </div>
-                <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
-                </div>
-            </div>
-
-            {{-- Loan Duration Card --}}
-            <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between">
-                <div>
-                    <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Loan Duration</span>
-                    <span class="text-2xl font-bold text-gray-900 mt-1 block">
-                        {{ $limit?->loan_duration_days ?? 0 }} <span class="text-xs font-normal text-gray-500">day(s)</span>
-                    </span>
-                </div>
-                <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        {{-- Action Button for Card --}}
-        <div class="flex justify-start pt-2">
-            <button
-                type="button"
-                wire:click="editLimit({{ $limit?->id ?? 'null' }})"
-                class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition cursor-pointer flex items-center gap-2 shadow-xs"
-            >
+            @if ($activeTab === 'limits')
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                 </svg>
-                <span>{{ isset($limit) ? 'Update Loan Limit' : 'Configure Loan Limit' }}</span>
+                <span>{{ $limit ? 'Update ' . \Illuminate\Support\Str::headline($studentTypeName) . ' Limit' : 'Set ' . \Illuminate\Support\Str::headline($studentTypeName) . ' Limit' }}</span>
+            @else
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                <span>Add Asset Rule</span>
+            @endif
+        </button>
+    </div>
+
+    {{-- Quick Summary Strip --}}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">LOAN LIMIT SCOPE</p>
+                <p class="text-sm font-bold text-gray-800 mt-0.5">{{ \Illuminate\Support\Str::headline($studentTypeName) }} Only</p>
+            </div>
+            <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700">{{ \Illuminate\Support\Str::headline($studentTypeName) }} Scope</span>
+        </div>
+
+        <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ strtoupper($studentTypeName) }} MAX BORROW</p>
+                <p class="text-sm font-bold text-gray-800 mt-0.5">
+                    {{ $limit ? $limit->max_borrow_limit . ' ' . \Illuminate\Support\Str::plural('Item', $limit->max_borrow_limit) : 'Not Configured' }}
+                </p>
+            </div>
+            <span class="text-xs font-medium text-gray-500">Per {{ \Illuminate\Support\Str::headline($studentTypeName) }}</span>
+        </div>
+
+        <div class="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{{ strtoupper($studentTypeName) }} LOAN PERIOD</p>
+                <p class="text-sm font-bold text-gray-800 mt-0.5">
+                    {{ $limit ? $limit->loan_duration_days . ' ' . \Illuminate\Support\Str::plural('Day', $limit->loan_duration_days) : 'Not Configured' }}
+                </p>
+            </div>
+            <button
+                wire:click="editLimit({{ $limit?->id }})"
+                type="button"
+                class="text-xs font-semibold text-[#4D9EFF] hover:underline cursor-pointer"
+            >
+                Edit
             </button>
         </div>
-    @else
-        <div class="overflow-x-auto border border-gray-200 rounded-lg shadow-xs bg-white">
-            <table class="w-full text-left text-xs text-gray-700">
-                <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[11px] border-b border-gray-200">
-                    <tr>
-                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Policy Rule Name</th>
-                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Borrower Type</th>
-                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Asset Type</th>
-                        <th scope="col" class="px-4 py-3 text-right whitespace-nowrap">Daily Fine</th>
-                        <th scope="col" class="px-4 py-3 text-right whitespace-nowrap">Max Fine Cap</th>
-                        <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Status</th>
-                        <th scope="col" class="px-4 py-3 text-right whitespace-nowrap">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200 bg-white">
-                    @forelse($policies ?? [] as $policy)
-                        <tr wire:key="policy-row-{{ $policy?->id }}" class="hover:bg-gray-50/50 transition">
-                            <td class="px-4 py-3 font-semibold text-gray-900 capitalize whitespace-nowrap">
-                                {{ $policy?->name }}
-                            </td>
-                            <td class="px-4 py-3 capitalize whitespace-nowrap">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                    {{ $policy?->patronType?->name ?? 'Student' }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3 capitalize text-gray-600 whitespace-nowrap">
-                                {{ $policy?->assetType?->name ?? 'N/A' }}
-                            </td>
-                            <td class="px-4 py-3 text-right font-mono text-gray-900 whitespace-nowrap">
-                                ₱{{ number_format($policy?->fine_per_day ?? 0, 2) }}
-                            </td>
-                            <td class="px-4 py-3 text-right font-mono text-gray-900 whitespace-nowrap">
-                                ₱{{ number_format($policy?->max_fine_amount ?? 0, 2) }}
-                            </td>
-                            <td class="px-4 py-3 text-center whitespace-nowrap">
-                                <button
-                                    type="button"
-                                    wire:click="toggleStatus({{ $policy?->id }})"
-                                    class="px-2.5 py-0.5 text-[10px] font-bold rounded-full border transition cursor-pointer {{ ($policy?->is_active ?? false) ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200' : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200' }}"
-                                >
-                                    {{ ($policy?->is_active ?? false) ? 'Active' : 'Inactive' }}
-                                </button>
-                            </td>
-                            <td class="px-4 py-3 text-right space-x-1 whitespace-nowrap">
-                                <button
-                                    type="button"
-                                    wire:click="editPolicy({{ $policy?->id }})"
-                                    class="text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-blue-50 transition cursor-pointer"
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    type="button"
-                                    wire:click="deletePolicy({{ $policy?->id }})"
-                                    wire:confirm="Are you sure you want to delete this policy?"
-                                    class="text-red-600 hover:text-red-800 font-semibold px-2 py-1 rounded hover:bg-red-50 transition cursor-pointer"
-                                >
-                                    Delete
-                                </button>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-gray-500">
-                                No student circulation penalty rules found.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+    </div>
+
+    {{-- Tabs & Search Bar --}}
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+        <div class="px-4 sm:px-6 pt-4 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="flex gap-6">
+                <button
+                    wire:click="switchTab('circulation')"
+                    type="button"
+                    class="pb-3.5 text-xs sm:text-sm font-semibold border-b-2 transition-colors cursor-pointer {{ $activeTab === 'circulation' ? 'border-[#4D9EFF] text-[#4D9EFF]' : 'border-transparent text-gray-500 hover:text-gray-700' }}"
+                >
+                    Circulation Penalties
+                </button>
+                <button
+                    wire:click="switchTab('limits')"
+                    type="button"
+                    class="pb-3.5 text-xs sm:text-sm font-semibold border-b-2 transition-colors cursor-pointer {{ $activeTab === 'limits' ? 'border-[#4D9EFF] text-[#4D9EFF]' : 'border-transparent text-gray-500 hover:text-gray-700' }}"
+                >
+                    Penalty Loan Limit
+                </button>
+            </div>
+
+            @if ($activeTab === 'circulation')
+                <div class="pb-3 md:pb-3.5 w-full md:w-72">
+                    <div class="relative">
+                        <input
+                            wire:model.live.debounce.300ms="search"
+                            type="text"
+                            placeholder="Search Asset Type..."
+                            class="w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#4D9EFF]/30 focus:border-[#4D9EFF]"
+                        >
+                        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103.5 10.5a7.5 7.5 0 0013.15 6.15z"/>
+                        </svg>
+                    </div>
+                </div>
+            @endif
         </div>
 
-        @if(method_exists($policies ?? '', 'links'))
-            <div class="mt-3">
-                {{ $policies->links() }}
+        {{-- TAB 1: Circulation Penalties --}}
+        @if ($activeTab === 'circulation')
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-left">
+                    <thead class="bg-gray-50/80 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                        <tr>
+                            <th class="px-4 sm:px-6 py-3">ASSET TYPE</th>
+                            <th class="px-4 sm:px-6 py-3">DAILY FINE FORMULA</th>
+                            <th class="px-4 sm:px-6 py-3">LOST AFTER (OVERDUE)</th>
+                            <th class="px-4 sm:px-6 py-3 text-right">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 text-xs sm:text-sm text-gray-700">
+                        @forelse ($policies as $policy)
+                            <tr class="hover:bg-gray-50/70 transition-colors">
+                                <td class="px-4 sm:px-6 py-3.5 font-semibold text-gray-900">
+                                    {{ $policy->assetType?->name ? \Illuminate\Support\Str::headline($policy->assetType->name) : 'N/A' }}
+                                </td>
+                                <td class="px-4 sm:px-6 py-3.5 font-medium text-gray-700">
+                                    Unit Price &divide; {{ $policy->lost_after_days }} {{ \Illuminate\Support\Str::plural('Day', $policy->lost_after_days) }}
+                                </td>
+                                <td class="px-4 sm:px-6 py-3.5">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800">
+                                        After {{ $policy->lost_after_days }} {{ \Illuminate\Support\Str::plural('Day', $policy->lost_after_days) }} &rarr; Lost
+                                    </span>
+                                </td>
+                                <td class="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap">
+                                    <div class="inline-flex items-center gap-2">
+                                        <button
+                                            wire:click="editPolicy({{ $policy->id }})"
+                                            type="button"
+                                            class="px-2.5 py-1 text-xs font-semibold text-[#4D9EFF] bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            wire:click="deletePolicy({{ $policy->id }})"
+                                            wire:confirm="Delete this asset penalty rule?"
+                                            type="button"
+                                            class="px-2.5 py-1 text-xs font-semibold text-[#FF6B52] bg-red-50 hover:bg-red-100 rounded-lg transition-colors cursor-pointer"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="px-6 py-10 text-center text-sm text-gray-500">
+                                    No Asset Penalty Rules Found. Click <span class="font-semibold text-gray-700">Add Asset Rule</span> to create one.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            @if ($policies->hasPages())
+                <div class="px-4 sm:px-6 py-3 border-t border-gray-200 bg-gray-50/50">
+                    {{ $policies->links() }}
+                </div>
+            @endif
+        @endif
+
+        {{-- TAB 2: Penalty Loan Limit (Student Only) --}}
+        @if ($activeTab === 'limits')
+            <div class="p-4 sm:p-6 space-y-4">
+                @if ($limit)
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 border border-gray-200 rounded-2xl p-5">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500">Applies To</p>
+                            <p class="text-base font-bold text-gray-900 mt-1">{{ \Illuminate\Support\Str::headline($limit->patronType?->name ?? $studentTypeName) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500">Maximum Borrow Limit</p>
+                            <p class="text-base font-bold text-[#4D9EFF] mt-1">{{ $limit->max_borrow_limit }} {{ \Illuminate\Support\Str::plural('Item', $limit->max_borrow_limit) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500">Loan Duration</p>
+                            <p class="text-base font-bold text-gray-900 mt-1">{{ $limit->loan_duration_days }} {{ \Illuminate\Support\Str::plural('Day', $limit->loan_duration_days) }}</p>
+                        </div>
+                    </div>
+                @else
+                    <div class="text-center py-10 border border-dashed border-gray-300 rounded-2xl">
+                        <p class="text-sm font-medium text-gray-700">No {{ \Illuminate\Support\Str::headline($studentTypeName) }} Loan Limit Configured Yet.</p>
+                        <p class="text-xs text-gray-500 mt-1">Set the maximum borrow count and loan duration for {{ \Illuminate\Support\Str::headline($studentTypeName) }} patrons.</p>
+                        <button
+                            wire:click="editLimit()"
+                            type="button"
+                            class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#4D9EFF] hover:bg-blue-600 rounded-xl cursor-pointer"
+                        >
+                            Set {{ \Illuminate\Support\Str::headline($studentTypeName) }} Loan Limit
+                        </button>
+                    </div>
+                @endif
+
+                <p class="text-xs text-gray-500">
+                    Teachers are exempt from due-date loan limits; minor damage, severe damage, and lost items are handled directly in Circulations.
+                </p>
             </div>
         @endif
-    @endif
+    </div>
 
-    {{-- CREATE/EDIT CIRCULATION PENALTY MODAL --}}
-    @if($showModal ?? false)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true">
-            <div wire:click.self="closeModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
-            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-xl z-10 overflow-hidden my-auto flex flex-col max-h-[90vh]">
-                <div class="bg-gray-50 px-5 py-3.5 border-b border-gray-200 flex justify-between items-center shrink-0">
-                    <h3 class="text-xs sm:text-sm font-bold text-gray-900">
-                        {{ ($isEditing ?? false) ? 'Edit Policy Rule' : 'Create Policy Rule' }}
-                    </h3>
-                    <button type="button" wire:click="closeModal" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
+    {{-- Penalty Policy Modal --}}
+    @if ($showModal)
+        <div
+            @keydown.escape.window="$wire.closeModal()"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
+            <div wire:click="closeModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs"></div>
+
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg z-10 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="text-base font-bold text-gray-800">
+                        {{ $isEditing ? 'Edit Asset Rule' : 'Create Asset Rule' }}
+                    </h2>
+                    <button wire:click="closeModal" type="button" class="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none cursor-pointer">&times;</button>
                 </div>
 
-                {{-- Changed wire:submit.prevent from savePolicy to save --}}
-                <form wire:submit.prevent="save" class="p-4 sm:p-6 space-y-4 overflow-y-auto">
-                    <div>
-                        <label for="name" class="block text-xs font-medium text-gray-700">Policy Name / Description <span class="text-red-500">*</span></label>
-                        <input id="name" type="text" wire:model="name" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs" placeholder="e.g. Standard Book Loan, Overnight Reference Book">
-                        @error('name') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <form wire:submit="save" class="p-6 space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-medium text-gray-700">Borrower Type</label>
-                            <div class="mt-1 w-full text-xs rounded-md border border-gray-200 bg-gray-100 p-2 text-gray-600 font-semibold flex items-center justify-between cursor-not-allowed">
-                                <span>{{ $studentTypeName ?? 'Student' }}</span>
-                                <span class="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-normal">Fixed</span>
-                            </div>
-                            <input type="hidden" wire:model="patron_type_id" />
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Patron Type</label>
+                            <input
+                                type="text"
+                                value="{{ \Illuminate\Support\Str::headline($studentTypeName) }}"
+                                disabled
+                                class="w-full text-sm rounded-xl border border-gray-200 bg-gray-100 text-gray-600 px-3 py-2 cursor-not-allowed"
+                            >
                         </div>
 
                         <div>
-                            <label for="asset_type_id" class="block text-xs font-medium text-gray-700">Asset Type <span class="text-red-500">*</span></label>
-                            <select id="asset_type_id" wire:model.number="asset_type_id" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs bg-white capitalize">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Asset Type *</label>
+                            <select
+                                wire:model="asset_type_id"
+                                class="w-full text-sm rounded-xl border border-gray-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#4D9EFF]/30 focus:border-[#4D9EFF]"
+                            >
                                 <option value="">Select Asset Type</option>
-                                @foreach($assetTypes ?? [] as $type)
-                                    <option value="{{ $type?->id }}">{{ $type?->name }}</option>
+                                @foreach ($assetTypes as $type)
+                                    <option value="{{ $type->id }}">{{ \Illuminate\Support\Str::headline($type->name) }}</option>
                                 @endforeach
                             </select>
-                            @error('asset_type_id') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
+                            @error('asset_type_id') <span class="text-xs text-[#FF6B52] mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
-                    <div class="pt-2 border-t border-gray-100">
-                        <div class="mb-2">
-                            <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider">Overdue Fine Rates</h4>
-                            <p class="text-[11px] text-gray-500">Set the daily penalty fee charged when an item is returned past its due date.</p>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label for="fine_per_day" class="block text-xs font-medium text-gray-700">Daily Overdue Fine Rate (₱) <span class="text-red-500">*</span></label>
-                                <input id="fine_per_day" type="number" step="0.01" min="0" max="9999.99" wire:model.number="fine_per_day" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                                @error('fine_per_day') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
-                            </div>
-
-                            <div>
-                                <label for="max_fine_amount" class="block text-xs font-medium text-gray-700">Maximum Cumulative Fine Limit (₱) <span class="text-red-500">*</span></label>
-                                <input id="max_fine_amount" type="number" step="0.01" min="0" max="99999.99" wire:model.number="max_fine_amount" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                                @error('max_fine_amount') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Lost After (Overdue Days) *</label>
+                        <input
+                            wire:model="lost_after_days"
+                            type="number"
+                            min="1"
+                            max="365"
+                            class="w-full text-sm rounded-xl border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#4D9EFF]/30 focus:border-[#4D9EFF]"
+                        >
+                        <p class="text-[11px] text-gray-500 mt-1">
+                            Daily fine equals <span class="font-medium text-gray-700">Item Unit Price &divide; Lost After Days</span>. Passing this overdue threshold marks the item as <span class="font-medium text-gray-700">Lost</span>.
+                        </p>
+                        @error('lost_after_days') <span class="text-xs text-[#FF6B52] mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
-                    <div class="flex items-center gap-2 pt-1 border-t border-gray-100">
-                        <input type="checkbox" wire:model="is_active" id="is_active" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer">
-                        <label for="is_active" class="text-xs font-medium text-gray-700 select-none cursor-pointer">Policy Active</label>
-                    </div>
-
-                    <div class="pt-3 border-t border-gray-200 flex justify-end gap-2">
-                        <button type="button" wire:click="closeModal" class="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-md transition cursor-pointer">
+                    <div class="pt-3 border-t border-gray-100 flex justify-end gap-2.5">
+                        <button
+                            wire:click="closeModal"
+                            type="button"
+                            class="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl cursor-pointer transition-colors"
+                        >
                             Cancel
                         </button>
-                        <button type="submit" class="px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-xs transition cursor-pointer">
-                            {{ ($isEditing ?? false) ? 'Update Policy' : 'Save Policy' }}
+                        <button
+                            type="submit"
+                            wire:loading.attr="disabled"
+                            wire:target="save"
+                            class="px-4 py-2 text-xs font-semibold text-white bg-[#4D9EFF] hover:bg-blue-600 rounded-xl cursor-pointer disabled:opacity-50 transition-colors"
+                        >
+                            <span wire:loading.remove wire:target="save">{{ $isEditing ? 'Update Rule' : 'Save Rule' }}</span>
+                            <span wire:loading wire:target="save">Saving...</span>
                         </button>
                     </div>
                 </form>
@@ -277,46 +285,75 @@
         </div>
     @endif
 
-    {{-- CREATE/EDIT LOAN LIMIT MODAL --}}
-    @if($showLimitModal ?? false)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true">
-            <div wire:click.self="closeLimitModal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
-            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md z-10 overflow-hidden my-auto flex flex-col">
-                <div class="bg-gray-50 px-5 py-3.5 border-b border-gray-200 flex justify-between items-center shrink-0">
-                    <h3 class="text-xs sm:text-sm font-bold text-gray-900">
-                        {{ ($isEditing ?? false) ? 'Edit Loan Limit' : 'Configure Loan Limit' }}
-                    </h3>
-                    <button type="button" wire:click="closeLimitModal" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
+    {{-- Student Loan Limit Modal --}}
+    @if ($showLimitModal)
+        <div
+            @keydown.escape.window="$wire.closeLimitModal()"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
+            <div wire:click="closeLimitModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs"></div>
+
+            <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="text-base font-bold text-gray-800">
+                        {{ $isEditing ? 'Update ' . \Illuminate\Support\Str::headline($studentTypeName) . ' Loan Limit' : 'Set ' . \Illuminate\Support\Str::headline($studentTypeName) . ' Loan Limit' }}
+                    </h2>
+                    <button wire:click="closeLimitModal" type="button" class="text-gray-400 hover:text-gray-600 text-xl font-bold leading-none cursor-pointer">&times;</button>
                 </div>
 
-                <form wire:submit.prevent="save" class="p-4 sm:p-6 space-y-4">
+                <form wire:submit="save" class="p-6 space-y-4">
                     <div>
-                        <label class="block text-xs font-medium text-gray-700">Borrower Type</label>
-                        <div class="mt-1 w-full text-xs rounded-md border border-gray-200 bg-gray-100 p-2 text-gray-600 font-semibold flex items-center justify-between cursor-not-allowed">
-                            <span>{{ $studentTypeName ?? 'Student' }}</span>
-                            <span class="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-normal">Fixed</span>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Patron Type</label>
+                        <input
+                            type="text"
+                            value="{{ \Illuminate\Support\Str::headline($studentTypeName) }}"
+                            disabled
+                            class="w-full text-sm rounded-xl border border-gray-200 bg-gray-100 text-gray-600 px-3 py-2 cursor-not-allowed"
+                        >
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Max Borrow Limit *</label>
+                            <input
+                                wire:model="max_borrow_limit"
+                                type="number"
+                                min="1"
+                                max="20"
+                                class="w-full text-sm rounded-xl border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#4D9EFF]/30 focus:border-[#4D9EFF]"
+                            >
+                            @error('max_borrow_limit') <span class="text-xs text-[#FF6B52] mt-1 block">{{ $message }}</span> @enderror
                         </div>
-                        <input type="hidden" wire:model="limit_patron_type_id" />
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Loan Duration (Days) *</label>
+                            <input
+                                wire:model="loan_duration_days"
+                                type="number"
+                                min="1"
+                                max="60"
+                                class="w-full text-sm rounded-xl border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#4D9EFF]/30 focus:border-[#4D9EFF]"
+                            >
+                            @error('loan_duration_days') <span class="text-xs text-[#FF6B52] mt-1 block">{{ $message }}</span> @enderror
+                        </div>
                     </div>
 
-                    <div>
-                        <label for="max_borrow_limit" class="block text-xs font-medium text-gray-700">Max Borrow Limit (Items) <span class="text-red-500">*</span></label>
-                        <input id="max_borrow_limit" type="number" min="1" max="10" wire:model.number="max_borrow_limit" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                        @error('max_borrow_limit') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div>
-                        <label for="loan_duration_days" class="block text-xs font-medium text-gray-700">Loan Duration (Days) <span class="text-red-500">*</span></label>
-                        <input id="loan_duration_days" type="number" min="1" max="30" wire:model.number="loan_duration_days" class="mt-1 w-full text-xs rounded-md border-gray-300 border p-2 shadow-xs">
-                        @error('loan_duration_days') <span class="text-xs text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="pt-3 border-t border-gray-200 flex justify-end gap-2">
-                        <button type="button" wire:click="closeLimitModal" class="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-md transition cursor-pointer">
+                    <div class="pt-3 border-t border-gray-100 flex justify-end gap-2.5">
+                        <button
+                            wire:click="closeLimitModal"
+                            type="button"
+                            class="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl cursor-pointer transition-colors"
+                        >
                             Cancel
                         </button>
-                        <button type="submit" class="px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-xs transition cursor-pointer">
-                            {{ ($isEditing ?? false) ? 'Update Limit' : 'Save Limit' }}
+                        <button
+                            type="submit"
+                            wire:loading.attr="disabled"
+                            wire:target="save"
+                            class="px-4 py-2 text-xs font-semibold text-white bg-[#4D9EFF] hover:bg-blue-600 rounded-xl cursor-pointer disabled:opacity-50 transition-colors"
+                        >
+                            <span wire:loading.remove wire:target="save">Save {{ \Illuminate\Support\Str::headline($studentTypeName) }} Limit</span>
+                            <span wire:loading wire:target="save">Saving...</span>
                         </button>
                     </div>
                 </form>

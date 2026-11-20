@@ -50,7 +50,7 @@
         <div class="grid grid-cols-2 gap-2">
             <div>
                 <label for="middle_name" class="block text-xs font-medium text-gray-700 mb-1">
-                    Middle Name <span class="text-red-500">*</span>
+                    Middle Name <span class="text-gray-400 font-normal">(Optional)</span>
                 </label>
                 <input
                     wire:model="middle_name"
@@ -169,7 +169,7 @@
             wire:loading.attr="disabled"
             class="w-full bg-blue-600 text-white font-medium py-2 rounded-lg hover:bg-blue-700 transition mt-4 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
-            <span wire:loading.remove wire:target="updateProfile">Save & Continue</span>
+            <span wire:loading.remove wire:target="updateProfile">Save &amp; Continue</span>
             <span wire:loading wire:target="updateProfile">Processing...</span>
         </button>
     </form>

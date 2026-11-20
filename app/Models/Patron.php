@@ -24,6 +24,9 @@ class Patron extends Model
         'patron_type_id',
         'grade_level_id',
         'section_id',
+        'department_id',
+        'strand_id',
+        'adviser_id',
         'status',
     ];
 
@@ -35,6 +38,21 @@ class Patron extends Model
     public function section(): BelongsTo
     {
         return $this->belongsTo(Section::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function strand(): BelongsTo
+    {
+        return $this->belongsTo(Strand::class);
+    }
+
+    public function adviser(): BelongsTo
+    {
+        return $this->belongsTo(Adviser::class);
     }
 
     public function patronType(): BelongsTo

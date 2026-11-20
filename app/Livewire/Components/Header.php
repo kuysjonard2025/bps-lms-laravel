@@ -9,6 +9,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
@@ -20,7 +21,7 @@ class Header extends Component
     public string $activeTab = 'profile';
 
     public string $first_name = '';
-    public string $middle_name = '';
+    public ?string $middle_name = null;
     public string $last_name = '';
     public ?string $suffix = '';
     public ?string $address = '';
@@ -88,9 +89,10 @@ class Header extends Component
             return;
         }
 
-        // 1. Trim inputs BEFORE validation
+        // 1. Trim and normalize inputs BEFORE validation
         $this->first_name = trim($this->first_name);
-        $this->middle_name = trim($this->middle_name);
+        $trimmedMiddle = trim((string) $this->middle_name);
+        $this->middle_name = $trimmedMiddle !== '' ? $trimmedMiddle : null;
         $this->last_name = trim($this->last_name);
         $this->suffix = $this->suffix ? trim($this->suffix) : null;
         $this->address = $this->address ? trim($this->address) : null;
@@ -101,7 +103,7 @@ class Header extends Component
         try {
             $this->validate([
                 'first_name' => 'required|string|max:50',
-                'middle_name' => 'required|string|max:50',
+                'middle_name' => 'nullable|string|max:50',
                 'last_name' => 'required|string|max:50',
                 'suffix' => 'nullable|string|max:10',
                 'address' => 'required|string|max:255',
@@ -139,7 +141,7 @@ class Header extends Component
         try {
             $user->forceFill([
                 'first_name' => $this->first_name,
-                'middle_name' => $this->middle_name,
+                'middle_name' => $this->middle_name ? Str::title(strtolower($this->middle_name)) : null,
                 'last_name' => $this->last_name,
                 'suffix' => $this->suffix,
                 'address' => $this->address,

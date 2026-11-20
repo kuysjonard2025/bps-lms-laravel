@@ -27,7 +27,7 @@ class Sidebar extends Component
                     'icon' => 'shopping-cart',
                 ],
                 [
-                    'name' => 'Borrower Logs',
+                    'name' => 'Patron Logs',
                     'route' => 'patron-logs',
                     'icon' => 'clock',
                 ],
@@ -37,7 +37,7 @@ class Sidebar extends Component
                     'icon' => 'arrow-right',
                 ],
                 [
-                    'name' => 'Borrower Records',
+                    'name' => 'Patron Records',
                     'route' => 'patron-records',
                     'icon' => 'identification',
                 ],
@@ -87,9 +87,14 @@ class Sidebar extends Component
                     'route' => 'circulation-policy',
                     'icon' => 'adjustments-horizontal',
                 ],
+                [
+                    'name' => 'Kiosk Settings',
+                    'route' => 'kiosk-settings',
+                    'icon' => 'key',
+                ],
             ];
 
-            $sections['System Log & Backup'] = [
+            $sections['System Monitoring'] = [
                 [
                     'name' => 'Authentication Logs',
                     'route' => 'authentication-logs',
@@ -100,11 +105,14 @@ class Sidebar extends Component
                     'route' => 'user-activity-logs',
                     'icon' => 'queue-list',
                 ],
+            ];
+
+            $sections['Backups and Recovery'] = [
                 [
                     'name' => 'Backups & Recovery',
                     'route' => 'database-backups',
                     'icon' => 'server',
-                ]
+                ],
             ];
         }
 

@@ -32,6 +32,7 @@ class Catalogs extends Component
     public ?int $publisher_id = null;
     public ?int $general_reference_id = null;
     public string $title = '';
+    public string $call_number = '';
     public ?string $isbn_issn = null;
     public ?string $edition = null;
     public ?int $publication_year = null;
@@ -40,10 +41,10 @@ class Catalogs extends Component
     protected function rules(): array
     {
         return [
-            'author_id'            => 'required|exists:authors,id',
-            'asset_type_id'        => 'required|exists:asset_types,id',
-            'publisher_id'         => 'required|exists:publishers,id',
-            'general_reference_id' => 'required|exists:general_references,id',
+            'author_id'            => ['required', 'exists:authors,id'],
+            'asset_type_id'        => ['required', 'exists:asset_types,id'],
+            'publisher_id'         => ['required', 'exists:publishers,id'],
+            'general_reference_id' => ['required', 'exists:general_references,id'],
             'title'                => [
                 'required',
                 'string',
@@ -57,19 +58,21 @@ class Catalogs extends Component
                         ->where('publication_year', $this->publication_year);
                 })->ignore($this->catalogIdBeingEdited),
             ],
+            'call_number'          => ['required', 'string', 'max:50'],
             'isbn_issn'            => [
                 'nullable',
                 'digits_between:8,20',
                 Rule::unique('catalogs', 'isbn_issn')->ignore($this->catalogIdBeingEdited),
             ],
-            'edition'              => 'nullable|string|max:50',
-            'publication_year'     => 'required|integer|digits:4|min:' . (date('Y') - 10) . '|max:' . date('Y'),
-            'description'          => 'nullable|string|max:255',
+            'edition'              => ['nullable', 'string', 'max:50'],
+            'publication_year'     => ['required', 'integer', 'digits:4', 'min:' . (date('Y') - 10), 'max:' . date('Y')],
+            'description'          => ['nullable', 'string', 'max:255'],
         ];
     }
 
     protected array $validationAttributes = [
         'title'                => 'Title',
+        'call_number'          => 'Call Number',
         'isbn_issn'            => 'ISBN/ISSN',
         'edition'              => 'Edition',
         'publication_year'     => 'Publication Year',
@@ -100,7 +103,6 @@ class Catalogs extends Component
         if (blank($value)) $this->general_reference_id = null;
     }
 
-    // Automatically convert empty strings for nullable fields to null
     public function updatedIsbnIssn($value): void
     {
         if (blank($value)) $this->isbn_issn = null;
@@ -139,6 +141,7 @@ class Catalogs extends Component
         $this->publisher_id         = $catalog->publisher_id;
         $this->general_reference_id = $catalog->general_reference_id;
         $this->title                = $catalog->title;
+        $this->call_number          = $catalog->call_number ?? '';
         $this->isbn_issn            = $catalog->isbn_issn;
         $this->edition              = $catalog->edition;
         $this->publication_year     = (int) $catalog->publication_year;
@@ -156,18 +159,18 @@ class Catalogs extends Component
 
     public function saveCatalog(): void
     {
-        // Clean input fields
-        $this->cleanFields(['title', 'isbn_issn', 'edition', 'description']);
+        $this->cleanFields(['title', 'call_number', 'isbn_issn', 'edition', 'description']);
 
-        // Explicitly force empty strings to null prior to validation check
         $this->isbn_issn = blank($this->isbn_issn) ? null : $this->isbn_issn;
         $this->edition = blank($this->edition) ? null : $this->edition;
         $this->description = blank($this->description) ? null : $this->description;
 
-        // Capture the validated data into the $validated variable
         $validated = $this->validate();
 
-        // Persist to DB
+        if (blank($validated['isbn_issn'])) {
+            $validated['isbn_issn'] = $this->generateUniqueIsbn();
+        }
+
         if ($this->catalogIdBeingEdited) {
             Catalog::findOrFail($this->catalogIdBeingEdited)->update($validated);
             $message = 'Catalog entry updated successfully.';
@@ -178,6 +181,15 @@ class Catalogs extends Component
 
         $this->closeModal();
         $this->dispatch('toast', message: $message, type: 'success');
+    }
+
+    private function generateUniqueIsbn(): string
+    {
+        do {
+            $generated = '999' . str_pad((string) random_int(0, 9999999999), 10, '0', STR_PAD_LEFT);
+        } while (Catalog::where('isbn_issn', $generated)->exists());
+
+        return $generated;
     }
 
     public function confirmDelete(int $id): void
@@ -229,6 +241,7 @@ class Catalogs extends Component
             'publisher_id',
             'general_reference_id',
             'title',
+            'call_number',
             'isbn_issn',
             'edition',
             'publication_year',
@@ -241,17 +254,8 @@ class Catalogs extends Component
     #[Title('Catalogs')]
     public function render()
     {
-        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
-
         $catalogs = Catalog::with(['author', 'assetType', 'publisher', 'generalReference'])
-            ->when($this->search, function ($query) use ($likeOperator) {
-                $query->where(function ($q) use ($likeOperator) {
-                    $q->where('title', $likeOperator, "%{$this->search}%")
-                      ->orWhere('isbn_issn', $likeOperator, "%{$this->search}%")
-                      ->orWhereHas('author', fn ($sub) => $sub->where('name', $likeOperator, "%{$this->search}%"))
-                      ->orWhereHas('publisher', fn ($sub) => $sub->where('name', $likeOperator, "%{$this->search}%"));
-                });
-            })
+            ->when(trim($this->search), fn ($query, $term) => $query->search($term))
             ->latest()
             ->paginate(10);
 

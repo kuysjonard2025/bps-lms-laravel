@@ -14,7 +14,7 @@
                     wire:model.live.debounce.300ms="search"
                     type="text"
                     id="catalog-search"
-                    placeholder="Search title, ISBN, author..."
+                    placeholder="Search title, ISBN, call #, author..."
                     class="w-full pl-9 pr-9 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                 >
                 {{-- Search Icon --}}
@@ -47,6 +47,7 @@
             <table class="w-full text-left border-collapse text-xs text-slate-600">
                 <thead>
                     <tr class="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-bold uppercase text-[11px] tracking-wider">
+                        <th scope="col" class="p-3 whitespace-nowrap">Call #</th>
                         <th scope="col" class="p-3 whitespace-nowrap">ISBN</th>
                         <th scope="col" class="p-3 pl-4 whitespace-nowrap">Title</th>
                         <th scope="col" class="p-3 whitespace-nowrap">Author</th>
@@ -61,6 +62,9 @@
                 <tbody class="divide-y divide-slate-100">
                     @forelse($catalogs as $catalog)
                         <tr wire:key="catalog-row-{{ $catalog->id }}" class="hover:bg-slate-50/60 transition-colors">
+                            <td class="p-3 text-indigo-600 whitespace-nowrap font-mono font-bold text-[11px] uppercase">
+                                {{ $catalog->call_number ?: 'N/A' }}
+                            </td>
                             <td class="p-3 text-slate-500 whitespace-nowrap font-mono text-[11px]">
                                 {{ $catalog->isbn_issn ?: 'N/A' }}
                             </td>
@@ -99,7 +103,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-10 text-slate-400">
+                            <td colspan="10" class="text-center py-10 text-slate-400">
                                 No catalogs found matching your criteria.
                             </td>
                         </tr>
@@ -137,81 +141,334 @@
                 </div>
 
                 <form wire:submit="saveCatalog" class="p-5 sm:p-6 space-y-4 overflow-y-auto">
-                    <div>
-                        <label for="catalog-title" class="block text-xs font-semibold text-slate-700">Title *</label>
-                        <input
-                            id="catalog-title"
-                            type="text"
-                            wire:model="title"
-                            class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
-                        >
-                        @error('title') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div>
-                            <label for="catalog-author" class="block text-xs font-semibold text-slate-700">Author *</label>
-                            <select
-                                id="catalog-author"
-                                wire:model="author_id"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
+                    {{-- Title & Call Number --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                        <div class="sm:col-span-2">
+                            <label for="catalog-title" class="block text-xs font-semibold text-slate-700">Title *</label>
+                            <input
+                                id="catalog-title"
+                                type="text"
+                                wire:model="title"
+                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                             >
-                                <option value="">Select Author</option>
-                                @foreach($authors as $author)
-                                    <option value="{{ $author->id }}">{{ $author->name }}</option>
-                                @endforeach
-                            </select>
-                            @error('author_id') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
+                            @error('title') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
                         <div>
-                            <label for="catalog-asset-type" class="block text-xs font-semibold text-slate-700">Asset Type *</label>
-                            <select
-                                id="catalog-asset-type"
-                                wire:model="asset_type_id"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
+                            <label for="catalog-call-number" class="block text-xs font-semibold text-slate-700">Call Number *</label>
+                            <input
+                                id="catalog-call-number"
+                                type="text"
+                                wire:model="call_number"
+                                placeholder="e.g. 823.912 R59"
+                                maxlength="50"
+                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 font-mono uppercase focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                             >
-                                <option value="">Select Asset Type</option>
-                                @foreach($assetTypes as $type)
-                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
-                                @endforeach
-                            </select>
+                            @error('call_number') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    {{-- Searchable Select Dropdown Style Row 1: Author & Asset Type --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        {{-- Author Dropdown Combobox --}}
+                        <div
+                            x-data="{
+                                open: false,
+                                search: '',
+                                selected: @entangle('author_id'),
+                                items: {{ Js::from($authors) }},
+                                get selectedName() {
+                                    const found = this.items.find(i => i.id == this.selected);
+                                    return found ? found.name : 'Select Author';
+                                },
+                                get filtered() {
+                                    if (!this.search) return this.items;
+                                    return this.items.filter(i => i.name.toLowerCase().includes(this.search.toLowerCase()));
+                                },
+                                select(item) {
+                                    this.selected = item.id;
+                                    this.open = false;
+                                    this.search = '';
+                                }
+                            }"
+                            @click.outside="open = false; search = '';"
+                            class="relative"
+                        >
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Author *</label>
+
+                            {{-- Main Select Box Trigger --}}
+                            <button
+                                type="button"
+                                @click="open = !open"
+                                class="w-full text-left text-xs rounded-xl border border-slate-200 p-2.5 bg-white flex items-center justify-between focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all cursor-pointer"
+                            >
+                                <span :class="{ 'text-slate-400': !selected }" x-text="selectedName"></span>
+                                <svg class="w-4 h-4 text-slate-400 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+
+                            {{-- Dropdown Container matching requested style --}}
+                            <div
+                                x-show="open"
+                                x-cloak
+                                class="absolute z-30 mt-1 w-full rounded-2xl bg-white p-3 shadow-xl ring-1 ring-black/5 border border-slate-200 space-y-2"
+                            >
+                                <input
+                                    type="text"
+                                    x-model="search"
+                                    x-ref="searchInput"
+                                    @input.stop
+                                    placeholder="Type to search author..."
+                                    class="w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
+                                    x-init="$watch('open', value => { if (value) setTimeout(() => $refs.searchInput.focus(), 50) })"
+                                >
+                                <div class="max-h-44 overflow-y-auto space-y-0.5">
+                                    <template x-for="item in filtered" :key="item.id">
+                                        <button
+                                            type="button"
+                                            @click="select(item)"
+                                            class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between cursor-pointer transition-colors"
+                                            :class="{ 'bg-blue-50 font-semibold text-blue-700': selected == item.id }"
+                                        >
+                                            <span x-text="item.name"></span>
+                                            <svg x-show="selected == item.id" class="w-3.5 h-3.5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </button>
+                                    </template>
+                                    <div x-show="filtered.length === 0" class="px-3 py-3 text-xs text-slate-400 text-center italic">
+                                        No authors found.
+                                    </div>
+                                </div>
+                            </div>
+                            @error('author_id') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
+                        </div>
+
+                        {{-- Asset Type Dropdown Combobox --}}
+                        <div
+                            x-data="{
+                                open: false,
+                                search: '',
+                                selected: @entangle('asset_type_id'),
+                                items: {{ Js::from($assetTypes) }},
+                                get selectedName() {
+                                    const found = this.items.find(i => i.id == this.selected);
+                                    return found ? found.name : 'Select Asset Type';
+                                },
+                                get filtered() {
+                                    if (!this.search) return this.items;
+                                    return this.items.filter(i => i.name.toLowerCase().includes(this.search.toLowerCase()));
+                                },
+                                select(item) {
+                                    this.selected = item.id;
+                                    this.open = false;
+                                    this.search = '';
+                                }
+                            }"
+                            @click.outside="open = false; search = '';"
+                            class="relative"
+                        >
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Asset Type *</label>
+
+                            <button
+                                type="button"
+                                @click="open = !open"
+                                class="w-full text-left text-xs rounded-xl border border-slate-200 p-2.5 bg-white flex items-center justify-between focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all cursor-pointer"
+                            >
+                                <span :class="{ 'text-slate-400': !selected }" x-text="selectedName"></span>
+                                <svg class="w-4 h-4 text-slate-400 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+
+                            <div
+                                x-show="open"
+                                x-cloak
+                                class="absolute z-30 mt-1 w-full rounded-2xl bg-white p-3 shadow-xl ring-1 ring-black/5 border border-slate-200 space-y-2"
+                            >
+                                <input
+                                    type="text"
+                                    x-model="search"
+                                    x-ref="searchInput"
+                                    @input.stop
+                                    placeholder="Type to search asset type..."
+                                    class="w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
+                                    x-init="$watch('open', value => { if (value) setTimeout(() => $refs.searchInput.focus(), 50) })"
+                                >
+                                <div class="max-h-44 overflow-y-auto space-y-0.5">
+                                    <template x-for="item in filtered" :key="item.id">
+                                        <button
+                                            type="button"
+                                            @click="select(item)"
+                                            class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between cursor-pointer transition-colors"
+                                            :class="{ 'bg-blue-50 font-semibold text-blue-700': selected == item.id }"
+                                        >
+                                            <span x-text="item.name"></span>
+                                            <svg x-show="selected == item.id" class="w-3.5 h-3.5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </button>
+                                    </template>
+                                    <div x-show="filtered.length === 0" class="px-3 py-3 text-xs text-slate-400 text-center italic">
+                                        No asset types found.
+                                    </div>
+                                </div>
+                            </div>
                             @error('asset_type_id') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
+                    {{-- Searchable Select Dropdown Style Row 2: Publisher & General Reference --}}
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div>
-                            <label for="catalog-publisher" class="block text-xs font-semibold text-slate-700">Publisher *</label>
-                            <select
-                                id="catalog-publisher"
-                                wire:model="publisher_id"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
+                        {{-- Publisher Dropdown Combobox --}}
+                        <div
+                            x-data="{
+                                open: false,
+                                search: '',
+                                selected: @entangle('publisher_id'),
+                                items: {{ Js::from($publishers) }},
+                                get selectedName() {
+                                    const found = this.items.find(i => i.id == this.selected);
+                                    return found ? found.name : 'Select Publisher';
+                                },
+                                get filtered() {
+                                    if (!this.search) return this.items;
+                                    return this.items.filter(i => i.name.toLowerCase().includes(this.search.toLowerCase()));
+                                },
+                                select(item) {
+                                    this.selected = item.id;
+                                    this.open = false;
+                                    this.search = '';
+                                }
+                            }"
+                            @click.outside="open = false; search = '';"
+                            class="relative"
+                        >
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Publisher *</label>
+
+                            <button
+                                type="button"
+                                @click="open = !open"
+                                class="w-full text-left text-xs rounded-xl border border-slate-200 p-2.5 bg-white flex items-center justify-between focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all cursor-pointer"
                             >
-                                <option value="">Select Publisher</option>
-                                @foreach($publishers as $publisher)
-                                    <option value="{{ $publisher->id }}">{{ $publisher->name }}</option>
-                                @endforeach
-                            </select>
+                                <span :class="{ 'text-slate-400': !selected }" x-text="selectedName"></span>
+                                <svg class="w-4 h-4 text-slate-400 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+
+                            <div
+                                x-show="open"
+                                x-cloak
+                                class="absolute z-30 mt-1 w-full rounded-2xl bg-white p-3 shadow-xl ring-1 ring-black/5 border border-slate-200 space-y-2"
+                            >
+                                <input
+                                    type="text"
+                                    x-model="search"
+                                    x-ref="searchInput"
+                                    @input.stop
+                                    placeholder="Type to search publisher..."
+                                    class="w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
+                                    x-init="$watch('open', value => { if (value) setTimeout(() => $refs.searchInput.focus(), 50) })"
+                                >
+                                <div class="max-h-44 overflow-y-auto space-y-0.5">
+                                    <template x-for="item in filtered" :key="item.id">
+                                        <button
+                                            type="button"
+                                            @click="select(item)"
+                                            class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between cursor-pointer transition-colors"
+                                            :class="{ 'bg-blue-50 font-semibold text-blue-700': selected == item.id }"
+                                        >
+                                            <span x-text="item.name"></span>
+                                            <svg x-show="selected == item.id" class="w-3.5 h-3.5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </button>
+                                    </template>
+                                    <div x-show="filtered.length === 0" class="px-3 py-3 text-xs text-slate-400 text-center italic">
+                                        No publishers found.
+                                    </div>
+                                </div>
+                            </div>
                             @error('publisher_id') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                         </div>
 
-                        <div>
-                            <label for="catalog-reference" class="block text-xs font-semibold text-slate-700">General Reference *</label>
-                            <select
-                                id="catalog-reference"
-                                wire:model="general_reference_id"
-                                class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
+                        {{-- General Reference Dropdown Combobox --}}
+                        <div
+                            x-data="{
+                                open: false,
+                                search: '',
+                                selected: @entangle('general_reference_id'),
+                                items: {{ Js::from($generalReferences) }},
+                                get selectedName() {
+                                    const found = this.items.find(i => i.id == this.selected);
+                                    return found ? found.name : 'Select General Reference';
+                                },
+                                get filtered() {
+                                    if (!this.search) return this.items;
+                                    return this.items.filter(i => i.name.toLowerCase().includes(this.search.toLowerCase()));
+                                },
+                                select(item) {
+                                    this.selected = item.id;
+                                    this.open = false;
+                                    this.search = '';
+                                }
+                            }"
+                            @click.outside="open = false; search = '';"
+                            class="relative"
+                        >
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">General Reference *</label>
+
+                            <button
+                                type="button"
+                                @click="open = !open"
+                                class="w-full text-left text-xs rounded-xl border border-slate-200 p-2.5 bg-white flex items-center justify-between focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all cursor-pointer"
                             >
-                                <option value="">Select General Reference</option>
-                                @foreach($generalReferences as $ref)
-                                    <option value="{{ $ref->id }}">{{ $ref->name }}</option>
-                                @endforeach
-                            </select>
+                                <span :class="{ 'text-slate-400': !selected }" x-text="selectedName"></span>
+                                <svg class="w-4 h-4 text-slate-400 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+
+                            <div
+                                x-show="open"
+                                x-cloak
+                                class="absolute z-30 mt-1 w-full rounded-2xl bg-white p-3 shadow-xl ring-1 ring-black/5 border border-slate-200 space-y-2"
+                            >
+                                <input
+                                    type="text"
+                                    x-model="search"
+                                    x-ref="searchInput"
+                                    @input.stop
+                                    placeholder="Type to search reference..."
+                                    class="w-full text-xs rounded-xl border border-slate-200 p-2.5 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
+                                    x-init="$watch('open', value => { if (value) setTimeout(() => $refs.searchInput.focus(), 50) })"
+                                >
+                                <div class="max-h-44 overflow-y-auto space-y-0.5">
+                                    <template x-for="item in filtered" :key="item.id">
+                                        <button
+                                            type="button"
+                                            @click="select(item)"
+                                            class="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-blue-50 hover:text-blue-700 flex items-center justify-between cursor-pointer transition-colors"
+                                            :class="{ 'bg-blue-50 font-semibold text-blue-700': selected == item.id }"
+                                        >
+                                            <span x-text="item.name"></span>
+                                            <svg x-show="selected == item.id" class="w-3.5 h-3.5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </button>
+                                    </template>
+                                    <div x-show="filtered.length === 0" class="px-3 py-3 text-xs text-slate-400 text-center italic">
+                                        No references found.
+                                    </div>
+                                </div>
+                            </div>
                             @error('general_reference_id') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
+                    {{-- ISBN, Edition, Publication Year --}}
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                         <div>
                             <label for="catalog-isbn" class="block text-xs font-semibold text-slate-700">ISBN / ISSN</label>
@@ -220,6 +477,7 @@
                                 type="text"
                                 wire:model="isbn_issn"
                                 maxlength="20"
+                                placeholder="Leave blank to auto-generate"
                                 class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                             >
                             @error('isbn_issn') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror
@@ -231,7 +489,7 @@
                                 id="catalog-edition"
                                 type="text"
                                 wire:model="edition"
-                                maxlength="20"
+                                maxlength="50"
                                 class="mt-1 w-full text-xs rounded-xl border border-slate-200 p-2.5 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-hidden transition-all"
                             >
                             @error('edition') <span class="text-xs text-rose-500 mt-1 block">{{ $message }}</span> @enderror

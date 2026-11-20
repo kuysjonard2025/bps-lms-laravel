@@ -20,6 +20,7 @@ class Catalog extends Model
         'general_reference_id',
         'title',
         'isbn_issn',
+        'call_number',
         'edition',
         'publication_year',
         'description',
@@ -65,16 +66,19 @@ class Catalog extends Model
 
     public function availableAccessions(): HasMany
     {
-        return $this->hasMany(Accession::class)->where('status', 'Available');
+        return $this->hasMany(Accession::class)->whereRaw('LOWER(status) = ?', ['available']);
     }
 
     public function scopeSearch(Builder $query, string $term): Builder
     {
-        return $query->where(function (Builder $q) use ($term) {
-            $q->whereILIKE('title', "%{$term}%")
-              ->orWhereILIKE('isbn_issn', "%{$term}%")
-              ->orWhereHas('author', fn (Builder $sub) => $sub->whereILIKE('name', "%{$term}%"))
-              ->orWhereHas('publisher', fn (Builder $sub) => $sub->whereILIKE('name', "%{$term}%"));
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+
+        return $query->where(function (Builder $q) use ($term, $likeOperator) {
+            $q->where('title', $likeOperator, "%{$term}%")
+              ->orWhere('isbn_issn', $likeOperator, "%{$term}%")
+              ->orWhere('call_number', $likeOperator, "%{$term}%")
+              ->orWhereHas('author', fn (Builder $sub) => $sub->where('name', $likeOperator, "%{$term}%"))
+              ->orWhereHas('publisher', fn (Builder $sub) => $sub->where('name', $likeOperator, "%{$term}%"));
         });
     }
 }

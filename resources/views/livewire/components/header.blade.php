@@ -137,22 +137,15 @@
                 @if ($activeTab === 'profile')
                     <form wire:submit="updateProfile" class="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
 
+                        {{-- Name Row: First, Middle, Last --}}
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
-                                <label class="block text-xs font-medium text-gray-700">Suffix</label>
-                                <input type="text" wire:model="suffix" placeholder="e.g. Jr., III" class="mt-1 w-full text-sm rounded-lg border-gray-300 shadow-xs border p-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                @error('suffix') <span class="text-[11px] text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="sm:col-span-2">
                                 <label class="block text-xs font-medium text-gray-700">First Name *</label>
                                 <input type="text" wire:model="first_name" class="mt-1 w-full text-sm rounded-lg border-gray-300 shadow-xs border p-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                 @error('first_name') <span class="text-[11px] text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                             </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-medium text-gray-700">Middle Name *</label>
+                                <label class="block text-xs font-medium text-gray-700">Middle Name <span class="text-gray-400 font-normal">(Optional)</span></label>
                                 <input type="text" wire:model="middle_name" class="mt-1 w-full text-sm rounded-lg border-gray-300 shadow-xs border p-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                                 @error('middle_name') <span class="text-[11px] text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                             </div>
@@ -163,7 +156,22 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {{-- Suffix & Contact Number --}}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700">Suffix <span class="text-gray-400 font-normal">(Optional)</span></label>
+                                <input type="text" wire:model="suffix" placeholder="e.g. Jr., III" class="mt-1 w-full text-sm rounded-lg border-gray-300 shadow-xs border p-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                @error('suffix') <span class="text-[11px] text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700">Contact Number *</label>
+                                <input type="text" wire:model="contact_number" class="mt-1 w-full text-sm rounded-lg border-gray-300 shadow-xs border p-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                                @error('contact_number') <span class="text-[11px] text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        {{-- Account & Role --}}
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-medium text-gray-700">Username *</label>
                                 <input type="text" wire:model="username" class="mt-1 w-full text-sm rounded-lg border-gray-300 shadow-xs border p-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
@@ -173,19 +181,16 @@
                                 <label class="block text-xs font-medium text-gray-700">User Role</label>
                                 <input type="text" wire:model="role" disabled class="mt-1 w-full text-sm rounded-lg border-gray-200 bg-gray-100 text-gray-500 shadow-xs border p-2 cursor-not-allowed">
                             </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700">Contact Number *</label>
-                                <input type="text" wire:model="contact_number" class="mt-1 w-full text-sm rounded-lg border-gray-300 shadow-xs border p-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                                @error('contact_number') <span class="text-[11px] text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
-                            </div>
                         </div>
 
+                        {{-- Email Address --}}
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Email Address *</label>
                             <input type="email" wire:model="email" class="mt-1 w-full text-sm rounded-lg border-gray-300 shadow-xs border p-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
                             @error('email') <span class="text-[11px] text-red-500 mt-0.5 block">{{ $message }}</span> @enderror
                         </div>
 
+                        {{-- Address --}}
                         <div>
                             <label class="block text-xs font-medium text-gray-700">Address *</label>
                             <input type="text" wire:model="address" class="mt-1 w-full text-sm rounded-lg border-gray-300 shadow-xs border p-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">

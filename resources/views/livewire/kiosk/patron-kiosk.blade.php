@@ -4,31 +4,37 @@
         timer: null,
         rfidBuffer: '',
         maxBufferLength: 50,
+        displayDurationMs: 10000,
 
         handleGlobalKey(e) {
-            // Allow typing inside input elements normally
-            if (document.activeElement.tagName === 'INPUT') return;
+            if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+                return;
+            }
 
             if (e.key === 'Enter') {
-                if (this.rfidBuffer.trim().length > 0) {
-                    $wire.scanRfid(this.rfidBuffer);
-                    this.rfidBuffer = '';
+                const code = this.rfidBuffer.trim();
+                this.rfidBuffer = '';
+                if (code.length > 0) {
+                    $wire.scanRfid(code);
                 }
-            } else if (e.key.length === 1) {
-                // Prevent buffer overflow from erratic keystrokes/spam
+            } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 if (this.rfidBuffer.length < this.maxBufferLength) {
                     this.rfidBuffer += e.key;
                 } else {
-                    this.rfidBuffer = ''; // Reset on overflow attempt
+                    this.rfidBuffer = e.key;
                 }
             }
         },
 
         startAutoDismiss() {
-            clearTimeout(this.timer);
+            if (this.timer) {
+                clearTimeout(this.timer);
+            }
+
             this.timer = setTimeout(() => {
+                this.timer = null;
                 $wire.closeResultModal();
-            }, 1000);
+            }, this.displayDurationMs);
         }
     }"
     @window.keydown="handleGlobalKey($event)"
@@ -54,11 +60,11 @@
         <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-sky-500 via-sky-700 to-sky-900"></div>
 
         <!-- Operating Hours Badge -->
-        <div class="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/80 border border-sky-200 text-sky-800 text-medium font-semibold">
+        <div class="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/80 border border-sky-200 text-sky-800 text-xs font-semibold uppercase">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Active Hours: 9:00 AM – 5:00 PM</span>
+            <span>ACTIVE HOURS: 7:00 AM – 5:00 PM</span>
         </div>
 
         <!-- Animated Light Blue Scanner Icon -->
@@ -79,7 +85,7 @@
                     wire:model="rfid_number"
                     maxlength="50"
                     placeholder="Type School ID / RFID & hit Enter..."
-                    class="w-full px-3 py-2 text-xs bg-sky-50/50 text-slate-700 border border-sky-200 rounded-xl text-center focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 transition"
+                    class="w-full px-3 py-2 text-xs bg-sky-50/50 text-slate-700 border border-sky-200 rounded-xl text-center uppercase focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 transition"
                     autofocus
                 >
             </form>
@@ -90,57 +96,68 @@
             <div
                 x-data
                 x-init="setTimeout(() => { $el.remove(); }, 3500)"
-                class="mt-6 w-full p-4 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-sm font-semibold shadow-sm"
+                class="mt-6 w-full p-4 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-sm font-semibold shadow-sm uppercase"
             >
-                {{ session('kiosk_error') }}
+                {{ strtoupper(session('kiosk_error')) }}
             </div>
         @endif
     </div>
 
-    <!-- Borrower Tap Details Overlay Popup -->
+    <!-- Patron Tap Details Overlay Popup -->
     @if ($showResultModal && $scannedPatron)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-6">
+        @php
+            $middleInitial = $scannedPatron->middle_name ? mb_substr(trim($scannedPatron->middle_name), 0, 1) . '.' : '';
+            $baseName = trim("{$scannedPatron->first_name} {$middleInitial} {$scannedPatron->last_name}");
+            $patronFullName = \Illuminate\Support\Str::title($baseName) . ($scannedPatron->suffix ? ' ' . strtoupper(trim($scannedPatron->suffix)) : '');
+        @endphp
+        <div wire:key="scanned-patron-{{ $scanSequence }}" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-6">
             <div class="bg-white border border-sky-100 rounded-3xl p-10 max-w-lg w-full text-center shadow-2xl relative overflow-hidden">
 
                 <!-- Status Badge -->
                 <div class="inline-block px-6 py-2 rounded-full text-xs font-black tracking-widest uppercase mb-6 {{ $actionStatus === 'LOGGED IN' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200' }}">
-                    Successfully {{ $actionStatus }}
+                    SUCCESSFULLY {{ strtoupper($actionStatus) }}
                 </div>
 
-                <!-- Borrower Name -->
-                <h2 class="text-3xl font-extrabold text-sky-950 mb-1 capitalize">
-                    {{ $scannedPatron->first_name }} {{ $scannedPatron->middle_name ? $scannedPatron->middle_name[0] . '.' : '' }} {{ $scannedPatron->last_name }} {{ $scannedPatron->suffix }}
+                <!-- Patron Name -->
+                <h2 class="text-3xl font-extrabold text-sky-950 mb-1">
+                    {{ $patronFullName }}
                 </h2>
-                <p class="text-base text-sky-600 font-semibold mb-8 capitalize">
-                    {{ $scannedPatron->patronType->name ?? 'Borrower' }}
+                <p class="text-base text-sky-600 font-semibold mb-8 uppercase">
+                    {{ $scannedPatron->patronType?->name ? strtoupper($scannedPatron->patronType->name) : 'PATRON' }}
                 </p>
 
-                <!-- Borrower Information Details Card -->
+                <!-- Patron Information Details Card -->
                 <div class="bg-sky-50/60 rounded-2xl p-6 border border-sky-100 space-y-3 text-left text-sm mb-4">
                     <div class="flex justify-between border-b border-sky-200/50 pb-2">
                         <span class="text-slate-500">School ID:</span>
-                        <span class="font-mono font-bold text-sky-950">{{ $scannedPatron->school_id }}</span>
+                        <span class="font-mono font-bold text-sky-950 uppercase">{{ strtoupper($scannedPatron->school_id) }}</span>
                     </div>
+                    @if ($scannedPatron->department)
+                        <div class="flex justify-between border-b border-sky-200/50 pb-2">
+                            <span class="text-slate-500">Department:</span>
+                            <span class="font-semibold text-slate-800 uppercase">{{ strtoupper($scannedPatron->department->name) }}</span>
+                        </div>
+                    @endif
                     @if ($scannedPatron->gradeLevel)
-                        <div class="flex justify-between border-b border-sky-200/50 pb-2 capitalize">
+                        <div class="flex justify-between border-b border-sky-200/50 pb-2">
                             <span class="text-slate-500">Grade Level:</span>
-                            <span class="font-semibold text-slate-800">{{ $scannedPatron->gradeLevel->name ?? '-' }}</span>
+                            <span class="font-semibold text-slate-800">{{ \Illuminate\Support\Str::title($scannedPatron->gradeLevel->name) }}</span>
                         </div>
                     @endif
                     @if ($scannedPatron->section)
-                        <div class="flex justify-between border-b border-sky-200/50 pb-2 capitalize">
+                        <div class="flex justify-between border-b border-sky-200/50 pb-2">
                             <span class="text-slate-500">Section:</span>
-                            <span class="font-semibold text-slate-800">{{ $scannedPatron->section->name ?? '-' }}</span>
+                            <span class="font-semibold text-slate-800">{{ \Illuminate\Support\Str::title($scannedPatron->section->name) }}</span>
                         </div>
                     @endif
                     <div class="flex justify-between">
                         <span class="text-slate-500">Timestamp:</span>
-                        <span class="font-bold text-sky-700">{{ $actionTime }}</span>
+                        <span class="font-bold text-sky-700 uppercase">{{ strtoupper($actionTime) }}</span>
                     </div>
                 </div>
 
                 <div class="text-xs text-sky-800/60 font-medium animate-pulse mt-4">
-                    Next borrower can scan immediately to continue...
+                    Next patron can scan immediately to continue...
                 </div>
             </div>
         </div>

@@ -22,13 +22,13 @@ return new class extends Migration
             $table->timestamp('returned_at')->nullable();
 
             // Financials & Payment Tracking
-            $table->decimal('fine_amount', 8, 2)->default(0.00); // Penalty fee
-            $table->boolean('is_paid')->default(true); // Default true (zero fines are paid)
+            $table->decimal('fine_amount', 8, 2)->default(0.00);
+            $table->boolean('is_paid')->default(true);
             $table->string('receipt_number', 50)->nullable()->index();
 
-            // Status & Item State
-            $table->string('status')->default('borrowed'); // 'borrowed', 'returned'
-            $table->string('condition')->default('good');  // 'good', 'damaged', 'lost'
+            // Status & Item State ('borrowed', 'returned', 'lost')
+            $table->string('status')->default('borrowed');
+            $table->string('condition')->default('good'); // 'good', 'damaged', 'lost'
 
             $table->timestamps();
 

@@ -32,10 +32,9 @@ class Accessions extends Component
     public string $statusFilter = '';
 
     public bool $showModal = false;
-    public bool $showEditModalOnly = false;
-    public string $activeEditTab = 'details';
     public bool $showDeleteModal = false;
     public bool $showExportModal = false;
+    public bool $showBulkUpdateModal = false;
     public ?int $accessionIdBeingEdited = null;
     public ?int $accessionIdBeingDeleted = null;
 
@@ -43,145 +42,130 @@ class Accessions extends Component
     public ?string $exportEndAccession = null;
 
     public ?int $acquisition_id = null;
-    public ?int $catalog_id = null;
     public string $accession_number = '';
-    public string $batch_number = '';
-    public int $batch_qty = 1;
-    public string $call_number = '';
     public string $condition = 'new';
-    public string $status = 'available';
+    public string $status = 'stored';
     public ?string $remarks = null;
+
+    public ?int $bulkAcquisitionId = null;
+    public array $selectedAccessionIds = [];
+    public string $bulkCondition = 'new';
+    public string $bulkStatus = 'stored';
+    public ?string $bulkRemarks = null;
 
     protected function rules(): array
     {
-        try {
-            if ($this->acquisition_id && ! $this->catalog_id) {
-                $this->catalog_id = Acquisition::where('id', $this->acquisition_id)->value('catalog_id');
-            }
-
-            $rules = [
-                'acquisition_id' => 'required|exists:acquisitions,id',
-                'catalog_id'     => 'required|exists:catalogs,id',
-                'batch_number'   => 'required|string|max:50',
-                'call_number'    => 'required|string|max:50',
-                'condition'      => 'required|string|in:new,good,damaged,lost',
-                'status'         => ['required', 'string', 'in:available,on loan,reserved,under maintenance,dumped'],
-                'remarks'        => 'nullable|string|max:1000',
-            ];
-
-            if ($this->accessionIdBeingEdited) {
-                $rules['accession_number'] = [
-                    'required',
-                    'string',
-                    'max:50',
-                    Rule::unique('accessions', 'accession_number')->ignore($this->accessionIdBeingEdited),
-                ];
-
-                if (! $this->showEditModalOnly) {
-                    $rules['status'][] = function ($attribute, $value, $fail) {
-                        $accession = Accession::find($this->accessionIdBeingEdited);
-                        if ($accession && in_array($accession->status, ['on loan']) && $value !== $accession->status) {
-                            $fail("Cannot change status directly while item state is '{$accession->status}'.");
-                        }
-                    };
-                }
-            } else {
-                $remainingQty = $this->getRemainingQty();
-                $minAllowed = $remainingQty > 0 ? 1 : 0;
-                $maxAllowed = max(1, $remainingQty);
-
-                $rules['batch_qty'] = "required|integer|min:{$minAllowed}|max:{$maxAllowed}";
-            }
-
-            return $rules;
-        } catch (Exception $e) {
-            Log::error('Error generating validation rules: ' . $e->getMessage());
-            return ['acquisition_id' => 'required'];
-        }
-    }
-
-    protected function messages(): array
-    {
-        $remaining = $this->getRemainingQty();
-
-        return [
-            'batch_qty.min' => $remaining === 0
-                ? 'All assets for this acquisition have already been accessioned.'
-                : 'Batch quantity must be at least 1.',
-            'batch_qty.max' => $remaining === 0
-                ? 'All assets for this acquisition have already been accessioned.'
-                : "The batch quantity cannot exceed the remaining unaccessioned count ({$remaining}).",
+        $rules = [
+            'acquisition_id' => 'required|exists:acquisitions,id',
+            'condition'      => 'required|string|in:new,good,minor damaged,severe damaged,lost,missing',
+            'status'         => ['required', 'string', 'in:available,on loan,stored,under maintenance,dumped'],
+            'remarks'        => 'nullable|string|max:1000',
         ];
+
+        if ($this->accessionIdBeingEdited) {
+            $rules['accession_number'] = [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('accessions', 'accession_number')->ignore($this->accessionIdBeingEdited),
+            ];
+        }
+
+        return $rules;
     }
 
     public function getRemainingQty(): int
     {
-        try {
-            if (! $this->acquisition_id) {
-                return 0;
-            }
-
-            $acquisition = Acquisition::find($this->acquisition_id);
-            if (! $acquisition) {
-                return 0;
-            }
-
-            $existingCount = Accession::where('acquisition_id', $this->acquisition_id)
-                ->when($this->accessionIdBeingEdited, fn($q) => $q->where('id', '!=', $this->accessionIdBeingEdited))
-                ->count();
-
-            return max(0, $acquisition->quantity - $existingCount);
-        } catch (Exception $e) {
-            Log::error('Error calculating remaining quantity: ' . $e->getMessage());
+        if (! $this->acquisition_id) {
             return 0;
         }
+
+        $acquisition = Acquisition::find($this->acquisition_id);
+        if (! $acquisition) {
+            return 0;
+        }
+
+        $existingCount = Accession::where('acquisition_id', $this->acquisition_id)
+            ->when($this->accessionIdBeingEdited, fn($q) => $q->where('id', '!=', $this->accessionIdBeingEdited))
+            ->count();
+
+        return max(0, $acquisition->quantity_received - $existingCount);
     }
 
     #[Computed]
     public function selectedAcquisition(): ?Acquisition
     {
-        try {
-            if (! $this->acquisition_id) {
-                return null;
-            }
-
-            return Acquisition::with([
-                'catalog',
-                'catalog.author',
-                'catalog.publisher',
-                'catalog.generalReference',
-                'catalog.assetType',
-                'vendor',
-            ])->find($this->acquisition_id);
-        } catch (Exception $e) {
-            Log::error('Error fetching selected acquisition: ' . $e->getMessage());
+        if (! $this->acquisition_id) {
             return null;
         }
+
+        return Acquisition::with([
+            'catalog.author',
+            'catalog.publisher',
+            'catalog.generalReference',
+            'catalog.assetType',
+            'vendor',
+        ])->find($this->acquisition_id);
+    }
+
+    #[Computed]
+    public function bulkSelectedAccessions()
+    {
+        if (! $this->bulkAcquisitionId) {
+            return collect();
+        }
+
+        return Accession::where('acquisition_id', $this->bulkAcquisitionId)
+            ->orderBy('accession_number', 'asc')
+            ->get();
+    }
+
+    public function updatedBulkAcquisitionId($value): void
+    {
+        $this->selectedAccessionIds = [];
+        if ($value) {
+            $this->selectedAccessionIds = Accession::where('acquisition_id', $value)
+                ->where('status', '!=', 'on loan')
+                ->pluck('id')
+                ->map(fn($id) => (string) $id)
+                ->toArray();
+        }
+    }
+
+    public function selectAllBulkItems(): void
+    {
+        if (! $this->bulkAcquisitionId) {
+            return;
+        }
+
+        $this->selectedAccessionIds = Accession::where('acquisition_id', $this->bulkAcquisitionId)
+            ->where('status', '!=', 'on loan')
+            ->pluck('id')
+            ->map(fn($id) => (string) $id)
+            ->toArray();
+    }
+
+    public function deselectAllBulkItems(): void
+    {
+        $this->selectedAccessionIds = [];
     }
 
     public function updatedAcquisitionId($value): void
     {
-        try {
-            if ($this->accessionIdBeingEdited) {
-                return;
-            }
+        if ($this->accessionIdBeingEdited) {
+            return;
+        }
 
-            if ($value) {
-                $acquisition = Acquisition::find($value);
-                if ($acquisition) {
-                    $this->catalog_id = $acquisition->catalog_id;
-                    $remainingQty = $this->getRemainingQty();
+        if ($value) {
+            $latestCopy = Accession::where('acquisition_id', (int) $value)
+                ->get()
+                ->map(function ($item) {
+                    preg_match('/-(\d+)$/', $item->accession_number, $matches);
+                    return isset($matches[1]) ? (int) $matches[1] : 0;
+                })
+                ->max() ?? 0;
 
-                    $this->batch_qty = $remainingQty > 0 ? $remainingQty : 1;
-                    $this->batch_number = 'B-' . date('Ymd-Hi');
-                    $this->accession_number = $this->generateAccessionNumber();
-                }
-            } else {
-                $this->catalog_id = null;
-            }
-        } catch (Exception $e) {
-            Log::error('Error updating acquisition ID: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'An error occurred while selecting the acquisition.', type: 'error');
+            $this->accession_number = $this->generateAccessionNumber((int) $value, $latestCopy + 1);
         }
     }
 
@@ -197,207 +181,180 @@ class Accessions extends Component
 
     public function openCreateModal(): void
     {
-        try {
-            $this->resetValidation();
-            $this->reset([
-                'acquisition_id', 'catalog_id', 'accession_number', 'batch_number',
-                'call_number', 'condition', 'status',
-                'remarks', 'accessionIdBeingEdited',
-            ]);
+        $this->resetValidation();
+        $this->reset([
+            'acquisition_id', 'accession_number',
+            'condition', 'status', 'remarks', 'accessionIdBeingEdited',
+        ]);
 
-            $this->showEditModalOnly = false;
-            $this->activeEditTab = 'details';
-            $this->batch_qty = 1;
-            $this->condition = 'new';
-            $this->status = 'available';
-            $this->batch_number = 'B-' . date('Ymd-Hi');
-            $this->accession_number = $this->generateAccessionNumber();
-            $this->showModal = true;
-        } catch (Exception $e) {
-            Log::error('Error opening create modal: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'Could not open the create form.', type: 'error');
-        }
+        $this->condition = 'new';
+        $this->status = 'stored';
+        $this->showModal = true;
     }
 
-    private function generateAccessionNumber(int $offset = 0): string
+    public function openBulkUpdateModal(): void
     {
-        try {
-            $year = date('Y');
-            $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        $this->resetValidation();
+        $this->reset(['bulkAcquisitionId', 'selectedAccessionIds', 'bulkCondition', 'bulkStatus', 'bulkRemarks']);
+        $this->bulkCondition = 'new';
+        $this->bulkStatus = 'stored';
+        $this->showBulkUpdateModal = true;
+    }
 
-            $latest = Accession::whereYear('created_at', $year)
-                ->where('accession_number', $likeOperator, "acc-{$year}-%")
-                ->orderByDesc('id')
-                ->first();
+    private function generateAccessionNumber(int $acquisitionId, int $specificCopyNum): string
+    {
+        $year = date('Y');
+        $batchStr = str_pad((string) $acquisitionId, 3, '0', STR_PAD_LEFT);
+        $copyStr = str_pad((string) $specificCopyNum, 2, '0', STR_PAD_LEFT);
 
-            $baseNum = 0;
-            if ($latest && preg_match('/-(\d+)$/', $latest->accession_number, $matches)) {
-                $baseNum = (int) $matches[1];
-            }
-
-            $nextNum = str_pad($baseNum + 1 + $offset, 5, '0', STR_PAD_LEFT);
-
-            return "acc-{$year}-{$nextNum}";
-        } catch (Exception $e) {
-            Log::error('Error generating accession number: ' . $e->getMessage());
-            return 'acc-' . date('Y') . '-' . str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT);
-        }
+        return "ACC-{$year}-{$batchStr}-{$copyStr}";
     }
 
     public function openEditModal(Accession $accession): void
     {
-        try {
-            $this->resetValidation();
-            $this->accessionIdBeingEdited = $accession->id;
-            $this->acquisition_id = $accession->acquisition_id;
-            $this->catalog_id = $accession->catalog_id;
-            $this->accession_number = $accession->accession_number;
-            $this->batch_number = $accession->batch_number;
-            $this->call_number = $accession->call_number;
-            $this->condition = $accession->condition;
-            $this->status = $accession->status;
-            $this->remarks = $accession->remarks;
-            $this->showEditModalOnly = false;
-            $this->activeEditTab = 'details';
-            $this->showModal = true;
-        } catch (Exception $e) {
-            Log::error('Error opening edit modal: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'Could not open the edit form.', type: 'error');
-        }
-    }
-
-    public function openEditCallNumberModal(Accession $accession): void
-    {
-        try {
-            $this->resetValidation();
-            $this->accessionIdBeingEdited = $accession->id;
-            $this->acquisition_id = $accession->acquisition_id;
-            $this->catalog_id = $accession->catalog_id;
-            $this->accession_number = $accession->accession_number;
-            $this->batch_number = $accession->batch_number;
-            $this->call_number = $accession->call_number;
-            $this->condition = $accession->condition;
-            $this->status = $accession->status;
-            $this->remarks = $accession->remarks;
-            $this->showEditModalOnly = true;
-            $this->activeEditTab = 'call_number';
-            $this->showModal = true;
-        } catch (Exception $e) {
-            Log::error('Error opening call number modal: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'Could not open the call number update form.', type: 'error');
-        }
+        $this->resetValidation();
+        $this->accessionIdBeingEdited = $accession->id;
+        $this->acquisition_id = $accession->acquisition_id;
+        $this->accession_number = $accession->accession_number;
+        $this->condition = $accession->condition;
+        $this->status = $accession->status;
+        $this->remarks = $accession->remarks;
+        $this->showModal = true;
     }
 
     public function saveAccession(): void
     {
-        $fields = ['accession_number', 'batch_number', 'call_number', 'remarks'];
+        $fields = ['accession_number', 'remarks'];
         $this->cleanFields($fields);
 
-        if ($this->accessionIdBeingEdited && $this->showEditModalOnly) {
-            $this->validate([
-                'call_number' => 'required|string|max:50',
-            ]);
-        } else {
-            $this->validate();
-        }
+        $this->validate();
 
         try {
             if ($this->accessionIdBeingEdited) {
                 $accession = Accession::findOrFail($this->accessionIdBeingEdited);
 
-                DB::transaction(function () use ($accession) {
-                    if ($this->showEditModalOnly || $this->activeEditTab === 'call_number') {
-                        $accession->update([
-                            'call_number' => $this->call_number,
-                        ]);
+                if ($accession->status === 'on loan') {
+                    throw ValidationException::withMessages([
+                        'status' => 'Cannot edit status/condition while item is currently on loan.',
+                    ]);
+                }
 
-                        if ($this->batch_number) {
-                            Accession::where('batch_number', $this->batch_number)
-                                ->update(['call_number' => $this->call_number]);
-                        }
-                    } else {
-                        if (in_array($accession->status, ['on loan'])) {
-                            $actionWord = $accession->status === 'on loan' ? 'on loan' : 'on loan';
-                            throw ValidationException::withMessages([
-                                'status' => "Cannot edit status/condition while item is currently {$actionWord}.",
-                            ]);
-                        }
+                $accession->update([
+                    'acquisition_id'   => $this->acquisition_id,
+                    'accession_number' => $this->accession_number,
+                    'condition'        => $this->condition,
+                    'status'           => $this->status,
+                    'remarks'          => $this->remarks,
+                ]);
 
-                        $accession->update([
-                            'acquisition_id'   => $this->acquisition_id,
-                            'catalog_id'       => $this->catalog_id,
-                            'accession_number' => $this->accession_number,
-                            'batch_number'     => $this->batch_number,
-                            'condition'        => $this->condition,
-                            'status'           => $this->status,
-                            'remarks'          => $this->remarks,
-                        ]);
-                    }
-                });
-
-                $message = ($this->showEditModalOnly || $this->activeEditTab === 'call_number')
-                    ? "Call number updated successfully for all items in batch ({$this->batch_number})."
-                    : 'Accession record condition/status updated successfully.';
+                $message = 'Accession record updated successfully.';
             } else {
                 DB::transaction(function () {
                     $acquisition = Acquisition::where('id', $this->acquisition_id)->lockForUpdate()->first();
-                    $existingCount = Accession::where('acquisition_id', $this->acquisition_id)->count();
-                    $remainingQty = max(0, $acquisition->quantity - $existingCount);
 
-                    if ($remainingQty < $this->batch_qty) {
+                    $existingCount = Accession::where('acquisition_id', $this->acquisition_id)->count();
+                    $remainingQty = max(0, $acquisition->quantity_received - $existingCount);
+
+                    if ($remainingQty <= 0) {
                         throw ValidationException::withMessages([
-                            'batch_qty' => "Only {$remainingQty} unaccessioned items remaining for this acquisition.",
+                            'acquisition_id' => 'All received items for this acquisition have already been accessioned.',
                         ]);
                     }
 
-                    for ($i = 0; $i < $this->batch_qty; $i++) {
+                    $latestCopy = Accession::where('acquisition_id', $this->acquisition_id)
+                        ->get()
+                        ->map(function ($item) {
+                            preg_match('/-(\d+)$/', $item->accession_number, $matches);
+                            return isset($matches[1]) ? (int) $matches[1] : 0;
+                        })
+                        ->max() ?? 0;
+
+                    $nextCopyNum = $latestCopy + 1;
+
+                    for ($i = 0; $i < $remainingQty; $i++) {
+                        $accessionNumber = $this->generateAccessionNumber($this->acquisition_id, $nextCopyNum);
+
+                        while (Accession::where('accession_number', $accessionNumber)->exists()) {
+                            $nextCopyNum++;
+                            $accessionNumber = $this->generateAccessionNumber($this->acquisition_id, $nextCopyNum);
+                        }
+
                         Accession::create([
                             'acquisition_id'   => $this->acquisition_id,
-                            'catalog_id'       => $this->catalog_id,
-                            'accession_number' => $this->generateAccessionNumber($i),
-                            'batch_number'     => $this->batch_number,
-                            'call_number'      => $this->call_number,
+                            'accession_number' => $accessionNumber,
                             'condition'        => $this->condition,
                             'status'           => $this->status,
                             'remarks'          => $this->remarks,
                         ]);
+
+                        $nextCopyNum++;
                     }
                 });
 
-                $message = "Successfully created a batch of {$this->batch_qty} accession records.";
+                $message = 'Successfully generated all remaining accession barcodes for this acquisition.';
             }
 
             $this->showModal = false;
             $this->dispatch('toast', message: $message, type: 'success');
         } catch (UniqueConstraintViolationException $e) {
-            throw ValidationException::withMessages([
-                'accession_number' => 'An accession record with this number already exists.',
-            ]);
+            Log::warning('Accession number collision handled automatically for ACQ #' . $this->acquisition_id);
+            $this->dispatch('toast', message: 'A barcode collision was detected. Please try clicking generate again.', type: 'error');
         } catch (ValidationException $e) {
+            $firstError = collect($e->errors())->flatten()->first();
+            $this->dispatch('toast', message: $firstError ?? 'Please check the form for errors.', type: 'error');
             throw $e;
         } catch (Exception $e) {
             Log::error('Error saving accession: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'An unexpected error occurred while saving the accession.', type: 'error');
+            $this->dispatch('toast', message: 'An unexpected error occurred while saving.', type: 'error');
+        }
+    }
+
+    public function bulkUpdateAccessions(): void
+    {
+        $this->validate([
+            'bulkAcquisitionId'    => 'required|exists:acquisitions,id',
+            'selectedAccessionIds' => 'required|array|min:1',
+            'selectedAccessionIds.*' => 'exists:accessions,id',
+            'bulkCondition'        => 'required|string|in:new,good,minor damage,severe damaged,lost,missing',
+            'bulkStatus'           => ['required', 'string', 'in:available,on loan,stored,under maintenance,dumped'],
+            'bulkRemarks'          => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            DB::transaction(function () {
+                $query = Accession::whereIn('id', $this->selectedAccessionIds)
+                    ->where('status', '!=', 'on loan');
+
+                $updateData = [
+                    'condition' => $this->bulkCondition,
+                    'status'    => $this->bulkStatus,
+                ];
+
+                if (!empty($this->bulkRemarks)) {
+                    $updateData['remarks'] = DB::raw("COALESCE(remarks, '') || ' | " . addslashes($this->bulkRemarks) . "'");
+                }
+
+                $query->update($updateData);
+            });
+
+            $this->showBulkUpdateModal = false;
+            $this->reset(['bulkAcquisitionId', 'selectedAccessionIds', 'bulkCondition', 'bulkStatus', 'bulkRemarks']);
+            $this->dispatch('toast', message: 'Selected accession items updated successfully.', type: 'success');
+        } catch (Exception $e) {
+            Log::error('Bulk update failed: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Failed to bulk update accession items.', type: 'error');
         }
     }
 
     public function confirmDelete(int $id): void
     {
-        try {
-            $accession = Accession::find($id);
-
-            if ($accession && in_array($accession->status, ['on loan', 'reserved'])) {
-                $actionWord = $accession->status === 'on loan' ? 'on loan' : 'reserved';
-                $this->dispatch('toast', message: "Cannot delete an item that is currently {$actionWord}.", type: 'error');
-                return;
-            }
-
-            $this->accessionIdBeingDeleted = $id;
-            $this->showDeleteModal = true;
-        } catch (Exception $e) {
-            Log::error('Error confirming delete: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'Unable to proceed with deletion request.', type: 'error');
+        $accession = Accession::find($id);
+        if ($accession && $accession->status === 'on loan') {
+            $this->dispatch('toast', message: 'Cannot delete an item that is currently on loan.', type: 'error');
+            return;
         }
+        $this->accessionIdBeingDeleted = $id;
+        $this->showDeleteModal = true;
     }
 
     public function deleteAccession(): void
@@ -405,144 +362,94 @@ class Accessions extends Component
         if ($this->accessionIdBeingDeleted) {
             try {
                 $accession = Accession::find($this->accessionIdBeingDeleted);
-
                 if ($accession) {
-                    if (in_array($accession->status, ['on loan', 'reserved'])) {
-                        $actionWord = $accession->status === 'on loan' ? 'checked out' : 'reserved';
-                        $this->dispatch('toast', message: "Deletion blocked: Item is currently {$actionWord}.", type: 'error');
+                    if ($accession->status === 'on loan') {
+                        $this->dispatch('toast', message: 'Deletion blocked: Item is currently checked out.', type: 'error');
                         $this->showDeleteModal = false;
                         $this->accessionIdBeingDeleted = null;
                         return;
                     }
-
                     $accession->delete();
                     $this->dispatch('toast', message: 'Accession item deleted successfully.', type: 'success');
                 }
-            } catch (QueryException $e) {
-                Log::error('Query error deleting accession: ' . $e->getMessage());
-                $this->dispatch('toast', message: 'Cannot delete: This accession item is referenced by existing circulation or log records.', type: 'error');
             } catch (Exception $e) {
-                Log::error('Unexpected error deleting accession: ' . $e->getMessage());
-                $this->dispatch('toast', message: 'An unexpected error occurred while deleting the accession.', type: 'error');
+                Log::error('Error deleting accession: ' . $e->getMessage());
+                $this->dispatch('toast', message: 'Cannot delete: Item is referenced by circulation records.', type: 'error');
             }
         }
-
         $this->showDeleteModal = false;
         $this->accessionIdBeingDeleted = null;
     }
 
-    private function getFilteredAccessionsQuery(string $orderBy = 'desc')
+    private function getFilteredAccessionsQuery(string $orderBy = 'asc')
     {
-        try {
-            $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
-            return Accession::with(['catalog', 'catalog.author', 'catalog.publisher', 'catalog.generalReference', 'catalog.assetType', 'acquisition'])
-                ->when($this->search, function ($query) use ($likeOperator) {
-                    $query->where(function ($q) use ($likeOperator) {
-                        $q->where('accession_number', $likeOperator, "%{$this->search}%")
-                            ->orWhere('batch_number', $likeOperator, "%{$this->search}%")
-                            ->orWhere('call_number', $likeOperator, "%{$this->search}%")
-                            ->orWhereHas('catalog', fn ($sub) => $sub->where('title', $likeOperator, "%{$this->search}%"));
-                    });
-                })
-                ->when($this->statusFilter, fn ($q) => $q->where('status', $this->statusFilter))
-                ->orderBy('accession_number', $orderBy);
-        } catch (Exception $e) {
-            Log::error('Error building filtered accessions query: ' . $e->getMessage());
-            return Accession::whereRaw('1 = 0');
-        }
+        return Accession::with([
+            'acquisition.vendor',
+            'acquisition.catalog.author',
+            'acquisition.catalog.publisher',
+            'acquisition.catalog.generalReference',
+            'acquisition.catalog.assetType'
+        ])
+            ->when($this->search, function ($query) use ($likeOperator) {
+                $query->where(function ($q) use ($likeOperator) {
+                    $q->where('accession_number', $likeOperator, "%{$this->search}%")
+                        ->orWhereHas('acquisition.catalog', fn ($sub) => $sub->where('title', $likeOperator, "%{$this->search}%"));
+                });
+            })
+            ->when($this->statusFilter, fn ($q) => $q->where('status', $this->statusFilter))
+            ->orderBy('accession_number', $orderBy);
     }
 
     public function exportExcel(): ?BinaryFileResponse
     {
-        try {
-            $fileName = 'accessions-report-' . now()->format('Y-m-d_His') . '.xlsx';
-
-            return Excel::download(
-                new AccessionsExport($this->search, $this->statusFilter),
-                $fileName
-            );
-        } catch (Exception $e) {
-            Log::error('Excel export failed: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'Failed to generate Excel export. Please try again.', type: 'error');
-            return null;
-        }
+        return Excel::download(new AccessionsExport($this->search, $this->statusFilter), 'accessions-report-' . now()->format('Y-m-d_His') . '.xlsx');
     }
 
     public function openExportModal(): void
     {
-        try {
-            $this->resetValidation();
-            $this->exportStartAccession = null;
-            $this->exportEndAccession = null;
-            $this->showExportModal = true;
-        } catch (Exception $e) {
-            Log::error('Error opening export modal: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'Could not open the export dialog.', type: 'error');
-        }
+        $this->resetValidation();
+        $this->exportStartAccession = null;
+        $this->exportEndAccession = null;
+        $this->showExportModal = true;
     }
 
     public function exportAccessionNumbers(): ?BinaryFileResponse
     {
-        try {
-            $this->showExportModal = false;
-            $fileName = 'niimbot-accessions-' . now()->format('Y-m-d_His') . '.xlsx';
-
-            return Excel::download(
-                new AccessionNumberExport(
-                    search: $this->search,
-                    statusFilter: $this->statusFilter,
-                    startAccession: $this->exportStartAccession,
-                    endAccession: $this->exportEndAccession
-                ),
-                $fileName
-            );
-        } catch (Exception $e) {
-            Log::error('Niimbot accession number export failed: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'Failed to generate label export. Please verify ranges.', type: 'error');
-            return null;
-        }
+        $this->showExportModal = false;
+        return Excel::download(new AccessionNumberExport($this->search, $this->statusFilter, $this->exportStartAccession, $this->exportEndAccession), 'niimbot-accessions-' . now()->format('Y-m-d_His') . '.xlsx');
     }
 
     public function exportPdf(): ?StreamedResponse
     {
-        try {
-            $accessions = $this->getFilteredAccessionsQuery('asc')->get();
+        $accessions = $this->getFilteredAccessionsQuery('asc')->get();
+        $pdf = Pdf::loadView('pdf.accessions-report', [
+            'accessions' => $accessions,
+            'filters'    => ['search' => $this->search, 'status' => $this->statusFilter],
+            'date' => now()->format('F j, Y g:i A'),
+        ])->setPaper('a4', 'landscape');
 
-            $pdf = Pdf::loadView('pdf.accessions-report', [
-                'accessions' => $accessions,
-                'filters'    => [
-                    'search' => $this->search,
-                    'status' => $this->statusFilter,
-                ],
-                'date' => now()->format('F j, Y g:i A'),
-            ])->setPaper('a4', 'landscape');
-
-            return response()->streamDownload(function () use ($pdf) {
-                echo $pdf->output();
-            }, 'accessions-report-' . now()->format('Y-m-d_His') . '.pdf');
-        } catch (Exception $e) {
-            Log::error('PDF export failed: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'Failed to generate PDF report.', type: 'error');
-            return null;
-        }
+        return response()->streamDownload(fn () => print($pdf->output()), 'accessions-report-' . now()->format('Y-m-d_His') . '.pdf');
     }
 
     #[Layout('components.layouts.app')]
     #[Title('Accessions')]
     public function render()
     {
-        try {
-            return view('livewire.accessions', [
-                'accessions'   => $this->getFilteredAccessionsQuery()->paginate(10),
-                'acquisitions' => Acquisition::with('catalog')->latest()->get(),
-            ]);
-        } catch (Exception $e) {
-            Log::error('Error rendering accessions view: ' . $e->getMessage());
-            return view('livewire.accessions', [
-                'accessions'   => collect()->paginate(10),
-                'acquisitions' => collect(),
-            ]);
-        }
+        return view('livewire.accessions', [
+            'accessions'   => $this->getFilteredAccessionsQuery()->paginate(10),
+            'acquisitions' => Acquisition::with([
+                'vendor',
+                'catalog.author',
+                'catalog.publisher',
+                'catalog.generalReference',
+                'catalog.assetType'
+            ])->whereIn('status', ['partial', 'delivered'])->latest()->get(),
+            'accessionedAcquisitions' => Acquisition::has('accessions')
+                ->with(['catalog.author', 'accessions'])
+                ->latest()
+                ->get(),
+        ]);
     }
 }

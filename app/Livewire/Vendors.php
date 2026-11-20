@@ -24,59 +24,86 @@ class Vendors extends Component
     public ?int $vendorIdBeingEdited = null;
     public ?int $vendorIdBeingDeleted = null;
 
+    // Form inputs matching migration & model schema
+    public string $type = 'supplier';
     public string $company_name = '';
-    public string $contact_person = '';
-    public string $address = '';
-    public string $contact_number = '';
-    public string $email = '';
+    public ?string $company_address = null;
+    public string $contact_first_name = '';
+    public ?string $contact_middle_name = null;
+    public string $contact_last_name = '';
+    public ?string $contact_number = null;
+    public ?string $contact_email = null;
 
     protected function rules(): array
     {
+        $isSupplier = $this->type === 'supplier';
+
         return [
+            'type' => [
+                'required',
+                'string',
+                'in:supplier,donor',
+            ],
             'company_name' => [
                 'required',
                 'string',
-                'max:50',
+                'max:100',
                 Rule::unique('vendors', 'company_name')
-                    ->where('address', trim($this->address))
+                    ->where('company_address', trim($this->company_address))
                     ->ignore($this->vendorIdBeingEdited),
             ],
-            'contact_person' => [
+            'company_address' => [
+                $isSupplier ? 'required' : 'nullable',
+                'string',
+                'max:255',
+            ],
+            'contact_first_name' => [
                 'required',
                 'string',
-                'max:50',
-                Rule::unique('vendors', 'contact_person')
-                    ->ignore($this->vendorIdBeingEdited),
+                'max:100',
             ],
-            'address' => [
+            'contact_middle_name' => [
+                'nullable',
+                'string',
+                'max:100',
+            ],
+            'contact_last_name' => [
                 'required',
                 'string',
                 'max:100',
             ],
             'contact_number' => [
-                'required',
+                $isSupplier ? 'required' : 'nullable',
+                'nullable',
                 'digits_between:10,15',
                 Rule::unique('vendors', 'contact_number')
                     ->ignore($this->vendorIdBeingEdited),
             ],
-            'email' => [
-                'required',
+            'contact_email' => [
+                $isSupplier ? 'required' : 'nullable',
+                'nullable',
                 'email',
-                'max:50',
-                Rule::unique('vendors', 'email')
+                'max:100',
+                Rule::unique('vendors', 'contact_email')
                     ->ignore($this->vendorIdBeingEdited),
             ],
         ];
     }
 
-    protected function messages(): array
+    protected array $validationAttributes = [
+        'type'                => 'Vendor / Donor Type',
+        'company_name'        => 'Company / Organization Name',
+        'company_address'     => 'Address',
+        'contact_first_name'  => 'Contact First Name',
+        'contact_middle_name' => 'Contact Middle Name',
+        'contact_last_name'   => 'Contact Last Name',
+        'contact_number'      => 'Contact Number',
+        'contact_email'       => 'Contact Email',
+    ];
+
+    public function updatedContactMiddleName($value): void
     {
-        return [
-            'company_name.unique'   => 'A vendor with this exact company name and address combination already exists.',
-            'contact_person.unique' => 'This contact person is already assigned to another vendor.',
-            'contact_number.unique' => 'This contact number is already registered to another vendor.',
-            'email.unique'          => 'This email address is already registered to another vendor.',
-        ];
+        if (blank($value)) $this->contact_middle_name = null;
     }
 
     public function updatedSearch(): void
@@ -95,40 +122,48 @@ class Vendors extends Component
     {
         $this->resetValidation();
         $this->vendorIdBeingEdited = $vendor->id;
-        $this->company_name = $vendor->company_name;
-        $this->contact_person = $vendor->contact_person;
-        $this->address = $vendor->address;
-        $this->contact_number = $vendor->contact_number;
-        $this->email = $vendor->email;
+        $this->type                = $vendor->type;
+        $this->company_name        = $vendor->company_name;
+        $this->company_address     = $vendor->company_address;
+        $this->contact_first_name  = $vendor->contact_first_name;
+        $this->contact_middle_name = $vendor->contact_middle_name;
+        $this->contact_last_name   = $vendor->contact_last_name;
+        $this->contact_number      = $vendor->contact_number;
+        $this->contact_email       = $vendor->contact_email;
         $this->showModal = true;
     }
 
     public function saveVendor(): void
     {
-        $this->cleanFields(['company_name', 'contact_person', 'address', 'contact_number', 'email']);
+        $this->cleanFields([
+            'company_name',
+            'company_address',
+            'contact_first_name',
+            'contact_middle_name',
+            'contact_last_name',
+            'contact_number',
+            'contact_email',
+        ]);
 
-        $this->validate();
+        $this->contact_middle_name = blank($this->contact_middle_name) ? null : $this->contact_middle_name;
+        $this->company_address     = blank($this->company_address) ? null : $this->company_address;
+        $this->contact_number      = blank($this->contact_number) ? null : $this->contact_number;
+        $this->contact_email       = blank($this->contact_email) ? null : $this->contact_email;
 
-        $payload = [
-            'company_name'   => $this->company_name,
-            'contact_person' => $this->contact_person,
-            'address'        => $this->address,
-            'contact_number' => $this->contact_number,
-            'email'          => $this->email,
-        ];
+        $validated = $this->validate();
 
         try {
             Vendor::updateOrCreate(
                 ['id' => $this->vendorIdBeingEdited],
-                $payload
+                $validated
             );
         } catch (UniqueConstraintViolationException $e) {
             throw ValidationException::withMessages([
-                'company_name' => 'A unique constraint error occurred while saving this vendor record.',
+                'company_name' => 'A vendor or donor with this exact name and address combination already exists.',
             ]);
         }
 
-        $message = $this->vendorIdBeingEdited ? 'Vendor updated successfully.' : 'Vendor created successfully.';
+        $message = $this->vendorIdBeingEdited ? 'Record updated successfully.' : 'Record created successfully.';
 
         $this->showModal = false;
         $this->resetForm();
@@ -146,9 +181,9 @@ class Vendors extends Component
         if ($this->vendorIdBeingDeleted) {
             try {
                 Vendor::destroy($this->vendorIdBeingDeleted);
-                $this->dispatch('toast', message: 'Vendor deleted successfully.', type: 'success');
+                $this->dispatch('toast', message: 'Record deleted successfully.', type: 'success');
             } catch (QueryException $e) {
-                $this->dispatch('toast', message: 'Cannot delete vendor: It is currently linked to existing transactions or records.', type: 'error');
+                $this->dispatch('toast', message: 'Cannot delete record: It is currently linked to existing transactions or records.', type: 'error');
             }
         }
 
@@ -159,32 +194,26 @@ class Vendors extends Component
     private function resetForm(): void
     {
         $this->reset([
+            'type',
             'company_name',
-            'contact_person',
-            'address',
+            'company_address',
+            'contact_first_name',
+            'contact_middle_name',
+            'contact_last_name',
             'contact_number',
-            'email',
+            'contact_email',
             'vendorIdBeingEdited',
         ]);
+        $this->type = 'supplier';
         $this->resetValidation();
     }
 
     #[Layout('components.layouts.app')]
-    #[Title('Vendors')]
+    #[Title('Vendors & Donors')]
     public function render()
     {
-        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
-
         $vendors = Vendor::query()
-            ->when($this->search, function ($query) use ($likeOperator) {
-                $query->where(function ($q) use ($likeOperator) {
-                    $q->where('company_name', $likeOperator, "%{$this->search}%")
-                        ->orWhere('contact_person', $likeOperator, "%{$this->search}%")
-                        ->orWhere('address', $likeOperator, "%{$this->search}%")
-                        ->orWhere('contact_number', $likeOperator, "%{$this->search}%")
-                        ->orWhere('email', $likeOperator, "%{$this->search}%");
-                });
-            })
+            ->when(trim($this->search), fn ($query, $term) => $query->search($term))
             ->latest()
             ->paginate(10);
 

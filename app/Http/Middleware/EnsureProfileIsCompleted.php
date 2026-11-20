@@ -14,7 +14,6 @@ class EnsureProfileIsCompleted
 
         if ($user) {
             $isIncomplete = empty($user->first_name) ||
-                            empty($user->middle_name) ||
                             empty($user->last_name) ||
                             empty($user->address) ||
                             empty($user->contact_number);

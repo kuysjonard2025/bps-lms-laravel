@@ -51,7 +51,7 @@ class Login extends Component
 
             session()->regenerate();
 
-            return $this->redirectIntended(default: route('dashboard'), navigate: true);
+            return $this->redirectIntended(default: route('asset-details'), navigate: true);
         }
 
         // 3. Increment failed attempts (expires after 60 seconds)

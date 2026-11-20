@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Livewire\Traits\LogsActivity;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,20 +13,15 @@ class CirculationPenalty extends Model
     use HasFactory, LogsActivity;
 
     protected $fillable = [
-        'name',
         'patron_type_id',
         'asset_type_id',
-        'fine_per_day',
-        'max_fine_amount',
-        'is_active',
+        'lost_after_days',
     ];
 
     protected $casts = [
         'patron_type_id' => 'integer',
         'asset_type_id' => 'integer',
-        'fine_per_day' => 'decimal:2',
-        'max_fine_amount' => 'decimal:2',
-        'is_active' => 'boolean',
+        'lost_after_days' => 'integer',
     ];
 
     public function patronType(): BelongsTo
@@ -45,19 +39,33 @@ class CirculationPenalty extends Model
         return $this->hasOne(PolicyLoanLimit::class, 'patron_type_id', 'patron_type_id');
     }
 
-    public function scopeActive(Builder $query): Builder
+    /**
+     * Calculate fine per day based on item unit price divided by lost_after_days.
+     */
+    public function calculateFinePerDay(float $unitPrice): float
     {
-        return $query->where('is_active', true);
+        $days = max(1, (int) $this->lost_after_days);
+
+        return round(max(0, $unitPrice) / $days, 2);
     }
 
     /**
-     * Get descriptive dropdown label for Circulation Process
+     * Determine whether overdue days have passed the lost_after_days threshold.
+     */
+    public function isLostAfterOverdueDays(int $overdueDays): bool
+    {
+        return $overdueDays > max(1, (int) $this->lost_after_days);
+    }
+
+    /**
+     * Get descriptive dropdown label for Circulation Process.
      */
     public function getDisplayLabelAttribute(): string
     {
+        $assetName = $this->assetType?->name ?? 'Asset';
         $duration = $this->loanLimit?->loan_duration_days ?? 7;
         $limit = $this->loanLimit?->max_borrow_limit ?? 3;
 
-        return "{$this->name} ({$duration} days / Max {$limit} items)";
+        return "{$assetName} ({$duration}d loan / Max {$limit} items / Lost after {$this->lost_after_days}d overdue)";
     }
 }

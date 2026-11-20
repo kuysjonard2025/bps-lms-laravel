@@ -13,11 +13,8 @@ class Accession extends Model
     use HasFactory, LogsActivity;
 
     protected $fillable = [
-        'catalog_id',
         'acquisition_id',
         'accession_number',
-        'batch_number',
-        'call_number',
         'condition',
         'status',
         'remarks',
@@ -30,9 +27,16 @@ class Accession extends Model
         );
     }
 
-    public function catalog(): BelongsTo
+    public function catalog()
     {
-        return $this->belongsTo(Catalog::class);
+        return $this->hasOneThrough(
+            Catalog::class,
+            Acquisition::class,
+            'id', // Foreign key on acquisitions table...
+            'id', // Foreign key on catalogs table...
+            'acquisition_id', // Local key on accessions table...
+            'catalog_id' // Local key on acquisitions table...
+        );
     }
 
     public function acquisition(): BelongsTo

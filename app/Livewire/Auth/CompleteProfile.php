@@ -16,7 +16,7 @@ use Throwable;
 class CompleteProfile extends Component
 {
     public string $first_name = '';
-    public string $middle_name = '';
+    public ?string $middle_name = '';
     public string $last_name = '';
     public ?string $suffix = '';
     public string $address = '';
@@ -47,20 +47,20 @@ class CompleteProfile extends Component
         $user = Auth::user();
 
         $firstName = strtolower(trim($this->first_name));
-        $middleName = strtolower(trim($this->middle_name));
+        $middleName = strtolower(trim((string) $this->middle_name));
         $lastName = strtolower(trim($this->last_name));
         $suffix = strtolower(trim((string) $this->suffix)) ?: null;
 
         // Compound unique rule for [first_name, middle_name, last_name, suffix]
         $fullNameRule = Rule::unique('users', 'first_name')
-            ->where('middle_name', $middleName)
+            ->where('middle_name', $middleName !== '' ? $middleName : null)
             ->where('last_name', $lastName)
             ->where('suffix', $suffix)
             ->ignore($user->id);
 
         $this->validate([
             'first_name'     => ['required', 'string', 'max:50', $fullNameRule],
-            'middle_name'    => 'required|string|max:50',
+            'middle_name'    => 'nullable|string|max:50',
             'last_name'      => 'required|string|max:50',
             'suffix'         => 'nullable|string|max:10',
             'address'        => 'required|string|max:255',
@@ -90,7 +90,7 @@ class CompleteProfile extends Component
 
         $updateData = [
             'first_name'     => Str::title($firstName),
-            'middle_name'    => Str::title($middleName),
+            'middle_name'    => $middleName !== '' ? Str::title($middleName) : null,
             'last_name'      => Str::title($lastName),
             'suffix'         => $suffix,
             'address'        => trim($this->address),
@@ -124,7 +124,7 @@ class CompleteProfile extends Component
 
         session()->flash('status', 'Profile updated successfully!');
 
-        return $this->redirectRoute('dashboard', navigate: true);
+        return $this->redirectRoute('asset-details', navigate: true);
     }
 
     #[Layout('components.layouts.guest')]

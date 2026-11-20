@@ -6,26 +6,54 @@
             </svg>
         </div>
 
-        <h2 class="text-2xl font-extrabold text-sky-950 mb-1">Borrower Logs</h2>
-        <p class="text-xs text-slate-500 mb-6">Enter PIN to initialize terminal session.</p>
+        <h2 class="text-2xl font-extrabold text-sky-950 mb-1">Patron Logs Kiosk</h2>
+        <p class="text-xs text-slate-500 mb-6">Sign in with a Librarian or Assistant account and enter the Kiosk PIN.</p>
 
-        <form wire:submit.prevent="authenticate" class="space-y-4">
+        <form wire:submit.prevent="authenticate" class="space-y-4 text-left">
             <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Username Or Email</label>
+                <input
+                    type="text"
+                    wire:model="login"
+                    placeholder="Enter username or email..."
+                    class="w-full px-4 py-2.5 bg-sky-50/50 border border-sky-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 transition"
+                    autofocus
+                >
+                @error('login')
+                    <span class="text-red-500 text-xs block mt-1.5 font-medium">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Account Password</label>
+                <input
+                    type="password"
+                    wire:model="password"
+                    placeholder="Enter account password..."
+                    class="w-full px-4 py-2.5 bg-sky-50/50 border border-sky-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 transition"
+                >
+                @error('password')
+                    <span class="text-red-500 text-xs block mt-1.5 font-medium">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Kiosk Access PIN</label>
                 <input
                     type="password"
                     wire:model="pin"
-                    placeholder="Enter Access PIN..."
+                    placeholder="Enter kiosk PIN..."
                     class="w-full px-4 py-3 bg-sky-50/50 border border-sky-200 rounded-xl text-center text-lg font-mono tracking-widest text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 transition"
-                    autofocus
                 >
                 @error('pin')
-                    <span class="text-red-500 text-xs block mt-2 font-medium">{{ $message }}</span>
+                    <span class="text-red-500 text-xs block mt-1.5 font-medium">{{ $message }}</span>
                 @enderror
             </div>
 
             <button
                 type="submit"
-                class="w-full py-3 bg-sky-900 hover:bg-sky-800 text-white font-semibold rounded-xl transition shadow-md shadow-sky-900/20 text-sm"
+                wire:loading.attr="disabled"
+                class="w-full py-3 bg-sky-900 hover:bg-sky-800 text-white font-semibold rounded-xl transition shadow-md shadow-sky-900/20 text-sm cursor-pointer disabled:opacity-50"
             >
                 Unlock Terminal
             </button>

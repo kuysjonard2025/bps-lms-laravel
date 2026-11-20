@@ -11,15 +11,8 @@ class PatronLog extends Model
 {
     use HasFactory, LogsActivity;
 
-    /**
-     * The table associated with the model.
-     * Explicitly set if table name is `patron_logs`.
-     */
     protected $table = 'patron_logs';
 
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
         'patron_id',
         'time_in',
@@ -27,18 +20,12 @@ class PatronLog extends Model
         'log_date',
     ];
 
-    /**
-     * The attributes that should be cast to native types.
-     */
     protected $casts = [
-        'time_in' => 'datetime',
+        'time_in'  => 'datetime',
         'time_out' => 'datetime',
         'log_date' => 'date',
     ];
 
-    /**
-     * Get the patron associated with this log.
-     */
     public function patron(): BelongsTo
     {
         return $this->belongsTo(Patron::class, 'patron_id');

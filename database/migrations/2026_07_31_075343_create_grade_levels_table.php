@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('grade_levels', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->unique();
-            $table->string('code')->unique();
-            $table->timestamps();
-        });
+Schema::create('grade_levels', function (Blueprint $table) {
+    $table->id();
+    $table->string('name')->unique();
+    $table->string('code')->unique();
+    $table->timestamps();
+});
     }
 
     /**

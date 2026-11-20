@@ -2,11 +2,22 @@
     <!-- PAGE HEADER -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-5 rounded-xl border border-gray-200 shadow-xs">
         <div>
-            <h1 class="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">Borrower Attendance Logs</h1>
-            <p class="mt-1 text-xs sm:text-sm text-gray-500">Monitor real-time library visitation history and manage active borrower sessions.</p>
+            <h1 class="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">Patron Attendance Logs</h1>
+            <p class="mt-1 text-xs sm:text-sm text-gray-500">Monitor real-time library visitation history and manage active patron sessions.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
+            <!-- Kiosk Patron Time In/Out Link -->
+            <a
+                href="{{ route('kiosk.login') }}"
+                class="inline-flex items-center gap-2 rounded-lg bg-sky-900 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-all cursor-pointer"
+            >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                </svg>
+                <span>KIOSK PATRON TIME IN/OUT</span>
+            </a>
+
             <!-- Export Dropdown Menu -->
             <div x-data="{ open: false }" class="relative inline-block text-left">
                 <button
@@ -93,7 +104,7 @@
         <div class="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold uppercase tracking-wider text-gray-500">
-                    Total Visits {{ !empty($filterDate) ? "($filterDate)" : '(Today)' }}
+                    Total Visits {{ !empty($filterDate) ? '(' . strtoupper(\Carbon\Carbon::parse($filterDate)->format('M d, Y')) . ')' : '(TODAY)' }}
                 </span>
                 <span class="rounded-lg bg-gray-100 p-2 text-gray-600">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -146,7 +157,7 @@
                     <input
                         wire:model.live.debounce.300ms="search"
                         type="text"
-                        placeholder="Search borrower name or ID..."
+                        placeholder="Search patron name or ID..."
                         class="w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3.5 py-2 text-xs text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                 </div>
@@ -198,6 +209,7 @@
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Student/Employee #</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Name</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Type</th>
+                            <th scope="col" class="px-4 py-3 whitespace-nowrap">Department</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Grade</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Section</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Log In Time</th>
@@ -208,61 +220,73 @@
                     </thead>
                     <tbody class="divide-y divide-gray-200 bg-white">
                         @forelse($logs as $log)
-                            <tr wire:key="borrower-log-{{ $log->id }}" class="hover:bg-gray-50/80 transition-colors">
-                                <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
-                                    {{ \Carbon\Carbon::parse($log->log_date)->format('M d, Y') }}
+                            @php
+                                $patron = $log->patron;
+                                $fullName = $patron
+                                    ? \Illuminate\Support\Str::title(trim("{$patron->first_name} {$patron->middle_name} {$patron->last_name}")) . ($patron->suffix ? ' ' . strtoupper($patron->suffix) : '')
+                                    : 'DELETED PATRON';
+                            @endphp
+                            <tr wire:key="patron-log-{{ $log->id }}" class="hover:bg-gray-50/80 transition-colors">
+                                <td class="px-4 py-3 font-medium text-gray-900 uppercase whitespace-nowrap">
+                                    {{ strtoupper(\Carbon\Carbon::parse($log->log_date)->format('M d, Y')) }}
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <div class="font-semibold text-gray-900 uppercase">
+                                        {{ $patron?->school_id ? strtoupper($patron->school_id) : '-' }}
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     <div class="font-semibold text-gray-900">
-                                        {{ $log->patron->school_id ?? '-' }}
+                                        {{ $fullName }}
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap capitalize">
-                                    <div class="font-semibold text-gray-900">
-                                        {{ $log->patron->first_name ?? '' }}
-                                        {{ $log->patron->middle_name ?? '' }}
-                                        {{ $log->patron->last_name ?? 'Deleted Borrower' }}
-                                        {{ strtoupper($log->patron->suffix) ?? '' }}
-                                    </div>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap capitalize text-gray-700">
-                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                                        {{ $log->patron->patronType->name ?? 'N/A' }}
+                                <td class="px-4 py-3 whitespace-nowrap text-gray-700">
+                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 uppercase">
+                                        {{ $patron?->patronType?->name ? strtoupper($patron->patronType->name) : 'N/A' }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap capitalize text-gray-700">
-                                    @if($log->patron && $log->patron->gradeLevel)
-                                        {{ $log->patron->gradeLevel->name }}
+                                <td class="px-4 py-3 whitespace-nowrap text-gray-700">
+                                    @if($patron?->department)
+                                        <span class="font-medium text-gray-800 uppercase">
+                                            {{ strtoupper($patron->department->name) }}
+                                        </span>
                                     @else
-                                        <span class="text-gray-400">N/A</span>
+                                        <span class="text-gray-400 uppercase">N/A</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap capitalize text-gray-700">
-                                    @if($log->patron && $log->patron->section)
-                                        {{ $log->patron->section->name }}
+                                <td class="px-4 py-3 whitespace-nowrap text-gray-700">
+                                    @if($patron?->gradeLevel)
+                                        {{ \Illuminate\Support\Str::title($patron->gradeLevel->name) }}
                                     @else
-                                        <span class="text-gray-400">N/A</span>
+                                        <span class="text-gray-400 uppercase">N/A</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 font-mono text-xs text-gray-800 whitespace-nowrap">
-                                    {{ \Carbon\Carbon::parse($log->time_in)->format('h:i:s A') }}
+                                <td class="px-4 py-3 whitespace-nowrap text-gray-700">
+                                    @if($patron?->section)
+                                        {{ \Illuminate\Support\Str::title($patron->section->name) }}
+                                    @else
+                                        <span class="text-gray-400 uppercase">N/A</span>
+                                    @endif
                                 </td>
-                                <td class="px-4 py-3 font-mono text-xs text-gray-800 whitespace-nowrap">
+                                <td class="px-4 py-3 font-mono text-xs text-gray-800 uppercase whitespace-nowrap">
+                                    {{ strtoupper(\Carbon\Carbon::parse($log->time_in)->format('h:i:s A')) }}
+                                </td>
+                                <td class="px-4 py-3 font-mono text-xs text-gray-800 uppercase whitespace-nowrap">
                                     @if($log->time_out)
-                                        {{ \Carbon\Carbon::parse($log->time_out)->format('h:i:s A') }}
+                                        {{ strtoupper(\Carbon\Carbon::parse($log->time_out)->format('h:i:s A')) }}
                                     @else
                                         <span class="text-gray-400">--:--:--</span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     @if($log->time_out)
-                                        <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium text-blue-700 border border-blue-200">
-                                            Logged Out
+                                        <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium text-blue-700 border border-blue-200 uppercase">
+                                            LOGGED OUT
                                         </span>
                                     @else
-                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200">
+                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200 uppercase">
                                             <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                            Inside Library
+                                            INSIDE LIBRARY
                                         </span>
                                     @endif
                                 </td>
@@ -271,7 +295,7 @@
                                         <button
                                             type="button"
                                             wire:click="manualCheckOut({{ $log->id }})"
-                                            wire:confirm="Are you sure you want to manually log out this borrower?"
+                                            wire:confirm="Are you sure you want to manually log out this patron?"
                                             class="text-xs font-semibold text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded transition cursor-pointer">
                                             Log Out
                                         </button>
@@ -282,7 +306,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                                <td colspan="11" class="px-4 py-8 text-center text-gray-500">
                                     No attendance log records found matching the current criteria.
                                 </td>
                             </tr>
@@ -310,7 +334,7 @@
                 </div>
 
                 <p class="text-xs text-gray-600 mb-5">
-                    Are you sure you want to log out all <strong>{{ $currentlyInside }}</strong> active borrowers currently inside the library for <strong>{{ \Carbon\Carbon::parse($filterDate ?: now())->format('M d, Y') }}</strong>?
+                    Are you sure you want to log out all <strong>{{ $currentlyInside }}</strong> active patrons currently inside the library for <strong>{{ strtoupper(\Carbon\Carbon::parse($filterDate ?: now())->format('M d, Y')) }}</strong>?
                 </p>
 
                 <div class="flex justify-end gap-2">

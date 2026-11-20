@@ -18,16 +18,21 @@ class Acquisition extends Model
         'vendor_id',
         'acquisition_number',
         'transaction_number',
+        'status',
         'delivery_type',
-        'quantity',
+        'quantity_ordered',
+        'quantity_received',
         'unit_cost',
+        'delivery_date',
         'received_date',
         'remarks',
     ];
 
     protected $casts = [
+        'delivery_date' => 'date',
         'received_date' => 'date',
-        'quantity' => 'integer',
+        'quantity_ordered' => 'integer',
+        'quantity_received' => 'integer',
         'unit_cost' => 'decimal:2',
     ];
 
@@ -49,7 +54,7 @@ class Acquisition extends Model
     protected function totalCost(): Attribute
     {
         return Attribute::make(
-            get: fn () => round(((float) $this->quantity) * ((float) $this->unit_cost), 2),
+            get: fn () => round(((float) $this->quantity_ordered) * ((float) $this->unit_cost), 2),
         );
     }
 }

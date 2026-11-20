@@ -2,7 +2,7 @@
 
 namespace App\Livewire;
 
-use App\Exports\BorrowerLogsExport;
+use App\Exports\PatronLogsExport;
 use App\Models\PatronLog;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\View\View;
@@ -20,18 +20,11 @@ class PatronLogs extends Component
 {
     use WithPagination;
 
-    // Search and Filters for Datatable
     public string $search = '';
     public ?string $filterDate = null;
     public string $filterStatus = 'all'; // 'all', 'inside', 'logged_out'
 
-    // Mass Logout Modal State
     public bool $showForceCheckoutModal = false;
-
-    public function mount(): void
-    {
-        // Initial setup if needed
-    }
 
     public function updatedSearch(): void
     {
@@ -68,15 +61,15 @@ class PatronLogs extends Component
     {
         try {
             $dateSuffix = $this->filterDate ? $this->filterDate : 'all-dates';
-            $filename = 'borrower-attendance-logs-' . $dateSuffix . '-' . now()->format('His') . '.xlsx';
+            $filename = 'patron-attendance-logs-' . $dateSuffix . '-' . now()->format('His') . '.xlsx';
 
             return Excel::download(
-                new BorrowerLogsExport($this->search, $this->filterDate ?? '', $this->filterStatus),
+                new PatronLogsExport($this->search, $this->filterDate ?? '', $this->filterStatus),
                 $filename
             );
         } catch (\Exception $e) {
             Log::error('Excel export error: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'Failed to export Excel file.', type: 'error');
+            $this->dispatch('toast', message: 'Failed To Export Excel File.', type: 'error');
             return null;
         }
     }
@@ -86,19 +79,19 @@ class PatronLogs extends Component
         try {
             $logs = $this->buildLogsQuery()->get();
 
-            $pdf = Pdf::loadView('pdf.borrower-logs', [
+            $pdf = Pdf::loadView('pdf.patron-logs', [
                 'logs'         => $logs,
                 'filterDate'   => $this->filterDate ?? 'All Dates',
                 'filterStatus' => $this->filterStatus,
             ])->setPaper('a4', 'landscape');
 
             $dateSuffix = $this->filterDate ? $this->filterDate : 'all-dates';
-            $filename = 'borrower-attendance-logs-' . $dateSuffix . '-' . now()->format('His') . '.pdf';
+            $filename = 'patron-attendance-logs-' . $dateSuffix . '-' . now()->format('His') . '.pdf';
 
             return response()->streamDownload(fn () => print($pdf->output()), $filename);
         } catch (\Exception $e) {
             Log::error('PDF export error: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'Failed to export PDF file.', type: 'error');
+            $this->dispatch('toast', message: 'Failed To Export PDF File.', type: 'error');
             return null;
         }
     }
@@ -112,14 +105,14 @@ class PatronLogs extends Component
             DB::transaction(function () use ($logId) {
                 $log = PatronLog::lockForUpdate()->find($logId);
 
-                if ($log && !$log->time_out) {
+                if ($log && ! $log->time_out) {
                     $log->update(['time_out' => now()]);
-                    $this->dispatch('toast', message: 'Borrower logged out manually.', type: 'success');
+                    $this->dispatch('toast', message: 'Patron Logged Out Manually.', type: 'success');
                 }
             });
         } catch (\Exception $e) {
             Log::error('Manual checkout error: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'An error occurred during manual checkout.', type: 'error');
+            $this->dispatch('toast', message: 'An Error Occurred During Manual Check-Out.', type: 'error');
         }
     }
 
@@ -134,14 +127,14 @@ class PatronLogs extends Component
                 $this->resetPage();
 
                 if ($updatedCount > 0) {
-                    $this->dispatch('toast', message: "Successfully logged out {$updatedCount} active borrower(s) system-wide.", type: 'success');
+                    $this->dispatch('toast', message: "Successfully Logged Out {$updatedCount} Active Patron(s) System-Wide.", type: 'success');
                 } else {
-                    $this->dispatch('toast', message: 'No active borrowers found to log out.', type: 'info');
+                    $this->dispatch('toast', message: 'No Active Patrons Found To Log Out.', type: 'info');
                 }
             });
         } catch (\Exception $e) {
             Log::error('Mass checkout error: ' . $e->getMessage());
-            $this->dispatch('toast', message: 'An unexpected system error occurred during mass checkout.', type: 'error');
+            $this->dispatch('toast', message: 'An Unexpected System Error Occurred During Mass Check-Out.', type: 'error');
         }
     }
 
@@ -154,7 +147,7 @@ class PatronLogs extends Component
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
 
         return PatronLog::with(['patron.patronType', 'patron.gradeLevel', 'patron.section'])
-            ->when(!empty($this->filterDate), fn ($q) => $q->whereDate('log_date', $this->filterDate))
+            ->when(! empty($this->filterDate), fn ($q) => $q->whereDate('log_date', $this->filterDate))
             ->when($this->filterStatus === 'inside', fn ($q) => $q->whereNull('time_out'))
             ->when($this->filterStatus === 'logged_out', fn ($q) => $q->whereNotNull('time_out'))
             ->when($searchTerm !== '', function ($query) use ($searchTerm, $likeOperator) {
@@ -173,10 +166,10 @@ class PatronLogs extends Component
     // RENDER
     // ------------------------------------------------------------------
     #[Layout('components.layouts.app')]
-    #[Title('Borrower Attendance Logs')]
+    #[Title('Patron Attendance Logs')]
     public function render(): View
     {
-        $statsDate = !empty($this->filterDate) ? $this->filterDate : now()->toDateString();
+        $statsDate = ! empty($this->filterDate) ? $this->filterDate : now()->toDateString();
 
         return view('livewire.patron-logs', [
             'logs'            => $this->buildLogsQuery()->paginate(15),

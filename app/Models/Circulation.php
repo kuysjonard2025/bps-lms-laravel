@@ -37,7 +37,6 @@ class Circulation extends Model
         ];
     }
 
-    // Dynamic Accessor: Check if fine is unpaid
     protected function hasUnpaidFine(): Attribute
     {
         return Attribute::make(
@@ -45,24 +44,28 @@ class Circulation extends Model
         );
     }
 
-    // Dynamic Accessor: Check if currently overdue
     protected function isOverdue(): Attribute
     {
         return Attribute::make(
             get: function () {
-                if ($this->returned_at) {
-                    return $this->returned_at->greaterThan($this->due_at);
+                if (! $this->due_at) {
+                    return false;
                 }
-                return now()->greaterThan($this->due_at);
+
+                $referenceDate = $this->returned_at ?? now();
+                return $referenceDate->greaterThan($this->due_at);
             }
         );
     }
 
-    // Dynamic Accessor: Calculate total days overdue
     protected function overdueDays(): Attribute
     {
         return Attribute::make(
             get: function () {
+                if (! $this->due_at) {
+                    return 0;
+                }
+
                 $endDate = $this->returned_at ?? now();
 
                 if ($endDate->greaterThan($this->due_at)) {
@@ -74,16 +77,14 @@ class Circulation extends Model
         );
     }
 
-    // Helper: Record payment & receipt
     public function recordPayment(string $receiptNumber): bool
     {
         return $this->update([
-            'receipt_number' => $receiptNumber,
+            'receipt_number' => strtoupper(trim($receiptNumber)),
             'is_paid'        => true,
         ]);
     }
 
-    // Relationships
     public function patron(): BelongsTo
     {
         return $this->belongsTo(Patron::class);
