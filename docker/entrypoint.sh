@@ -19,9 +19,10 @@ php artisan db:seed --force --verbose
 
 echo "===> Caching application configurations..."
 # Optimizing Laravel performance for production
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+# php artisan config:cache
+# php artisan route:cache
+# php artisan view:cache
+php artisan optimize:clear
 
 echo "===> Starting PHP-FPM background service..."
 php-fpm -D
