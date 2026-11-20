@@ -19,7 +19,7 @@ class VerifyEmail extends Component
 
         // Redirect immediately if already verified
         if ($user && $user->hasVerifiedEmail()) {
-            return $this->redirectRoute('dashboard', navigate: true);
+            return $this->redirectRoute('asset-details', navigate: true);
         }
 
         $this->userEmail = $user?->email ?? '';
@@ -31,7 +31,7 @@ class VerifyEmail extends Component
         $user = Auth::user();
 
         if ($user->hasVerifiedEmail()) {
-            return $this->redirectRoute('dashboard', navigate: true);
+            return $this->redirectRoute('asset-details', navigate: true);
         }
 
         try {
