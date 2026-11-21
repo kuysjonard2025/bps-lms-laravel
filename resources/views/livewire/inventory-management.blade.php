@@ -1,191 +1,360 @@
-<div class="p-6 space-y-6">
+{{-- resources/views/livewire/inventory-management.blade.php --}}
+@php
+    use Illuminate\Support\Str;
+@endphp
+
+<div class="space-y-5 text-content-body">
     {{-- Header Layout --}}
-    <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <section aria-label="Inventory management header" class="bg-surface-card px-6 py-5 rounded-2xl border border-surface-border shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-xl font-bold text-slate-900 tracking-tight uppercase">INVENTORY MANAGEMENT</h1>
-            <p class="text-xs text-slate-500 mt-0.5 uppercase">MANAGE TITLE-LEVEL INVENTORY STOCK COUNTS, ACCESSIONS STATUS, AND CONDITION METRICS.</p>
+            <h1 class="text-xl font-bold text-content-heading tracking-tight">Inventory Management</h1>
+            <p class="text-xs text-content-muted mt-0.5">Manage title-level stock counts, accession statuses, and condition metrics.</p>
         </div>
 
-        <div class="flex items-center gap-2">
-            <div class="relative" x-data="{ open: false }">
-                <button type="button" @click="open = !open" class="px-3 py-2 text-xs font-semibold bg-white text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition flex items-center gap-1.5 shadow-sm uppercase cursor-pointer">
-                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    EXPORT
-                    <span class="text-[10px]" x-text="open ? '▲' : '▼'"></span>
+        <div class="flex items-center gap-2 shrink-0">
+            <div class="relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape.window="open = false">
+                <button
+                    type="button"
+                    @click="open = !open"
+                    aria-haspopup="menu"
+                    :aria-expanded="open.toString()"
+                    class="px-3.5 py-2 text-xs font-semibold bg-surface-canvas text-content-heading border border-surface-border rounded-xl hover:bg-surface-card transition flex items-center gap-2 shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/15"
+                >
+                    <x-heroicon-o-arrow-down-tray class="w-4 h-4 text-content-muted shrink-0" aria-hidden="true" />
+                    <span>Export</span>
+                    <x-heroicon-o-chevron-down class="w-3.5 h-3.5 text-content-muted transition-transform duration-200" ::class="{ 'rotate-180 text-brand-primary': open }" aria-hidden="true" />
                 </button>
-                <div x-show="open" x-cloak @click.outside="open = false" class="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50 text-xs">
-                    <button type="button" wire:click="exportExcel" @click="open = false" class="w-full text-left px-4 py-2 hover:bg-slate-50 text-emerald-700 font-medium flex items-center gap-2 uppercase cursor-pointer">
-                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        EXPORT EXCEL
+                <div
+                    x-show="open"
+                    x-cloak
+                    role="menu"
+                    x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0 scale-95"
+                    x-transition:enter-end="opacity-100 scale-100"
+                    x-transition:leave="transition ease-in duration-100"
+                    x-transition:leave-start="opacity-100 scale-100"
+                    x-transition:leave-end="opacity-0 scale-95"
+                    class="absolute right-0 mt-2 w-40 bg-surface-card rounded-xl shadow-lg border border-surface-border p-1 z-30 text-xs"
+                >
+                    <button
+                        type="button"
+                        role="menuitem"
+                        wire:click="exportExcel"
+                        wire:target="exportExcel"
+                        wire:loading.attr="disabled"
+                        @click="open = false"
+                        class="w-full text-left px-3 py-2 rounded-lg hover:bg-brand-tint-light text-brand-primary font-medium flex items-center gap-2 cursor-pointer transition disabled:opacity-50"
+                    >
+                        <x-heroicon-o-table-cells class="w-4 h-4 text-brand-primary shrink-0" aria-hidden="true" />
+                        <span>Export Excel</span>
                     </button>
-                    <button type="button" wire:click="exportPdf" @click="open = false" class="w-full text-left px-4 py-2 hover:bg-slate-50 text-rose-700 font-medium flex items-center gap-2 uppercase cursor-pointer">
-                        <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                        EXPORT PDF
+                    <button
+                        type="button"
+                        role="menuitem"
+                        wire:click="exportPdf"
+                        wire:target="exportPdf"
+                        wire:loading.attr="disabled"
+                        @click="open = false"
+                        class="w-full text-left px-3 py-2 rounded-lg hover:bg-brand-secondary/10 text-brand-secondary font-medium flex items-center gap-2 cursor-pointer transition disabled:opacity-50"
+                    >
+                        <x-heroicon-o-document-arrow-down class="w-4 h-4 text-brand-secondary shrink-0" aria-hidden="true" />
+                        <span>Export PDF</span>
                     </button>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
     {{-- Stats Row --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+    <section aria-label="Inventory overview statistics" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div class="bg-surface-card p-4 rounded-2xl border border-surface-border shadow-2xs flex items-center justify-between gap-3">
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">TOTAL ACCESSIONED</span>
-                <span class="text-xl font-bold text-slate-900">{{ number_format($stats['total_accessioned']) }}</span>
-                <span class="text-[10px] text-amber-600 font-semibold uppercase block mt-0.5">UNACCESSIONED: {{ number_format($stats['total_unaccessioned']) }}</span>
+                <span class="text-[11px] font-semibold text-content-muted tracking-wider block">TOTAL ACCESSIONED</span>
+                <span class="text-xl font-bold font-mono text-content-heading">{{ number_format($stats['total_accessioned']) }}</span>
+                <span class="text-[10px] text-brand-secondary font-semibold block mt-0.5 font-mono">UNACCESSIONED: {{ number_format($stats['total_unaccessioned']) }}</span>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 font-bold flex items-center justify-center">📦</div>
+            <div class="w-10 h-10 rounded-xl bg-brand-tint-light border border-brand-primary/25 text-brand-primary flex items-center justify-center shrink-0">
+                <x-heroicon-o-archive-box class="w-5 h-5" aria-hidden="true" />
+            </div>
         </div>
 
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div class="bg-surface-card p-4 rounded-2xl border border-surface-border shadow-2xs flex items-center justify-between gap-3">
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">AVAILABLE</span>
-                <span class="text-xl font-bold text-emerald-600">{{ number_format($stats['total_available']) }}</span>
+                <span class="text-[11px] font-semibold text-content-muted tracking-wider block">AVAILABLE</span>
+                <span class="text-xl font-bold font-mono text-brand-primary">{{ number_format($stats['total_available']) }}</span>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 font-bold flex items-center justify-center">✅</div>
+            <div class="w-10 h-10 rounded-xl bg-brand-tint-light border border-brand-primary/25 text-brand-primary flex items-center justify-center shrink-0">
+                <x-heroicon-o-check-circle class="w-5 h-5" aria-hidden="true" />
+            </div>
         </div>
 
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div class="bg-surface-card p-4 rounded-2xl border border-surface-border shadow-2xs flex items-center justify-between gap-3">
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">ON LOAN</span>
-                <span class="text-xl font-bold text-indigo-600">{{ number_format($stats['total_on_loan']) }}</span>
+                <span class="text-[11px] font-semibold text-content-muted tracking-wider block">ON LOAN</span>
+                <span class="text-xl font-bold font-mono text-brand-primary">{{ number_format($stats['total_on_loan']) }}</span>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center">📖</div>
+            <div class="w-10 h-10 rounded-xl bg-brand-tint text-brand-primary flex items-center justify-center shrink-0">
+                <x-heroicon-o-book-open class="w-5 h-5" aria-hidden="true" />
+            </div>
         </div>
 
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div class="bg-surface-card p-4 rounded-2xl border border-surface-border shadow-2xs flex items-center justify-between gap-3">
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">DAMAGED</span>
-                <span class="text-xl font-bold text-rose-600">{{ number_format($stats['total_damaged']) }}</span>
+                <span class="text-[11px] font-semibold text-content-muted tracking-wider block">DAMAGED</span>
+                <span class="text-xl font-bold font-mono text-brand-secondary">{{ number_format($stats['total_damaged']) }}</span>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 font-bold flex items-center justify-center">⚠️</div>
+            <div class="w-10 h-10 rounded-xl bg-brand-secondary/15 text-brand-secondary flex items-center justify-center shrink-0">
+                <x-heroicon-o-exclamation-triangle class="w-5 h-5" aria-hidden="true" />
+            </div>
         </div>
 
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div class="bg-surface-card p-4 rounded-2xl border border-surface-border shadow-2xs flex items-center justify-between gap-3">
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">LOST</span>
-                <span class="text-xl font-bold text-rose-600">{{ number_format($stats['total_lost']) }}</span>
+                <span class="text-[11px] font-semibold text-content-muted tracking-wider block">LOST</span>
+                <span class="text-xl font-bold font-mono text-brand-secondary">{{ number_format($stats['total_lost']) }}</span>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 font-bold flex items-center justify-center">⚠️</div>
+            <div class="w-10 h-10 rounded-xl bg-brand-secondary/15 text-brand-secondary flex items-center justify-center shrink-0">
+                <x-heroicon-o-exclamation-circle class="w-5 h-5" aria-hidden="true" />
+            </div>
         </div>
 
-        <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div class="bg-surface-card p-4 rounded-2xl border border-surface-border shadow-2xs flex items-center justify-between gap-3">
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">DUMPED</span>
-                <span class="text-xl font-bold text-slate-600">{{ number_format($stats['total_dumped']) }}</span>
+                <span class="text-[11px] font-semibold text-content-muted tracking-wider block">DUMPED</span>
+                <span class="text-xl font-bold font-mono text-content-body">{{ number_format($stats['total_dumped']) }}</span>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 font-bold flex items-center justify-center">🗑️</div>
+            <div class="w-10 h-10 rounded-xl bg-surface-canvas border border-surface-border text-content-muted flex items-center justify-center shrink-0">
+                <x-heroicon-o-trash class="w-5 h-5" aria-hidden="true" />
+            </div>
         </div>
-    </div>
+    </section>
 
     {{-- Main Panel with Search and Filters --}}
-    <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div class="relative flex-1 w-full sm:max-w-md">
+    <section aria-label="Inventory title breakdown" class="space-y-4">
+        <div class="bg-surface-card p-4 rounded-2xl border border-surface-border shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div class="relative flex-1 w-full lg:max-w-md">
+                <label for="inventory-search-input" class="sr-only">Search title, author, ISBN, or accession number</label>
                 <input
+                    id="inventory-search-input"
                     type="text"
                     wire:model.live.debounce.300ms="search"
-                    placeholder="SEARCH TITLE, AUTHOR, ISBN, ACCESSION NO..."
-                    class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 text-slate-800 uppercase focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
+                    wire:keydown.escape="$set('search', '')"
+                    placeholder="Search title, author, ISBN, accession #..."
+                    class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-surface-border bg-surface-canvas text-content-heading placeholder:text-content-muted focus:bg-surface-card focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 transition"
                 >
-                <span class="absolute left-3 top-2.5 text-slate-400">🔍</span>
+                <x-heroicon-o-magnifying-glass wire:loading.remove wire:target="search" class="w-4 h-4 text-content-muted absolute left-3 top-2.5 pointer-events-none" aria-hidden="true" />
+                <span wire:loading wire:target="search" class="animate-spin h-4 w-4 border-2 border-brand-primary border-t-transparent rounded-full absolute left-3 top-2.5 inline-block"></span>
             </div>
 
-            {{-- Combined Searchable Input + Select Field for Asset Types --}}
-            <div class="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-                <input
-                    type="text"
-                    list="asset-type-options"
-                    wire:model.live.debounce.250ms="assetTypeSearch"
-                    placeholder="TYPE OR PICK ASSET TYPE..."
-                    class="py-2 px-3 text-xs rounded-xl border border-slate-200 text-slate-700 uppercase outline-none w-full sm:w-48 focus:border-blue-500"
+            <div class="flex flex-wrap items-center gap-2.5">
+                {{-- Searchable Combobox (Input + Filtered Select List) for Asset Types --}}
+                <div
+                    class="relative w-full sm:w-64"
+                    x-data="{
+                        open: false,
+                        query: @entangle('assetTypeSearch'),
+                        selectedId: @entangle('assetTypeFilter'),
+                        items: @js($assetTypes->map(fn ($t) => ['id' => (string) $t->id, 'name' => (string) $t->name])->values()),
+                        get filtered() {
+                            const q = (this.query || '').trim().toLowerCase();
+                            if (!q || q === 'all asset types') return this.items;
+                            return this.items.filter(i => i.name.toLowerCase().includes(q));
+                        },
+                        choose(id, name) {
+                            this.query = name;
+                            this.open = false;
+                            $wire.selectAssetType(id);
+                        },
+                        clearAll() {
+                            this.query = '';
+                            this.open = false;
+                            $wire.selectAssetType('all');
+                        }
+                    }"
+                    @click.outside="open = false"
+                    @keydown.escape.window="open = false"
                 >
-                <datalist id="asset-type-options">
-                    <option value="ALL ASSET TYPES"></option>
-                    @foreach ($assetTypes as $type)
-                        <option value="{{ strtoupper($type->name) }}"></option>
-                    @endforeach
-                </datalist>
+                    <label for="inventory-asset-type-combobox" class="sr-only">Search or select asset type</label>
+                    <div class="relative flex items-center">
+                        <input
+                            id="inventory-asset-type-combobox"
+                            type="text"
+                            role="combobox"
+                            aria-autocomplete="list"
+                            aria-controls="inventory-asset-type-listbox"
+                            :aria-expanded="open.toString()"
+                            x-model="query"
+                            @focus="open = true"
+                            @input="open = true"
+                            wire:model.live.debounce.300ms="assetTypeSearch"
+                            placeholder="All Asset Types"
+                            class="w-full py-2 pl-3.5 pr-16 text-xs rounded-xl border border-surface-border bg-surface-canvas text-content-heading placeholder:text-content-muted focus:bg-surface-card focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 transition"
+                        >
+                        <button
+                            type="button"
+                            x-show="query"
+                            x-cloak
+                            @click="clearAll()"
+                            aria-label="Clear asset type filter"
+                            class="absolute right-8 text-content-muted hover:text-content-heading px-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded"
+                        >&times;</button>
+                        <button
+                            type="button"
+                            @click="open = !open"
+                            aria-label="Toggle asset type options"
+                            class="absolute right-2.5 text-content-muted hover:text-content-heading p-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded"
+                        >
+                            <x-heroicon-o-chevron-down class="w-4 h-4 transition-transform duration-200" ::class="{ 'rotate-180 text-brand-primary': open }" aria-hidden="true" />
+                        </button>
+                    </div>
 
-                <select wire:model.live="assetTypeFilter" class="py-2 px-3 text-xs rounded-xl border border-slate-200 text-slate-700 uppercase outline-none w-full sm:w-auto">
-                    <option value="all">ALL ASSET TYPES</option>
-                    @foreach ($assetTypes as $type)
-                        <option value="{{ $type->id }}">{{ strtoupper($type->name) }}</option>
-                    @endforeach
-                </select>
+                    <div
+                        id="inventory-asset-type-listbox"
+                        role="listbox"
+                        x-show="open"
+                        x-cloak
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        class="absolute right-0 mt-1.5 w-full max-h-60 overflow-y-auto rounded-xl border border-surface-border bg-surface-card shadow-lg z-30 p-1 text-xs"
+                    >
+                        <button
+                            type="button"
+                            role="option"
+                            :aria-selected="(selectedId === 'all').toString()"
+                            @click="choose('all', 'All Asset Types')"
+                            class="w-full text-left px-3 py-2 rounded-lg font-semibold transition cursor-pointer flex items-center justify-between"
+                            :class="selectedId === 'all' ? 'bg-brand-tint-light text-brand-primary' : 'text-content-body hover:bg-surface-canvas hover:text-content-heading'"
+                        >
+                            <span>All Asset Types</span>
+                            <span x-show="selectedId === 'all'" class="text-[10px] font-bold">Selected</span>
+                        </button>
+
+                        <template x-for="item in filtered" :key="item.id">
+                            <button
+                                type="button"
+                                role="option"
+                                :aria-selected="(selectedId === item.id).toString()"
+                                @click="choose(item.id, item.name)"
+                                class="w-full text-left px-3 py-2 rounded-lg transition cursor-pointer flex items-center justify-between mt-0.5"
+                                :class="selectedId === item.id ? 'bg-brand-tint-light text-brand-primary font-semibold' : 'text-content-body hover:bg-surface-canvas hover:text-content-heading'"
+                            >
+                                <span x-text="item.name"></span>
+                                <span x-show="selectedId === item.id" class="text-[10px] font-bold">Selected</span>
+                            </button>
+                        </template>
+
+                        <div x-show="filtered.length === 0" class="px-3 py-3 text-center text-content-muted">
+                            No matching asset type.
+                        </div>
+                    </div>
+                </div>
+
+                @if ($search !== '' || $assetTypeFilter !== 'all')
+                    <button
+                        type="button"
+                        wire:click="resetFilters"
+                        wire:target="resetFilters"
+                        class="px-3.5 py-2 text-xs font-medium rounded-xl border border-surface-border bg-surface-canvas text-content-muted hover:text-content-heading transition cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                    >
+                        Reset
+                    </button>
+                @endif
             </div>
         </div>
 
         {{-- Table Container --}}
-        <div class="overflow-x-auto border border-slate-100 rounded-xl">
-            <table class="w-full text-left text-xs text-slate-600">
-                <thead class="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
-                    <tr>
-                        <th class="p-3 pl-4 whitespace-nowrap">TITLE</th>
-                        <th class="p-3 whitespace-nowrap">AUTHOR</th>
-                        <th class="p-3 whitespace-nowrap">ASSET TYPE</th>
-                        <th class="p-3 text-center whitespace-nowrap">TOTAL</th>
-                        <th class="p-3 text-center whitespace-nowrap">ACCESSIONED</th>
-                        <th class="p-3 text-center whitespace-nowrap">UNACCESSIONED</th>
-                        <th class="p-3 text-center whitespace-nowrap">AVAILABLE</th>
-                        <th class="p-3 text-center whitespace-nowrap">ON LOAN</th>
-                        <th class="p-3 text-center whitespace-nowrap">STORED</th>
-                        <th class="p-3 text-center whitespace-nowrap">MAINTENANCE</th>
-                        <th class="p-3 text-center whitespace-nowrap">DUMPED</th>
-                        <th class="p-3 text-center whitespace-nowrap">DAMAGED</th>
-                        <th class="p-3 text-center whitespace-nowrap">LOST</th>
-                        <th class="p-3 pr-4 text-center whitespace-nowrap">BATCHES</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse ($catalogs as $catalog)
-                        @php
-                            $accessionedCopies = (int) ($catalog->accessioned_copies ?? 0);
-                            $receivedQty = (int) ($catalog->total_received_quantity ?? 0);
-                            $totalStock = max($receivedQty, $accessionedCopies);
-                            $unaccessionedCopies = max(0, $totalStock - $accessionedCopies);
-                        @endphp
-                        <tr class="hover:bg-slate-50/60 transition">
-                            <td class="p-3 pl-4 whitespace-nowrap font-bold text-slate-900 text-xs uppercase">
-                                {{ strtoupper($catalog->title) }}
-                                @if ($catalog->isbn_issn)
-                                    <div class="text-[10px] text-slate-400 font-mono font-normal uppercase">ISBN: {{ strtoupper($catalog->isbn_issn) }}</div>
-                                @endif
-                            </td>
-                            <td class="p-3 whitespace-nowrap text-slate-700 uppercase">{{ strtoupper($catalog->author->name ?? 'UNKNOWN') }}</td>
-                            <td class="p-3 whitespace-nowrap">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600 uppercase">
-                                    {{ strtoupper($catalog->assetType->name ?? 'STANDARD') }}
-                                </span>
-                            </td>
-                            <td class="p-3 whitespace-nowrap text-center font-bold text-slate-900">{{ $totalStock }}</td>
-                            <td class="p-3 whitespace-nowrap text-center text-slate-700 font-semibold">{{ $accessionedCopies }}</td>
-                            <td class="p-3 whitespace-nowrap text-center">
-                                <span class="px-2 py-0.5 rounded-full font-bold {{ $unaccessionedCopies > 0 ? 'bg-amber-50 text-amber-700' : 'bg-slate-50 text-slate-400' }}">
-                                    {{ $unaccessionedCopies }}
-                                </span>
-                            </td>
-                            <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700">{{ $catalog->available_copies }}</span></td>
-                            <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold bg-indigo-50 text-indigo-700">{{ $catalog->on_loan_copies }}</span></td>
-                            <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold bg-purple-50 text-purple-700">{{ $catalog->stored_copies }}</span></td>
-                            <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold bg-amber-50 text-amber-700">{{ $catalog->maintenance_copies }}</span></td>
-                            <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold {{ $catalog->dumped_copies > 0 ? 'bg-slate-200 text-slate-700' : 'bg-slate-50 text-slate-400' }}">{{ $catalog->dumped_copies }}</span></td>
-                            <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold {{ $catalog->damaged_copies > 0 ? 'bg-rose-50 text-rose-700' : 'bg-slate-50 text-slate-400' }}">{{ $catalog->damaged_copies }}</span></td>
-                            <td class="p-3 whitespace-nowrap text-center"><span class="px-2 py-0.5 rounded-full font-bold {{ $catalog->lost_copies > 0 ? 'bg-rose-50 text-rose-700' : 'bg-slate-50 text-slate-400' }}">{{ $catalog->lost_copies }}</span></td>
-                            <td class="p-3 pr-4 whitespace-nowrap text-center font-mono text-slate-600">{{ $catalog->acquisition_batches }}</td>
+        <div class="bg-surface-card rounded-2xl border border-surface-border shadow-2xs overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-left border-collapse text-xs text-content-body">
+                    <thead>
+                        <tr class="bg-surface-canvas border-b border-surface-border text-[11px] font-semibold uppercase tracking-wider text-content-muted">
+                            <th scope="col" class="px-4 py-3 whitespace-nowrap">Title</th>
+                            <th scope="col" class="px-4 py-3 whitespace-nowrap">Author</th>
+                            <th scope="col" class="px-4 py-3 whitespace-nowrap">Asset Type</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Total</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Accessioned</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Unaccessioned</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Available</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">On Loan</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Stored</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Maintenance</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Dumped</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Damaged</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Lost</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Batches</th>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="14" class="text-center py-8 text-slate-400 uppercase">NO INVENTORY ENTRIES FOUND.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody class="divide-y divide-surface-border/70 bg-surface-card">
+                        @forelse ($catalogs as $catalog)
+                            @php
+                                $accessionedCopies = (int) ($catalog->accessioned_copies ?? 0);
+                                $receivedQty = (int) ($catalog->total_received_quantity ?? 0);
+                                $totalStock = max($receivedQty, $accessionedCopies);
+                                $unaccessionedCopies = max(0, $totalStock - $accessionedCopies);
+                            @endphp
+                            <tr wire:key="inventory-row-{{ $catalog->id }}" class="hover:bg-surface-canvas/70 transition-colors">
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <div class="font-bold text-content-heading">{{ Str::title((string) $catalog->title) }}</div>
+                                    @if ($catalog->isbn_issn)
+                                        <div class="text-[11px] text-content-muted font-mono">ISBN: {{ $catalog->isbn_issn }}</div>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-content-body">
+                                    {{ $catalog->author?->name ? Str::title((string) $catalog->author->name) : 'Unknown' }}
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-surface-canvas border border-surface-border text-content-heading">
+                                        {{ $catalog->assetType?->name ? Str::title((string) $catalog->assetType->name) : 'Standard' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center font-bold font-mono text-content-heading">{{ $totalStock }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center font-semibold font-mono text-content-heading">{{ $accessionedCopies }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono {{ $unaccessionedCopies > 0 ? 'bg-brand-secondary/15 text-brand-secondary' : 'bg-surface-canvas text-content-muted' }}">
+                                        {{ $unaccessionedCopies }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono bg-brand-tint-light text-brand-primary">{{ $catalog->available_copies }}</span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono bg-brand-tint text-brand-primary">{{ $catalog->on_loan_copies }}</span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono bg-brand-tint-light border border-brand-primary/20 text-brand-primary">{{ $catalog->stored_copies }}</span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono bg-brand-secondary/10 text-brand-secondary">{{ $catalog->maintenance_copies }}</span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono {{ $catalog->dumped_copies > 0 ? 'bg-surface-canvas border border-surface-border text-content-heading' : 'bg-surface-canvas text-content-muted' }}">{{ $catalog->dumped_copies }}</span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono {{ $catalog->damaged_copies > 0 ? 'bg-brand-secondary/15 text-brand-secondary' : 'bg-surface-canvas text-content-muted' }}">{{ $catalog->damaged_copies }}</span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono {{ $catalog->lost_copies > 0 ? 'bg-brand-secondary/15 text-brand-secondary' : 'bg-surface-canvas text-content-muted' }}">{{ $catalog->lost_copies }}</span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center font-mono text-content-body">{{ $catalog->acquisition_batches }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="14" class="px-4 py-10 text-center">
+                                    <p class="text-xs font-semibold text-content-heading">No inventory entries found</p>
+                                    <p class="text-[11px] text-content-muted mt-1">Try adjusting your search query or asset type filter.</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <div>
-            {{ $catalogs->links() }}
-        </div>
-    </div>
+        @if (method_exists($catalogs, 'hasPages') && $catalogs->hasPages())
+            <div class="pt-1">
+                {{ $catalogs->links() }}
+            </div>
+        @endif
+    </section>
 </div>

@@ -1,4 +1,4 @@
-<?php
+<?php // app/Models/Catalog.php
 
 namespace App\Models;
 
@@ -75,10 +75,10 @@ class Catalog extends Model
 
         return $query->where(function (Builder $q) use ($term, $likeOperator) {
             $q->where('title', $likeOperator, "%{$term}%")
-              ->orWhere('isbn_issn', $likeOperator, "%{$term}%")
-              ->orWhere('call_number', $likeOperator, "%{$term}%")
-              ->orWhereHas('author', fn (Builder $sub) => $sub->where('name', $likeOperator, "%{$term}%"))
-              ->orWhereHas('publisher', fn (Builder $sub) => $sub->where('name', $likeOperator, "%{$term}%"));
+                ->orWhere('isbn_issn', $likeOperator, "%{$term}%")
+                ->orWhere('call_number', $likeOperator, "%{$term}%")
+                ->orWhereHas('author', fn (Builder $sub) => $sub->where('name', $likeOperator, "%{$term}%"))
+                ->orWhereHas('publisher', fn (Builder $sub) => $sub->where('name', $likeOperator, "%{$term}%"));
         });
     }
 }

@@ -1,227 +1,294 @@
-<div class="p-6 space-y-6">
+{{-- resources/views/livewire/patron-records.blade.php --}}
+@php
+    use Illuminate\Support\Str;
+@endphp
+
+<div class="space-y-5 text-content-body">
     {{-- Header --}}
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <section aria-label="Patron records header" class="flex flex-col gap-4 rounded-2xl border border-surface-border bg-surface-card px-6 py-5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Borrower History</h1>
-            <p class="text-xs text-slate-500 mt-1">Search borrower, check borrowing history, and account status.</p>
+            <h1 class="text-xl font-bold tracking-tight text-content-heading">Patron History</h1>
+            <p class="mt-0.5 text-xs text-content-muted">Search patrons, check borrowing history, and manage account status.</p>
         </div>
-    </div>
+    </section>
 
     {{-- Main Split View --}}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
-        {{-- LEFT PANEL: Borrower Directory (5 Columns) --}}
-        <div class="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        {{-- LEFT PANEL: Patron Directory (5 Columns) --}}
+        <section aria-label="Patron directory" class="lg:col-span-5 bg-surface-card p-5 rounded-2xl border border-surface-border shadow-2xs space-y-4">
             <div class="space-y-3">
-                <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Borrower Directory</h2>
+                <h2 class="text-xs font-bold text-content-heading uppercase tracking-wider">Patron Directory</h2>
 
-                {{-- Search & Filter --}}
                 <div class="flex items-center gap-2">
                     <div class="relative flex-1">
+                        <label for="patron-directory-search" class="sr-only">Search patron name or ID number</label>
                         <input
+                            id="patron-directory-search"
                             type="text"
                             wire:model.live.debounce.300ms="search"
-                            placeholder="Search Name or Student/Employee #..."
-                            class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
+                            wire:keydown.escape="$set('search', '')"
+                            placeholder="Search patron name or student/employee #..."
+                            class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-surface-border bg-surface-canvas text-content-heading placeholder:text-content-muted focus:bg-surface-card focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 transition"
                         >
-                        <span class="absolute left-3 top-2.5 text-slate-400">🔍</span>
+                        <x-heroicon-o-magnifying-glass wire:loading.remove wire:target="search" class="w-4 h-4 text-content-muted absolute left-3 top-2.5 pointer-events-none" aria-hidden="true" />
+                        <span wire:loading wire:target="search" class="animate-spin h-4 w-4 border-2 border-brand-primary border-t-transparent rounded-full absolute left-3 top-2.5 inline-block"></span>
                     </div>
 
-                    <select wire:model.live="statusFilter" class="py-2 px-2.5 text-xs rounded-xl border border-slate-200 text-slate-700 outline-none">
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
+                    <div>
+                        <label for="patron-status-filter" class="sr-only">Filter account status</label>
+                        <select
+                            id="patron-status-filter"
+                            wire:model.live="statusFilter"
+                            class="py-2 px-3 text-xs rounded-xl border border-surface-border bg-surface-canvas text-content-heading focus:bg-surface-card focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 transition"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            {{-- Borrower Cards List --}}
+            {{-- Patron Cards List --}}
             <div class="space-y-2 max-h-[600px] overflow-y-auto pr-1">
                 @forelse ($patrons as $p)
+                    @php
+                        $isSelected = $selectedPatronId === $p->id;
+                        $typeLower = strtolower(trim($p->patronType?->name ?? ''));
+                        $idLabel = $typeLower === 'student' ? 'Student #' : 'Employee #';
+                        $pMiddle = $p->middle_name ? mb_substr(trim($p->middle_name), 0, 1) . '.' : '';
+                        $pFullName = Str::title(trim("{$p->first_name} {$pMiddle} {$p->last_name}")) . ($p->suffix ? ' ' . strtoupper(trim($p->suffix)) : '');
+                    @endphp
                     <div
+                        wire:key="patron-card-{{ $p->id }}"
                         wire:click="selectPatron({{ $p->id }})"
-                        class="p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 {{ $selectedPatronId === $p->id ? 'border-blue-500 bg-blue-50/50 shadow-sm' : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50' }}">
-
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-sm shrink-0">
-                                {{ strtoupper(substr($p->first_name, 0, 1)) }}
+                        role="button"
+                        tabindex="0"
+                        @keydown.enter.prevent="$wire.selectPatron({{ $p->id }})"
+                        @keydown.space.prevent="$wire.selectPatron({{ $p->id }})"
+                        class="p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary {{ $isSelected ? 'border-brand-primary bg-brand-tint-light shadow-2xs' : 'border-surface-border bg-surface-canvas/50 hover:border-brand-primary/40 hover:bg-surface-canvas' }}"
+                    >
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-10 h-10 rounded-xl font-bold flex items-center justify-center text-sm shrink-0 {{ $isSelected ? 'bg-brand-primary text-white' : 'bg-brand-tint text-brand-primary' }}">
+                                {{ mb_strtoupper(mb_substr($p->first_name ?? 'P', 0, 1)) }}
                             </div>
-                            <div>
-                                <h3 class="text-xs font-bold text-slate-900 capitalize">{{ $p->first_name }} {{ $p->last_name }}</h3>
-                                <p class="text-[11px] text-slate-500 font-mono">{{ $p->patronType->name == "student" ? "Student" : "Teacher" }} #: {{ $p->school_id }}</p>
-                                <div class="flex items-center gap-1.5 mt-0.5">
-                                    <span class="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-slate-100 text-slate-600 capitalize">
-                                        {{ $p->patronType->name ?? 'Unknown' }}
+                            <div class="min-w-0">
+                                <h3 class="text-xs font-bold text-content-heading truncate">{{ $pFullName }}</h3>
+                                <p class="text-[11px] text-content-muted font-mono truncate">{{ $idLabel }}: {{ $p->school_id }}</p>
+                                <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                                    <span class="text-[10px] px-2 py-0.5 rounded-full font-medium bg-surface-card border border-surface-border text-content-body">
+                                        {{ $p->patronType?->name ? Str::title($p->patronType->name) : 'Unknown' }}
                                     </span>
-                                    <span class="text-[10px] font-semibold {{ $p->status === 'active' ? 'text-emerald-600' : 'text-rose-600' }}">
-                                        • {{ ucfirst($p->status) }}
+                                    <span class="text-[10px] font-semibold {{ $p->status === 'active' ? 'text-brand-primary' : 'text-brand-secondary' }}">
+                                        &bull; {{ Str::title((string) $p->status) }}
                                     </span>
                                 </div>
                             </div>
                         </div>
 
                         <div class="text-right shrink-0">
-                            @if ($p->active_loans_count > 0)
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                            @if (($p->active_loans_count ?? 0) > 0)
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono bg-brand-secondary/15 text-brand-secondary">
                                     {{ $p->active_loans_count }} Active Loan{{ $p->active_loans_count > 1 ? 's' : '' }}
                                 </span>
                             @else
-                                <span class="text-[10px] text-slate-400">No active loans</span>
+                                <span class="text-[10px] text-content-muted">No active loans</span>
                             @endif
                         </div>
                     </div>
                 @empty
-                    <div class="text-center py-8 text-xs text-slate-400 border border-dashed rounded-xl">
-                        No Borrower found matching your search.
+                    <div class="text-center py-8 px-4 text-xs text-content-muted border border-dashed border-surface-border rounded-xl bg-surface-canvas/40">
+                        No patron found matching your search.
                     </div>
                 @endforelse
             </div>
 
-            <div>
-                {{ $patrons->links() }}
-            </div>
-        </div>
+            @if ($patrons->hasPages())
+                <div class="pt-1">
+                    {{ $patrons->links() }}
+                </div>
+            @endif
+        </section>
 
-        {{-- RIGHT PANEL: Borrower Transaction Details (7 Columns) --}}
-        <div class="lg:col-span-7 space-y-6">
+        {{-- RIGHT PANEL: Patron Transaction Details (7 Columns) --}}
+        <div class="lg:col-span-7 space-y-5">
             @if ($selectedPatron)
-                {{-- Borrower Summary Card --}}
-                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4 border-slate-100">
-                        <div class="flex items-center gap-4">
-                            <div class="w-14 h-14 rounded-2xl bg-blue-600 text-white font-bold flex items-center justify-center text-xl shadow-md shadow-blue-500/20">
-                                {{ strtoupper(substr($selectedPatron->first_name, 0, 1)) }}
+                @php
+                    $selTypeLower = strtolower(trim($selectedPatron->patronType?->name ?? ''));
+                    $selIdLabel = $selTypeLower === 'student' ? 'Student #' : 'Employee #';
+                    $selMiddle = $selectedPatron->middle_name ? mb_substr(trim($selectedPatron->middle_name), 0, 1) . '.' : '';
+                    $selFullName = Str::title(trim("{$selectedPatron->first_name} {$selMiddle} {$selectedPatron->last_name}")) . ($selectedPatron->suffix ? ' ' . strtoupper(trim($selectedPatron->suffix)) : '');
+                @endphp
+
+                {{-- Patron Summary Card --}}
+                <section aria-label="Selected patron summary" class="bg-surface-card p-6 rounded-2xl border border-surface-border shadow-2xs space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4 border-surface-border/70">
+                        <div class="flex items-center gap-4 min-w-0">
+                            <div class="w-12 h-12 rounded-2xl bg-brand-primary text-white font-bold flex items-center justify-center text-lg shadow-2xs shrink-0">
+                                {{ mb_strtoupper(mb_substr($selectedPatron->first_name ?? 'P', 0, 1)) }}
                             </div>
-                            <div>
-                                <h2 class="text-lg font-bold text-slate-900 capitalize">{{ $selectedPatron->first_name }} {{ $selectedPatron->last_name }}</h2>
-                                <p class="text-xs text-slate-500">
-                                    {{ $selectedPatron->patronType->name == 'student' ? 'Student' : 'Employee' }} #: <strong class="text-slate-700 font-mono">{{ $selectedPatron->school_id }}</strong> •
-                                    Email: <span class="text-slate-700">{{ $selectedPatron->email ?? 'N/A' }}</span>
+                            <div class="min-w-0">
+                                <h2 class="text-base sm:text-lg font-bold text-content-heading truncate">{{ $selFullName }}</h2>
+                                <p class="text-xs text-content-muted truncate">
+                                    {{ $selIdLabel }}: <strong class="text-brand-primary font-mono">{{ $selectedPatron->school_id }}</strong> &bull;
+                                    Email: <span class="text-content-body">{{ $selectedPatron->email ?? 'N/A' }}</span>
                                 </p>
                             </div>
                         </div>
 
-                        <button
-                            wire:click="togglePatronStatus({{ $selectedPatron->id }})"
-                            class="px-3 py-1.5 text-xs font-semibold rounded-xl border transition cursor-pointer {{ $selectedPatron->status === 'active' ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50' }}">
-                            {{ $selectedPatron->status === 'active' ? 'Deactivate Account' : 'Activate Account' }}
-                        </button>
+                        <div class="flex items-center gap-2 self-start sm:self-center shrink-0">
+                            <button
+                                type="button"
+                                wire:click="togglePatronStatus({{ $selectedPatron->id }})"
+                                wire:target="togglePatronStatus({{ $selectedPatron->id }})"
+                                wire:loading.attr="disabled"
+                                class="px-3.5 py-1.5 text-xs font-semibold rounded-xl border transition cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary {{ $selectedPatron->status === 'active' ? 'border-brand-secondary/35 text-brand-secondary bg-brand-secondary/10 hover:bg-brand-secondary/15' : 'border-brand-primary/30 text-brand-primary bg-brand-tint-light hover:bg-brand-tint' }}"
+                            >
+                                {{ $selectedPatron->status === 'active' ? 'Deactivate Account' : 'Activate Account' }}
+                            </button>
+                            <button
+                                type="button"
+                                wire:click="clearSelectedPatron"
+                                aria-label="Close patron details"
+                                class="px-2.5 py-1.5 text-xs font-semibold rounded-xl border border-surface-border bg-surface-canvas text-content-muted hover:text-content-heading transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                            >&times;</button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                            <span class="text-slate-400 text-[10px] block uppercase font-bold">Type</span>
-                            <strong class="text-slate-800 capitalize">{{ $selectedPatron->patronType->name ?? 'N/A' }}</strong>
+                        <div class="bg-surface-canvas p-3 rounded-xl border border-surface-border">
+                            <span class="text-content-muted text-[11px] font-semibold block">Type</span>
+                            <strong class="text-content-heading mt-0.5 block">{{ $selectedPatron->patronType?->name ? Str::title($selectedPatron->patronType->name) : 'N/A' }}</strong>
                         </div>
-                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                            <span class="text-slate-400 text-[10px] block uppercase font-bold">Grade / Section</span>
-                            <strong class="text-slate-800 capitalize">
-                                {{ $selectedPatron->gradeLevel->name ?? '—' }} {{ $selectedPatron->section?->name ? '('.$selectedPatron->section->name.')' : '' }}
+                        <div class="bg-surface-canvas p-3 rounded-xl border border-surface-border">
+                            <span class="text-content-muted text-[11px] font-semibold block">Grade / Section</span>
+                            <strong class="text-content-heading mt-0.5 block">
+                                {{ $selectedPatron->gradeLevel?->name ? Str::title($selectedPatron->gradeLevel->name) : '—' }} {{ $selectedPatron->section?->name ? '(' . Str::title($selectedPatron->section->name) . ')' : '' }}
                             </strong>
                         </div>
-                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                            <span class="text-slate-400 text-[10px] block uppercase font-bold">Account Status</span>
-                            <span class="font-bold {{ $selectedPatron->status === 'active' ? 'text-emerald-600' : 'text-rose-600' }}">
-                                {{ ucfirst($selectedPatron->status) }}
+                        <div class="bg-surface-canvas p-3 rounded-xl border border-surface-border">
+                            <span class="text-content-muted text-[11px] font-semibold block">Account Status</span>
+                            <span class="font-bold mt-0.5 block {{ $selectedPatron->status === 'active' ? 'text-brand-primary' : 'text-brand-secondary' }}">
+                                {{ Str::title((string) $selectedPatron->status) }}
                             </span>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 {{-- Circulation History Table --}}
-                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 border-slate-100 gap-3">
+                <section aria-label="Patron circulation history" class="bg-surface-card p-6 rounded-2xl border border-surface-border shadow-2xs space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 border-surface-border/70 gap-3">
                         <div>
-                            <h3 class="text-sm font-bold text-slate-900">Borrowing History Log</h3>
-                            <p class="text-xs text-slate-500">Complete record of items borrowed by this patron.</p>
+                            <h3 class="text-sm font-bold text-content-heading">Patron History Log</h3>
+                            <p class="text-xs text-content-muted">Complete record of items borrowed by this patron.</p>
                         </div>
 
-                        <select wire:model.live="loanFilter" class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 outline-none">
-                            <option value="all">All Records</option>
-                            <option value="active">Active Borrowed</option>
-                            <option value="overdue">Overdue</option>
-                            <option value="returned">Returned</option>
-                        </select>
+                        <div>
+                            <label for="patron-loan-filter" class="sr-only">Filter borrowing history</label>
+                            <select
+                                id="patron-loan-filter"
+                                wire:model.live="loanFilter"
+                                class="px-3 py-1.5 rounded-xl border border-surface-border bg-surface-canvas text-xs font-medium text-content-heading focus:bg-surface-card focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 transition"
+                            >
+                                <option value="all">All Records</option>
+                                <option value="active">Active Borrowed</option>
+                                <option value="overdue">Overdue</option>
+                                <option value="returned">Returned</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <div class="overflow-x-auto border border-slate-100 rounded-xl">
-                        <table class="w-full text-left text-xs text-slate-600">
-                            <thead class="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
-                                <tr>
-                                    <th class="p-3 pl-4 whitespace-nowrap">Accession No.</th>
-                                    <th class="p-3 whitespace-nowrap">ISBN</th>
-                                    <th class="p-3 whitespace-nowrap">Book Title</th>
-                                    <th class="p-3 whitespace-nowrap">Author</th>
-                                    <th class="p-3 whitespace-nowrap">Type</th>
-                                    <th class="p-3 whitespace-nowrap">Borrowed Date</th>
-                                    <th class="p-3 whitespace-nowrap">Due Date</th>
-                                    <th class="p-3 whitespace-nowrap">Returned Date</th>
-                                    <th class="p-3 whitespace-nowrap">Fine / Penalty</th>
-                                    <th class="p-3 pr-4 text-right whitespace-nowrap">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                @forelse ($patronLoans as $loan)
-                                    <tr class="hover:bg-slate-50/60 transition">
-                                        <td class="p-3 pl-4 font-mono text-[11px] text-slate-500 uppercase whitespace-nowrap">
-                                            {{ $loan->accession->accession_number ?? 'N/A' }}
-                                        </td>
-                                        <td class="p-3 font-mono text-[11px] text-slate-500 uppercase whitespace-nowrap">
-                                            {{ $loan->accession->catalog->isbn_issn ?? 'N/A' }}
-                                        </td>
-                                        <td class="p-3 font-bold text-slate-900 capitalize whitespace-nowrap">
-                                            {{ $loan->accession->catalog->title ?? '-' }}
-                                        </td>
-                                        <td class="p-3 text-slate-500 capitalize whitespace-nowrap">
-                                            {{ $loan->accession->catalog->author->name ?? '—' }}
-                                        </td>
-                                        <td class="p-3 text-slate-500 capitalize whitespace-nowrap">
-                                            {{ $loan->accession->catalog->assetType->name ?? '—' }}
-                                        </td>
-                                        <td class="p-3 text-slate-500 whitespace-nowrap">
-                                            {{ $loan->borrowed_at ? \Carbon\Carbon::parse($loan->borrowed_at)->format('M d, Y') : '—' }}
-                                        </td>
-                                        <td class="p-3 text-slate-500 whitespace-nowrap">
-                                            {{ $loan->due_at ? \Carbon\Carbon::parse($loan->due_at)->format('M d, Y') : '—' }}
-                                        </td>
-                                        <td class="p-3 text-slate-500 whitespace-nowrap">
-                                            {{ $loan->returned_at ? \Carbon\Carbon::parse($loan->returned_at)->format('M d, Y') : '—' }}
-                                        </td>
-                                        <td class="p-3 font-semibold {{ ($loan->fine_amount ?? 0) > 0 ? 'text-rose-600' : 'text-slate-400' }} whitespace-nowrap">
-                                            ₱{{ number_format($loan->fine_amount ?? 0, 2) }}
-                                        </td>
-                                        <td class="p-3 pr-4 text-right whitespace-nowrap">
-                                            @if ($loan->status === 'returned')
-                                                <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">RETURNED</span>
-                                            @elseif (($loan->due_at && \Carbon\Carbon::parse($loan->due_at)->isPast()) || $loan->status === 'overdue')
-                                                <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">OVERDUE</span>
-                                            @else
-                                                <span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">BORROWED</span>
-                                            @endif
-                                        </td>
+                    <div class="rounded-xl border border-surface-border overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-left border-collapse text-xs text-content-body">
+                                <thead>
+                                    <tr class="bg-surface-canvas border-b border-surface-border text-[11px] font-semibold uppercase tracking-wider text-content-muted">
+                                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Accession #</th>
+                                        <th scope="col" class="px-4 py-3 whitespace-nowrap">ISBN</th>
+                                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Book Title</th>
+                                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Author</th>
+                                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Type</th>
+                                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Borrowed Date</th>
+                                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Due Date</th>
+                                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Returned Date</th>
+                                        <th scope="col" class="px-4 py-3 whitespace-nowrap">Fine / Penalty</th>
+                                        <th scope="col" class="px-4 py-3 text-right whitespace-nowrap">Status</th>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="9" class="text-center py-8 text-slate-400">
-                                            No borrowing history found for this borrower filter.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody class="divide-y divide-surface-border/70 bg-surface-card">
+                                    @forelse ($patronLoans as $loan)
+                                        @php
+                                            $loanStatusLower = strtolower((string) ($loan->status ?? ''));
+                                            $isOverdue = $loanStatusLower === 'borrowed' && $loan->due_at && $loan->due_at->isPast();
+                                            $fineVal = (float) ($loan->fine_amount ?? 0);
+                                        @endphp
+                                        <tr wire:key="patron-loan-{{ $loan->id }}" class="hover:bg-surface-canvas/70 transition-colors">
+                                            <td class="px-4 py-3 font-mono text-[11px] font-semibold text-brand-primary whitespace-nowrap">
+                                                {{ $loan->accession?->accession_number ?? 'N/A' }}
+                                            </td>
+                                            <td class="px-4 py-3 font-mono text-[11px] text-content-muted whitespace-nowrap">
+                                                {{ $loan->accession?->catalog?->isbn_issn ?? 'N/A' }}
+                                            </td>
+                                            <td class="px-4 py-3 font-semibold text-content-heading whitespace-nowrap">
+                                                {{ $loan->accession?->catalog?->title ? Str::title($loan->accession->catalog->title) : '-' }}
+                                            </td>
+                                            <td class="px-4 py-3 text-content-body whitespace-nowrap">
+                                                {{ $loan->accession?->catalog?->author?->name ? Str::title($loan->accession->catalog->author->name) : '—' }}
+                                            </td>
+                                            <td class="px-4 py-3 text-content-body whitespace-nowrap">
+                                                {{ $loan->accession?->catalog?->assetType?->name ? Str::title($loan->accession->catalog->assetType->name) : '—' }}
+                                            </td>
+                                            <td class="px-4 py-3 font-mono text-[11px] text-content-body whitespace-nowrap">
+                                                {{ $loan->borrowed_at ? $loan->borrowed_at->format('M d, Y') : '—' }}
+                                            </td>
+                                            <td class="px-4 py-3 font-mono text-[11px] whitespace-nowrap {{ $isOverdue ? 'font-bold text-brand-secondary' : 'text-content-body' }}">
+                                                {{ $loan->due_at ? $loan->due_at->format('M d, Y') : '—' }}
+                                            </td>
+                                            <td class="px-4 py-3 font-mono text-[11px] text-content-body whitespace-nowrap">
+                                                {{ $loan->returned_at ? $loan->returned_at->format('M d, Y') : '—' }}
+                                            </td>
+                                            <td class="px-4 py-3 font-mono text-[11px] font-semibold {{ $fineVal > 0 ? 'text-brand-secondary' : 'text-content-muted' }} whitespace-nowrap">
+                                                ₱{{ number_format($fineVal, 2) }}
+                                            </td>
+                                            <td class="px-4 py-3 text-right whitespace-nowrap">
+                                                @if (in_array($loanStatusLower, ['returned', 'lost'], true))
+                                                    <span class="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-tint-light text-brand-primary uppercase tracking-wider">RETURNED</span>
+                                                @elseif ($isOverdue)
+                                                    <span class="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-secondary/15 text-brand-secondary uppercase tracking-wider">OVERDUE</span>
+                                                @else
+                                                    <span class="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-tint text-brand-primary uppercase tracking-wider">ON-LOAN</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="10" class="px-4 py-10 text-center">
+                                                <p class="text-xs font-semibold text-content-heading">No borrowing history found</p>
+                                                <p class="text-[11px] text-content-muted mt-1">Try changing the loan filter to view more records for this patron.</p>
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
-                    <div>
-                        {{ $patronLoans->links() }}
-                    </div>
-                </div>
+                    @if ($patronLoans->hasPages())
+                        <div class="pt-1">
+                            {{ $patronLoans->links() }}
+                        </div>
+                    @endif
+                </section>
             @else
                 {{-- Empty State Placeholder --}}
-                <div class="bg-white p-12 text-center rounded-2xl border border-slate-200/80 text-slate-400 space-y-3">
-                    <div class="text-3xl">👤</div>
-                    <h3 class="text-sm font-bold text-slate-700">No Borrower Selected</h3>
-                    <p class="text-xs text-slate-400 max-w-sm mx-auto">
-                        Select a borrower from the directory list on the left to view their detailed library card, contact info, and circulation history.
+                <div class="bg-surface-card p-12 text-center rounded-2xl border border-surface-border text-content-muted space-y-3 shadow-2xs">
+                    <div class="mx-auto w-12 h-12 rounded-2xl bg-brand-tint-light border border-brand-primary/25 flex items-center justify-center">
+                        <x-heroicon-o-user class="w-6 h-6 text-brand-primary" aria-hidden="true" />
+                    </div>
+                    <h3 class="text-sm font-bold text-content-heading">No Patron Selected</h3>
+                    <p class="text-xs text-content-muted max-w-sm mx-auto">
+                        Select a patron from the directory list on the left to view their account details and circulation history.
                     </p>
                 </div>
             @endif

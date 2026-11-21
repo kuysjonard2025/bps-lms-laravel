@@ -1,41 +1,41 @@
-<div class="space-y-6">
-    <!-- PAGE HEADER -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white p-5 rounded-xl border border-gray-200 shadow-xs">
+{{-- resources/views/livewire/patron-logs.blade.php --}}
+@php
+    use Illuminate\Support\Str;
+    use Carbon\Carbon;
+@endphp
+
+<div class="space-y-5 text-content-body">
+    {{-- Page Header --}}
+    <section aria-label="Patron attendance logs header" class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between bg-surface-card px-6 py-5 rounded-2xl border border-surface-border shadow-2xs">
         <div>
-            <h1 class="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">Patron Attendance Logs</h1>
-            <p class="mt-1 text-xs sm:text-sm text-gray-500">Monitor real-time library visitation history and manage active patron sessions.</p>
+            <h1 class="text-xl font-bold tracking-tight text-content-heading">Patron Attendance Logs</h1>
+            <p class="mt-0.5 text-xs text-content-muted">Monitor real-time library visitation history and manage active patron sessions.</p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2">
-            <!-- Kiosk Patron Time In/Out Link -->
+        <div class="flex flex-wrap items-center gap-2 shrink-0">
             <a
                 href="{{ route('kiosk.login') }}"
-                class="inline-flex items-center gap-2 rounded-lg bg-sky-900 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-all cursor-pointer"
+                class="inline-flex items-center gap-1.5 rounded-xl bg-brand-primary px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-brand-primary-hover focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/20 transition cursor-pointer"
             >
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                </svg>
-                <span>KIOSK PATRON TIME IN/OUT</span>
+                <x-heroicon-o-qr-code class="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>Kiosk Patron Time In/Out</span>
             </a>
 
-            <!-- Export Dropdown Menu -->
             <div x-data="{ open: false }" class="relative inline-block text-left">
                 <button
                     @click="open = !open"
                     @click.outside="open = false"
+                    @keydown.escape.window="open = false"
                     type="button"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-xs hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition cursor-pointer"
+                    aria-haspopup="menu"
+                    :aria-expanded="open.toString()"
+                    class="inline-flex items-center gap-1.5 rounded-xl border border-surface-border bg-surface-canvas px-3.5 py-2 text-xs font-semibold text-content-heading shadow-2xs hover:bg-surface-card focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/15 transition cursor-pointer"
                 >
-                    <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                    <x-heroicon-o-arrow-down-tray class="h-4 w-4 text-content-muted shrink-0" aria-hidden="true" />
                     <span>Export {{ empty($filterDate) ? '(All Records)' : '' }}</span>
-                    <svg class="h-3.5 w-3.5 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
+                    <x-heroicon-o-chevron-down class="h-3.5 w-3.5 text-content-muted transition-transform duration-200" ::class="{ 'rotate-180 text-brand-primary': open }" aria-hidden="true" />
                 </button>
 
-                {{-- Dropdown Menu List --}}
                 <div
                     x-show="open"
                     x-transition:enter="transition ease-out duration-100"
@@ -45,168 +45,169 @@
                     x-transition:leave-start="transform opacity-100 scale-100"
                     x-transition:leave-end="transform opacity-0 scale-95"
                     x-cloak
-                    class="absolute right-0 z-20 mt-2 w-48 rounded-xl bg-white p-1 shadow-lg ring-1 ring-black/5 focus:outline-none"
+                    role="menu"
+                    class="absolute right-0 z-20 mt-2 w-44 rounded-xl bg-surface-card border border-surface-border p-1 shadow-lg focus:outline-none"
                 >
-                    <!-- Excel Option -->
                     <button
                         type="button"
+                        role="menuitem"
                         wire:click="exportExcel"
+                        wire:target="exportExcel"
                         @click="open = false"
                         wire:loading.attr="disabled"
-                        class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition cursor-pointer disabled:opacity-50"
+                        class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-content-body hover:bg-brand-tint-light hover:text-brand-primary transition cursor-pointer disabled:opacity-50"
                     >
-                        <svg wire:loading.remove wire:target="exportExcel" class="h-4 w-4 text-emerald-600 group-hover:text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <svg wire:loading wire:target="exportExcel" class="h-4 w-4 animate-spin text-emerald-600" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                        </svg>
-                        <span>Export as Excel</span>
+                        <x-heroicon-o-table-cells wire:loading.remove wire:target="exportExcel" class="h-4 w-4 text-brand-primary shrink-0" aria-hidden="true" />
+                        <span wire:loading wire:target="exportExcel" class="animate-spin h-3.5 w-3.5 border-2 border-brand-primary border-t-transparent rounded-full"></span>
+                        <span>Export Excel</span>
                     </button>
 
-                    <!-- PDF Option -->
                     <button
                         type="button"
+                        role="menuitem"
                         wire:click="exportPdf"
+                        wire:target="exportPdf"
                         @click="open = false"
                         wire:loading.attr="disabled"
-                        class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-gray-700 hover:bg-red-50 hover:text-red-700 transition cursor-pointer disabled:opacity-50"
+                        class="group flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-content-body hover:bg-brand-secondary/10 hover:text-brand-secondary transition cursor-pointer disabled:opacity-50"
                     >
-                        <svg wire:loading.remove wire:target="exportPdf" class="h-4 w-4 text-red-600 group-hover:text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        <svg wire:loading wire:target="exportPdf" class="h-4 w-4 animate-spin text-red-600" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                        </svg>
-                        <span>Export as PDF</span>
+                        <x-heroicon-o-document-arrow-down wire:loading.remove wire:target="exportPdf" class="h-4 w-4 text-brand-secondary shrink-0" aria-hidden="true" />
+                        <span wire:loading wire:target="exportPdf" class="animate-spin h-3.5 w-3.5 border-2 border-brand-secondary border-t-transparent rounded-full"></span>
+                        <span>Export PDF</span>
                     </button>
                 </div>
             </div>
 
-            <!-- End of Day Logout -->
             <button
                 type="button"
                 wire:click="$set('showForceCheckoutModal', true)"
-                class="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all cursor-pointer">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
+                wire:loading.attr="disabled"
+                class="inline-flex items-center gap-1.5 rounded-xl bg-brand-secondary px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:opacity-90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-secondary/20 transition cursor-pointer disabled:opacity-50"
+            >
+                <x-heroicon-o-arrow-right-on-rectangle class="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>End-of-Day Log Out</span>
             </button>
         </div>
-    </div>
+    </section>
 
-    <!-- DAILY STATS CARDS -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <!-- Card 1 -->
-        <div class="relative overflow-hidden rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-gray-500">
-                    Total Visits {{ !empty($filterDate) ? '(' . strtoupper(\Carbon\Carbon::parse($filterDate)->format('M d, Y')) . ')' : '(TODAY)' }}
+    {{-- Daily Stats Cards --}}
+    <section aria-label="Daily visitation summary" class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="rounded-2xl border border-surface-border bg-surface-card p-5 shadow-2xs">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-content-muted">
+                    Total Visits {{ !empty($filterDate) ? '(' . Carbon::parse($filterDate)->format('M d, Y') . ')' : '(Today)' }}
                 </span>
-                <span class="rounded-lg bg-gray-100 p-2 text-gray-600">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
+                <span class="rounded-xl bg-surface-canvas border border-surface-border p-2 text-content-heading shrink-0">
+                    <x-heroicon-o-users class="h-4 w-4" aria-hidden="true" />
                 </span>
             </div>
-            <p class="mt-3 text-2xl font-extrabold text-gray-900 tracking-tight">{{ $totalToday }}</p>
+            <p class="mt-3 text-2xl font-extrabold font-mono text-content-heading tracking-tight">{{ $totalToday }}</p>
         </div>
 
-        <!-- Card 2 -->
-        <div class="relative overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50/40 p-5 shadow-xs">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">Currently Inside</span>
-                <span class="rounded-lg bg-emerald-100 p-2 text-emerald-600">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                    </svg>
+        <div class="rounded-2xl border border-brand-primary/30 bg-brand-tint-light/70 p-5 shadow-2xs">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-brand-primary">Currently Inside</span>
+                <span class="rounded-xl bg-brand-tint p-2 text-brand-primary shrink-0">
+                    <x-heroicon-o-arrow-left-on-rectangle class="h-4 w-4" aria-hidden="true" />
                 </span>
             </div>
-            <p class="mt-3 text-2xl font-extrabold text-emerald-700 tracking-tight">{{ $currentlyInside }}</p>
+            <p class="mt-3 text-2xl font-extrabold font-mono text-brand-primary tracking-tight">{{ $currentlyInside }}</p>
         </div>
 
-        <!-- Card 3 -->
-        <div class="relative overflow-hidden rounded-xl border border-blue-200 bg-blue-50/40 p-5 shadow-xs">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-blue-700">Logged Out</span>
-                <span class="rounded-lg bg-blue-100 p-2 text-blue-600">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
+        <div class="rounded-2xl border border-surface-border bg-surface-card p-5 shadow-2xs">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-content-muted">Logged Out</span>
+                <span class="rounded-xl bg-surface-canvas border border-surface-border p-2 text-content-body shrink-0">
+                    <x-heroicon-o-arrow-right-on-rectangle class="h-4 w-4" aria-hidden="true" />
                 </span>
             </div>
-            <p class="mt-3 text-2xl font-extrabold text-blue-700 tracking-tight">{{ $checkedOutToday }}</p>
+            <p class="mt-3 text-2xl font-extrabold font-mono text-content-heading tracking-tight">{{ $checkedOutToday }}</p>
         </div>
-    </div>
+    </section>
 
-    <!-- DATATABLE LOGS & HISTORY -->
+    {{-- Filters & Attendance Logs Table --}}
     <div class="space-y-4">
-        <!-- FILTERS BAR -->
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-white p-3.5 rounded-xl border border-gray-200 shadow-xs">
-            <div class="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-                <!-- Search Input -->
-                <div class="relative flex-1">
+        <section aria-label="Attendance log filters" class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between bg-surface-card p-4 rounded-2xl border border-surface-border shadow-2xs">
+            <div class="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center flex-wrap">
+                <div class="relative flex-1 min-w-52 max-w-md">
+                    <label for="patron-logs-search" class="sr-only">Search patron name or ID</label>
                     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+                        <x-heroicon-o-magnifying-glass wire:loading.remove wire:target="search" class="h-4 w-4 text-content-muted" aria-hidden="true" />
+                        <span wire:loading wire:target="search" class="animate-spin h-4 w-4 border-2 border-brand-primary border-t-transparent rounded-full inline-block"></span>
                     </div>
                     <input
+                        id="patron-logs-search"
                         wire:model.live.debounce.300ms="search"
+                        wire:keydown.escape="$set('search', '')"
                         type="text"
                         placeholder="Search patron name or ID..."
-                        class="w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3.5 py-2 text-xs text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        class="w-full rounded-xl border border-surface-border bg-surface-canvas pl-9 pr-8 py-2 text-xs text-content-heading placeholder:text-content-muted focus:bg-surface-card focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 transition"
                     />
+                    @if($search !== '')
+                        <button
+                            type="button"
+                            wire:click="$set('search', '')"
+                            aria-label="Clear search"
+                            class="absolute inset-y-0 right-0 flex items-center pr-2.5 text-content-muted hover:text-content-heading text-xs cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                        >
+                            &times;
+                        </button>
+                    @endif
                 </div>
 
-                <!-- Date Filter Input & Clear Control -->
                 <div class="flex items-center gap-2">
+                    <label for="patron-logs-date" class="sr-only">Filter by log date</label>
                     <input
+                        id="patron-logs-date"
                         wire:model.live="filterDate"
                         type="date"
-                        class="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        class="rounded-xl border border-surface-border bg-surface-canvas px-3.5 py-2 text-xs font-mono text-content-heading focus:bg-surface-card focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 transition"
                     />
 
                     @if($filterDate)
                         <button
                             type="button"
                             wire:click="$set('filterDate', null)"
-                            class="px-2.5 py-2 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition cursor-pointer">
+                            class="px-3 py-2 text-xs font-medium text-content-body bg-surface-canvas border border-surface-border hover:text-content-heading rounded-xl transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                        >
                             Show All Dates
                         </button>
                     @endif
                 </div>
 
-                <!-- Status Filter -->
-                <select wire:model.live="filterStatus" class="rounded-lg border border-gray-300 bg-white px-3.5 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                    <option value="all">All Statuses</option>
-                    <option value="inside">Currently Inside</option>
-                    <option value="logged_out">Logged Out</option>
-                </select>
+                <div>
+                    <label for="patron-logs-status" class="sr-only">Filter by log status</label>
+                    <select
+                        id="patron-logs-status"
+                        wire:model.live="filterStatus"
+                        class="rounded-xl border border-surface-border bg-surface-canvas px-3.5 py-2 text-xs text-content-heading focus:bg-surface-card focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 transition"
+                    >
+                        <option value="all">All Statuses</option>
+                        <option value="inside">Currently Inside</option>
+                        <option value="logged_out">Logged Out</option>
+                    </select>
+                </div>
 
-                <!-- Clear All Filters Button -->
                 @if($search !== '' || !empty($filterDate) || $filterStatus !== 'all')
                     <button
                         type="button"
                         wire:click="clearFilters"
-                        class="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2 py-1 transition cursor-pointer">
+                        wire:target="clearFilters"
+                        class="text-xs text-brand-primary hover:underline font-semibold px-2.5 py-1.5 rounded-lg transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                    >
                         Reset Filters
                     </button>
                 @endif
             </div>
-        </div>
+        </section>
 
-        <!-- TABLE MATRIX -->
-        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs">
+        <div class="rounded-2xl border border-surface-border bg-surface-card shadow-2xs overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs text-gray-600">
-                    <thead class="bg-gray-50 text-[11px] font-semibold uppercase tracking-wider text-gray-500 border-b border-gray-200">
-                        <tr>
+                <table class="min-w-full text-left border-collapse text-xs text-content-body">
+                    <thead>
+                        <tr class="bg-surface-canvas border-b border-surface-border text-[11px] font-semibold uppercase tracking-wider text-content-muted">
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Log Date</th>
-                            <th scope="col" class="px-4 py-3 whitespace-nowrap">Student/Employee #</th>
+                            <th scope="col" class="px-4 py-3 whitespace-nowrap">Student / Employee #</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Name</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Type</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Department</th>
@@ -218,74 +219,70 @@
                             <th scope="col" class="px-4 py-3 text-right whitespace-nowrap">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200 bg-white">
+                    <tbody class="divide-y divide-surface-border/70 bg-surface-card">
                         @forelse($logs as $log)
                             @php
                                 $patron = $log->patron;
                                 $fullName = $patron
-                                    ? \Illuminate\Support\Str::title(trim("{$patron->first_name} {$patron->middle_name} {$patron->last_name}")) . ($patron->suffix ? ' ' . strtoupper($patron->suffix) : '')
-                                    : 'DELETED PATRON';
+                                    ? Str::title(trim("{$patron->first_name} {$patron->middle_name} {$patron->last_name}")) . ($patron->suffix ? ' ' . strtoupper($patron->suffix) : '')
+                                    : 'Deleted Patron';
                             @endphp
-                            <tr wire:key="patron-log-{{ $log->id }}" class="hover:bg-gray-50/80 transition-colors">
-                                <td class="px-4 py-3 font-medium text-gray-900 uppercase whitespace-nowrap">
-                                    {{ strtoupper(\Carbon\Carbon::parse($log->log_date)->format('M d, Y')) }}
+                            <tr wire:key="patron-log-{{ $log->id }}" class="hover:bg-surface-canvas/70 transition-colors">
+                                <td class="px-4 py-3 font-mono text-[11px] font-medium text-content-heading whitespace-nowrap">
+                                    {{ Carbon::parse($log->log_date)->format('M d, Y') }}
+                                </td>
+                                <td class="px-4 py-3 font-mono font-semibold text-brand-primary whitespace-nowrap">
+                                    {{ $patron?->school_id ?: '-' }}
+                                </td>
+                                <td class="px-4 py-3 font-semibold text-content-heading whitespace-nowrap">
+                                    {{ $fullName }}
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
-                                    <div class="font-semibold text-gray-900 uppercase">
-                                        {{ $patron?->school_id ? strtoupper($patron->school_id) : '-' }}
-                                    </div>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap">
-                                    <div class="font-semibold text-gray-900">
-                                        {{ $fullName }}
-                                    </div>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-gray-700">
-                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 uppercase">
-                                        {{ $patron?->patronType?->name ? strtoupper($patron->patronType->name) : 'N/A' }}
+                                    <span class="inline-flex items-center rounded-full bg-surface-canvas border border-surface-border px-2.5 py-0.5 text-[11px] font-medium text-content-body">
+                                        {{ $patron?->patronType?->name ? Str::title($patron->patronType->name) : 'N/A' }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-gray-700">
+                                <td class="px-4 py-3 whitespace-nowrap">
                                     @if($patron?->department)
-                                        <span class="font-medium text-gray-800 uppercase">
-                                            {{ strtoupper($patron->department->name) }}
+                                        <span class="font-medium text-content-heading">
+                                            {{ Str::title($patron->department->name) }}
                                         </span>
                                     @else
-                                        <span class="text-gray-400 uppercase">N/A</span>
+                                        <span class="text-content-muted">N/A</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-gray-700">
+                                <td class="px-4 py-3 whitespace-nowrap text-content-body">
                                     @if($patron?->gradeLevel)
-                                        {{ \Illuminate\Support\Str::title($patron->gradeLevel->name) }}
+                                        {{ Str::title($patron->gradeLevel->name) }}
                                     @else
-                                        <span class="text-gray-400 uppercase">N/A</span>
+                                        <span class="text-content-muted">N/A</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-gray-700">
+                                <td class="px-4 py-3 whitespace-nowrap text-content-body">
                                     @if($patron?->section)
-                                        {{ \Illuminate\Support\Str::title($patron->section->name) }}
+                                        {{ Str::title($patron->section->name) }}
                                     @else
-                                        <span class="text-gray-400 uppercase">N/A</span>
+                                        <span class="text-content-muted">N/A</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 font-mono text-xs text-gray-800 uppercase whitespace-nowrap">
-                                    {{ strtoupper(\Carbon\Carbon::parse($log->time_in)->format('h:i:s A')) }}
+                                <td class="px-4 py-3 font-mono text-[11px] text-content-heading whitespace-nowrap">
+                                    {{ Carbon::parse($log->time_in)->format('h:i:s A') }}
                                 </td>
-                                <td class="px-4 py-3 font-mono text-xs text-gray-800 uppercase whitespace-nowrap">
+                                <td class="px-4 py-3 font-mono text-[11px] text-content-heading whitespace-nowrap">
                                     @if($log->time_out)
-                                        {{ strtoupper(\Carbon\Carbon::parse($log->time_out)->format('h:i:s A')) }}
+                                        {{ Carbon::parse($log->time_out)->format('h:i:s A') }}
                                     @else
-                                        <span class="text-gray-400">--:--:--</span>
+                                        <span class="text-content-muted">--:--:--</span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     @if($log->time_out)
-                                        <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium text-blue-700 border border-blue-200 uppercase">
+                                        <span class="inline-flex items-center rounded-full bg-brand-tint-light px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-primary">
                                             LOGGED OUT
                                         </span>
                                     @else
-                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200 uppercase">
-                                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-brand-tint px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-primary">
+                                            <span class="h-1.5 w-1.5 rounded-full bg-brand-primary animate-pulse"></span>
                                             INSIDE LIBRARY
                                         </span>
                                     @endif
@@ -295,19 +292,22 @@
                                         <button
                                             type="button"
                                             wire:click="manualCheckOut({{ $log->id }})"
+                                            wire:target="manualCheckOut({{ $log->id }})"
                                             wire:confirm="Are you sure you want to manually log out this patron?"
-                                            class="text-xs font-semibold text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded transition cursor-pointer">
+                                            class="text-xs font-semibold text-brand-secondary hover:bg-brand-secondary/10 px-2.5 py-1 rounded-lg transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary"
+                                        >
                                             Log Out
                                         </button>
                                     @else
-                                        <span class="text-xs text-gray-400">Completed</span>
+                                        <span class="text-xs text-content-muted">Completed</span>
                                     @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="11" class="px-4 py-8 text-center text-gray-500">
-                                    No attendance log records found matching the current criteria.
+                                <td colspan="11" class="px-4 py-10 text-center">
+                                    <p class="text-xs font-semibold text-content-heading">No attendance log records found</p>
+                                    <p class="text-[11px] text-content-muted mt-1">Adjust your search, date, or status filters to view matching visitation logs.</p>
                                 </td>
                             </tr>
                         @endforelse
@@ -316,40 +316,52 @@
             </div>
         </div>
 
-        <div class="mt-3">
-            {{ $logs->links() }}
-        </div>
+        @if (method_exists($logs, 'links'))
+            <div class="pt-1">
+                {{ $logs->links() }}
+            </div>
+        @endif
     </div>
 
-    <!-- FORCE CHECKOUT MODAL -->
+    {{-- Force Checkout Modal --}}
     @if($showForceCheckoutModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true">
-            <div wire:click="$set('showForceCheckoutModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs"></div>
-            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md z-10 overflow-hidden my-auto p-6">
-                <div class="flex items-center gap-3 text-amber-600 mb-3">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                    <h3 class="text-sm sm:text-base font-bold text-gray-900">End-of-Day Mass Log Out</h3>
+        <div
+            class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="force-checkout-modal-title"
+            @keydown.escape.window="$wire.set('showForceCheckoutModal', false)"
+        >
+            <div wire:click="$set('showForceCheckoutModal', false)" class="fixed inset-0 bg-content-heading/55 backdrop-blur-2xs"></div>
+            <div class="relative bg-surface-card border border-surface-border rounded-2xl shadow-xl w-full max-w-md z-10 overflow-hidden my-auto p-6 space-y-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-brand-secondary/15 text-brand-secondary flex items-center justify-center shrink-0">
+                        <x-heroicon-o-exclamation-triangle class="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <h3 id="force-checkout-modal-title" class="text-sm font-bold text-content-heading">End-of-Day Mass Log Out</h3>
                 </div>
 
-                <p class="text-xs text-gray-600 mb-5">
-                    Are you sure you want to log out all <strong>{{ $currentlyInside }}</strong> active patrons currently inside the library for <strong>{{ strtoupper(\Carbon\Carbon::parse($filterDate ?: now())->format('M d, Y')) }}</strong>?
+                <p class="text-xs text-content-body leading-relaxed">
+                    Are you sure you want to log out all <strong class="text-content-heading font-mono">{{ $currentlyInside }}</strong> active patrons currently inside the library for <strong class="text-content-heading">{{ Carbon::parse($filterDate ?: now())->format('M d, Y') }}</strong>?
                 </p>
 
-                <div class="flex justify-end gap-2">
+                <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-3 border-t border-surface-border/70">
                     <button
                         type="button"
                         wire:click="$set('showForceCheckoutModal', false)"
-                        class="px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-md transition cursor-pointer">
+                        class="w-full sm:w-auto px-3.5 py-2 text-xs font-semibold text-content-body bg-surface-canvas border border-surface-border hover:text-content-heading rounded-xl transition cursor-pointer"
+                    >
                         Cancel
                     </button>
                     <button
                         type="button"
                         wire:click="checkoutAllActive"
+                        wire:target="checkoutAllActive"
                         wire:loading.attr="disabled"
-                        class="px-4 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-md shadow-xs transition cursor-pointer disabled:opacity-50">
-                        Confirm Log Out
+                        class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-white bg-brand-secondary hover:opacity-90 rounded-xl shadow-2xs transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        <span wire:loading wire:target="checkoutAllActive" class="animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                        <span>Confirm Log Out</span>
                     </button>
                 </div>
             </div>

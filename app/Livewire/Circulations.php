@@ -65,6 +65,7 @@ class Circulations extends Component
     // Active Loans / History Search & Filters
     public string $search = '';
     public string $filterStatus = 'borrowed';
+    public string $filterCondition = 'all';
 
     public function mount(): void
     {
@@ -166,6 +167,19 @@ class Circulations extends Component
 
     public function updatedFilterStatus(): void
     {
+        $this->resetPage();
+    }
+
+    public function updatedFilterCondition(): void
+    {
+        $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->filterStatus = 'borrowed';
+        $this->filterCondition = 'all';
         $this->resetPage();
     }
 
@@ -670,12 +684,31 @@ class Circulations extends Component
     protected function getFilteredLoansQuery(): Builder
     {
         $likeOperator = $this->likeOperator();
+        $allowedConditions = ['good', 'minor damaged', 'severe damaged', 'lost'];
 
         return Circulation::with(['patron.patronType', 'accession.catalog', 'user'])
-            ->when($this->filterStatus === 'borrowed', fn ($q) => $q->where('status', 'borrowed'))
-            ->when($this->filterStatus === 'returned', fn ($q) => $q->where('status', 'returned'))
-            ->when($this->filterStatus === 'lost', fn ($q) => $q->where('status', 'lost'))
-            ->when($this->filterStatus === 'overdue', fn ($q) => $q->where('status', 'borrowed')->where('due_at', '<', now()))
+            ->when($this->filterStatus === 'borrowed', function ($q) {
+                $q->where('status', 'borrowed')
+                    ->where(function ($sub) {
+                        $sub->whereNull('due_at')
+                            ->orWhere('due_at', '>=', now());
+                    });
+            })
+            ->when($this->filterStatus === 'overdue', function ($q) {
+                $q->where('status', 'borrowed')
+                    ->whereNotNull('due_at')
+                    ->where('due_at', '<', now());
+            })
+            ->when($this->filterStatus === 'returned', function ($q) {
+                $q->whereIn('status', ['returned', 'lost']);
+            })
+            ->when(in_array($this->filterCondition, $allowedConditions, true), function ($q) {
+                $condition = $this->filterCondition;
+                $q->where(function ($condQuery) use ($condition) {
+                    $condQuery->where('condition', $condition)
+                        ->orWhereHas('accession', fn ($accQ) => $accQ->where('condition', $condition));
+                });
+            })
             ->when($this->search, function ($q) use ($likeOperator) {
                 $searchTerm = "%{$this->search}%";
                 $q->where(function ($query) use ($likeOperator, $searchTerm) {
@@ -713,6 +746,7 @@ class Circulations extends Component
             $pdf = Pdf::loadView('pdf.circulations-report', [
                 'activeLoans'      => $loans,
                 'filterStatus'     => $this->filterStatus,
+                'filterCondition'  => $this->filterCondition,
                 'totalPaidFineSum' => $totalPaidFineSum,
             ])->setPaper('a4', 'landscape');
 

@@ -1,56 +1,62 @@
+{{-- resources/views/livewire/asset-details/asset-types-tab.blade.php --}}
+@php
+    use Illuminate\Support\Str;
+@endphp
+
 <div class="space-y-4">
     {{-- Header & Action Bar --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="relative w-full sm:w-72 lg:w-80">
+            <label for="asset-type-search" class="sr-only">Search asset types</label>
             <input
                 wire:model.live.debounce.300ms="search"
                 type="text"
                 id="asset-type-search"
                 placeholder="Search asset types..."
-                class="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                class="w-full pl-9 pr-4 py-2 text-xs bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border rounded-xl focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
             >
-            <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5 sm:top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-            </svg>
+            <x-heroicon-o-magnifying-glass class="w-4 h-4 text-content-muted absolute left-3 top-2.5 pointer-events-none" aria-hidden="true" />
         </div>
 
         <button
             wire:click="openCreateModal"
+            wire:loading.attr="disabled"
+            wire:target="openCreateModal"
             type="button"
-            class="w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition cursor-pointer flex items-center justify-center gap-2 shadow-xs shrink-0 touch-manipulation"
+            class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-white bg-brand-primary rounded-xl hover:bg-brand-primary-hover transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs shrink-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/20"
         >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <x-heroicon-o-plus class="w-4 h-4" aria-hidden="true" />
             <span>Add Asset Type</span>
         </button>
     </div>
 
     {{-- Data Table Container --}}
-    <div class="overflow-x-auto border border-gray-200 rounded-lg shadow-xs bg-white">
-        <table class="min-w-full divide-y divide-gray-200 text-left text-xs sm:text-sm text-gray-700">
-            <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider text-[11px]">
+    <div class="overflow-x-auto border border-surface-border rounded-xl shadow-2xs bg-surface-card">
+        <table class="min-w-full divide-y divide-surface-border/70 text-left text-xs text-content-body">
+            <thead class="bg-surface-canvas text-content-muted uppercase tracking-wider text-[11px]">
                 <tr>
                     <th scope="col" class="px-4 py-3 font-semibold">Asset Type Name</th>
                     <th scope="col" class="px-4 py-3 text-right font-semibold">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200 bg-white">
+            <tbody class="divide-y divide-surface-border/70">
                 @forelse($assetTypes as $assetType)
-                    <tr wire:key="asset-type-row-{{ $assetType->id }}" class="hover:bg-gray-50/75 transition-colors">
-                        <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">
-                            {{ ucwords($assetType->name) }}
+                    <tr wire:key="asset-type-row-{{ $assetType->id }}" class="hover:bg-surface-canvas/70 transition-colors">
+                        <td class="px-4 py-3 font-semibold text-content-heading whitespace-nowrap">
+                            {{ Str::title($assetType->name) }}
                         </td>
                         <td class="px-4 py-3 text-right whitespace-nowrap space-x-1">
                             <button
                                 wire:click="openEditModal({{ $assetType->id }})"
                                 type="button"
-                                class="text-blue-600 hover:text-blue-800 font-semibold px-2.5 py-1.5 rounded-md hover:bg-blue-50 transition cursor-pointer"
+                                class="text-brand-primary hover:bg-brand-tint-light font-semibold px-2.5 py-1.5 rounded-lg transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
                             >
                                 Edit
                             </button>
                             <button
                                 wire:click="confirmDelete({{ $assetType->id }})"
                                 type="button"
-                                class="text-red-600 hover:text-red-800 font-semibold px-2.5 py-1.5 rounded-md hover:bg-red-50 transition cursor-pointer"
+                                class="text-brand-secondary hover:bg-brand-secondary/10 font-semibold px-2.5 py-1.5 rounded-lg transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary"
                             >
                                 Delete
                             </button>
@@ -58,8 +64,9 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="2" class="px-4 py-8 text-center text-gray-500">
-                            No asset types found matching your criteria.
+                        <td colspan="2" class="px-4 py-10 text-center">
+                            <p class="text-xs font-semibold text-content-heading">No asset types found</p>
+                            <p class="text-[11px] text-content-muted mt-1">No asset types found matching your criteria.</p>
                         </td>
                     </tr>
                 @endforelse
@@ -76,41 +83,56 @@
 
     {{-- Add/Edit Modal --}}
     @if ($showModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-            <div wire:click="$set('showModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs transition-opacity"></div>
+        <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="asset-type-modal-title"
+            @keydown.escape.window="$set('showModal', false)"
+            class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+        >
+            <div wire:click="$set('showModal', false)" class="fixed inset-0 bg-content-heading/55 backdrop-blur-2xs transition-opacity"></div>
 
-            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md z-10 max-h-[90vh] flex flex-col my-auto overflow-hidden">
-                <div class="bg-gray-50 px-5 sm:px-6 py-3.5 border-b border-gray-200 flex justify-between items-center shrink-0">
-                    <h3 class="text-sm font-bold text-gray-900">
+            <div class="relative bg-surface-card rounded-2xl border border-surface-border shadow-xl w-full max-w-md z-10 max-h-[90dvh] flex flex-col my-auto overflow-hidden">
+                <div class="bg-surface-canvas px-5 sm:px-6 py-3.5 border-b border-surface-border flex justify-between items-center shrink-0">
+                    <h3 id="asset-type-modal-title" class="text-sm font-bold text-content-heading">
                         {{ $assetTypeIdBeingEdited ? 'Edit Asset Type' : 'Add New Asset Type' }}
                     </h3>
-                    <button wire:click="$set('showModal', false)" type="button" aria-label="Close modal" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer p-1">&times;</button>
+                    <button
+                        wire:click="$set('showModal', false)"
+                        type="button"
+                        aria-label="Close modal"
+                        class="text-content-muted hover:text-content-heading text-xl font-bold cursor-pointer p-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                    >&times;</button>
                 </div>
 
                 <form wire:submit="saveAssetType" class="p-5 sm:p-6 space-y-4 overflow-y-auto">
                     <div>
-                        <label for="asset-type-name" class="block text-xs font-medium text-gray-700">Asset Type Name *</label>
+                        <label for="asset-type-name" class="block text-xs font-semibold text-content-heading mb-1">
+                            Asset Type Name <span class="text-brand-secondary">*</span>
+                        </label>
                         <input
                             id="asset-type-name"
                             type="text"
                             wire:model="name"
-                            class="mt-1 w-full text-sm rounded-md border-gray-300 border p-2 shadow-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="e.g. Book, Newspaper"
+                            class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
                         >
-                        @error('name') <span class="text-xs text-red-500 mt-1 block">{{ $message }}</span> @enderror
+                        @error('name') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                     </div>
 
-                    <div class="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
+                    <div class="pt-2 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
                         <button
                             wire:click="$set('showModal', false)"
                             type="button"
-                            class="w-full sm:w-auto px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 cursor-pointer"
+                            class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-content-body bg-surface-canvas border border-surface-border rounded-xl hover:text-content-heading cursor-pointer transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             wire:loading.attr="disabled"
-                            class="w-full sm:w-auto px-4 py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                            wire:target="saveAssetType"
+                            class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-white bg-brand-primary rounded-xl hover:bg-brand-primary-hover cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
                         >
                             <span wire:loading wire:target="saveAssetType" class="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></span>
                             <span>{{ $assetTypeIdBeingEdited ? 'Save Changes' : 'Create Asset Type' }}</span>
@@ -123,32 +145,39 @@
 
     {{-- Delete Modal --}}
     @if ($showDeleteModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div wire:click="$set('showDeleteModal', false)" class="fixed inset-0 bg-gray-900/50 backdrop-blur-xs transition-opacity"></div>
+        <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="asset-type-delete-title"
+            @keydown.escape.window="$set('showDeleteModal', false)"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
+            <div wire:click="$set('showDeleteModal', false)" class="fixed inset-0 bg-content-heading/55 backdrop-blur-2xs transition-opacity"></div>
 
-            <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-sm z-10 p-5 sm:p-6 text-center space-y-4">
-                <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto shrink-0">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <div class="relative bg-surface-card rounded-2xl border border-surface-border shadow-xl w-full max-w-sm z-10 p-5 sm:p-6 text-center space-y-4">
+                <div class="w-12 h-12 rounded-full bg-brand-secondary/15 text-brand-secondary flex items-center justify-center mx-auto shrink-0">
+                    <x-heroicon-o-exclamation-triangle class="w-6 h-6" aria-hidden="true" />
                 </div>
 
                 <div>
-                    <h3 class="text-base font-bold text-gray-900">Delete Asset Type</h3>
-                    <p class="text-xs sm:text-sm text-gray-500 mt-1">Are you sure you want to delete this asset type? This action cannot be undone.</p>
+                    <h3 id="asset-type-delete-title" class="text-base font-bold text-content-heading">Delete Asset Type</h3>
+                    <p class="text-xs text-content-body mt-1">Are you sure you want to delete this asset type? This action cannot be undone.</p>
                 </div>
 
                 <div class="flex flex-col-reverse sm:flex-row justify-center gap-2 sm:gap-3 pt-2">
                     <button
                         wire:click="$set('showDeleteModal', false)"
                         type="button"
-                        class="w-full sm:w-auto px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 cursor-pointer"
+                        class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-content-body bg-surface-canvas border border-surface-border rounded-xl hover:text-content-heading cursor-pointer transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         wire:click="deleteAssetType"
                         wire:loading.attr="disabled"
+                        wire:target="deleteAssetType"
                         type="button"
-                        class="w-full sm:w-auto px-4 py-2 text-xs sm:text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                        class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-white bg-brand-secondary rounded-xl hover:opacity-90 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 transition-opacity"
                     >
                         <span wire:loading wire:target="deleteAssetType" class="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></span>
                         <span>Delete</span>

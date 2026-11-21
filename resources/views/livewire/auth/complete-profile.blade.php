@@ -1,176 +1,206 @@
-<div class="max-w-lg mx-auto my-10 bg-white p-8 rounded-xl shadow-md border border-gray-200">
-    <div class="text-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">Setup Required</h1>
-        <p class="text-sm text-gray-500 mt-1">Please update your account details to continue.</p>
+{{-- resources/views/livewire/auth/complete-profile.blade.php --}}
+<div class="w-full max-w-xl mx-auto px-4 my-8 sm:my-10">
+    <div class="bg-surface-card p-6 sm:p-8 rounded-2xl shadow-2xs border border-surface-border">
+        <div class="text-center mb-6 pb-4 border-b border-surface-border/70">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-brand-tint-light text-brand-primary mb-2">
+                Account Onboarding
+            </span>
+            <h1 class="text-xl sm:text-2xl font-bold text-content-heading tracking-tight">Setup Required</h1>
+            <p class="text-xs text-content-body mt-1">Please complete and verify your account details to continue.</p>
+        </div>
+
+        @if (session('status'))
+            <div class="mb-4 text-xs font-medium text-brand-primary bg-brand-tint-light p-3 rounded-xl border border-brand-tint">
+                {{ session('status') }}
+            </div>
+        @endif
+
+        @error('warning')
+            <div class="mb-4 py-3 px-4 text-xs font-semibold text-brand-secondary bg-brand-secondary/10 rounded-xl border border-brand-secondary/30 flex items-center gap-2">
+                <x-heroicon-o-exclamation-triangle class="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span>{{ $message }}</span>
+            </div>
+        @enderror
+
+        <form wire:submit="updateProfile" class="space-y-4">
+            {{-- First Name & Suffix --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="sm:col-span-2">
+                    <label for="cp_first_name" class="block text-xs font-semibold text-content-heading mb-1">
+                        First Name <span class="text-brand-secondary">*</span>
+                    </label>
+                    <input
+                        wire:model="first_name"
+                        type="text"
+                        id="cp_first_name"
+                        placeholder="John"
+                        class="w-full p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted border rounded-xl text-xs transition focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none @error('first_name') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
+                    >
+                    @error('first_name') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
+                </div>
+
+                <div>
+                    <label for="cp_suffix" class="block text-xs font-semibold text-content-heading mb-1">
+                        Suffix <span class="text-content-muted font-normal">(Optional)</span>
+                    </label>
+                    <input
+                        wire:model="suffix"
+                        type="text"
+                        id="cp_suffix"
+                        placeholder="Jr., Sr."
+                        class="w-full p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border rounded-xl text-xs transition focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none"
+                    >
+                    @error('suffix') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
+                </div>
+            </div>
+
+            {{-- Middle Name & Last Name --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label for="cp_middle_name" class="block text-xs font-semibold text-content-heading mb-1">
+                        Middle Name <span class="text-content-muted font-normal">(Optional)</span>
+                    </label>
+                    <input
+                        wire:model="middle_name"
+                        type="text"
+                        id="cp_middle_name"
+                        placeholder="D."
+                        class="w-full p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted border rounded-xl text-xs transition focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none @error('middle_name') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
+                    >
+                    @error('middle_name') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
+                </div>
+
+                <div>
+                    <label for="cp_last_name" class="block text-xs font-semibold text-content-heading mb-1">
+                        Last Name <span class="text-brand-secondary">*</span>
+                    </label>
+                    <input
+                        wire:model="last_name"
+                        type="text"
+                        id="cp_last_name"
+                        placeholder="Doe"
+                        class="w-full p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted border rounded-xl text-xs transition focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none @error('last_name') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
+                    >
+                    @error('last_name') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
+                </div>
+            </div>
+
+            {{-- Address & Contact Number --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label for="cp_address" class="block text-xs font-semibold text-content-heading mb-1">
+                        Address <span class="text-brand-secondary">*</span>
+                    </label>
+                    <input
+                        wire:model="address"
+                        type="text"
+                        id="cp_address"
+                        placeholder="123 Street, City"
+                        class="w-full p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted border rounded-xl text-xs transition focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none @error('address') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
+                    >
+                    @error('address') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
+                </div>
+
+                <div>
+                    <label for="cp_contact_number" class="block text-xs font-semibold text-content-heading mb-1">
+                        Contact Number <span class="text-brand-secondary">*</span>
+                    </label>
+                    <input
+                        wire:model="contact_number"
+                        type="text"
+                        id="cp_contact_number"
+                        placeholder="09123456789"
+                        class="w-full p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted border rounded-xl text-xs transition focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none @error('contact_number') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
+                    >
+                    @error('contact_number') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
+                </div>
+            </div>
+
+            {{-- Email & Username --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label for="cp_email" class="block text-xs font-semibold text-content-heading mb-1">
+                        Email Address <span class="text-brand-secondary">*</span>
+                    </label>
+                    <input
+                        wire:model="email"
+                        type="email"
+                        id="cp_email"
+                        autocomplete="email"
+                        placeholder="john@example.com"
+                        class="w-full p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted border rounded-xl text-xs transition focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none @error('email') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
+                    >
+                    @error('email') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
+                </div>
+
+                <div>
+                    <label for="cp_username" class="block text-xs font-semibold text-content-heading mb-1">
+                        Username <span class="text-brand-secondary">*</span>
+                    </label>
+                    <input
+                        wire:model="username"
+                        type="text"
+                        id="cp_username"
+                        autocomplete="username"
+                        placeholder="johndoe"
+                        class="w-full p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted border rounded-xl text-xs transition focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none @error('username') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
+                    >
+                    @error('username') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
+                </div>
+            </div>
+
+            {{-- Optional Password Update --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" x-data="{ showPassword: false }">
+                <div>
+                    <label for="cp_password" class="block text-xs font-semibold text-content-heading mb-1">
+                        New Password <span class="text-content-muted font-normal">(Optional)</span>
+                    </label>
+                    <div class="relative">
+                        <input
+                            wire:model="password"
+                            :type="showPassword ? 'text' : 'password'"
+                            id="cp_password"
+                            autocomplete="new-password"
+                            placeholder="••••••••"
+                            class="w-full p-2.5 pr-9 bg-surface-canvas text-content-heading placeholder:text-content-muted border rounded-xl text-xs transition focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none @error('password') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
+                        >
+                        <button
+                            type="button"
+                            @click="showPassword = !showPassword"
+                            :aria-label="showPassword ? 'Hide new password' : 'Show new password'"
+                            class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-content-muted hover:text-content-heading cursor-pointer"
+                        >
+                            <x-heroicon-o-eye x-show="!showPassword" class="w-4 h-4" aria-hidden="true" />
+                            <x-heroicon-o-eye-slash x-show="showPassword" x-cloak class="w-4 h-4" aria-hidden="true" />
+                        </button>
+                    </div>
+                    @error('password') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
+                </div>
+
+                <div>
+                    <label for="cp_password_confirmation" class="block text-xs font-semibold text-content-heading mb-1">
+                        Confirm Password
+                    </label>
+                    <input
+                        wire:model="password_confirmation"
+                        :type="showPassword ? 'text' : 'password'"
+                        id="cp_password_confirmation"
+                        autocomplete="new-password"
+                        placeholder="••••••••"
+                        class="w-full p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border rounded-xl text-xs transition focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none"
+                    >
+                </div>
+            </div>
+
+            <button
+                type="submit"
+                wire:loading.attr="disabled"
+                wire:target="updateProfile"
+                class="w-full bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-semibold py-2.5 px-4 rounded-xl shadow-2xs transition mt-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/20"
+            >
+                <span wire:loading.remove wire:target="updateProfile">Save &amp; Continue</span>
+                <span wire:loading wire:target="updateProfile">Processing...</span>
+            </button>
+        </form>
     </div>
-
-    @if (session('status'))
-        <div class="mb-4 text-sm font-medium text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
-            {{ session('status') }}
-        </div>
-    @endif
-
-    @error('warning')
-        <div class="mb-4 py-3 px-4 text-sm font-bold text-yellow-700 bg-amber-100 rounded-lg border border-amber-300">
-            {{ $message }}
-        </div>
-    @enderror
-
-    <form wire:submit="updateProfile" class="space-y-4">
-        <!-- Name Group -->
-        <div class="grid grid-cols-3 gap-2">
-            <div class="col-span-2">
-                <label for="first_name" class="block text-xs font-medium text-gray-700 mb-1">
-                    First Name <span class="text-red-500">*</span>
-                </label>
-                <input
-                    wire:model="first_name"
-                    type="text"
-                    id="first_name"
-                    placeholder="John"
-                    class="w-full p-2 border rounded-lg text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 @error('first_name') border-red-500 ring-1 ring-red-500 @else border-gray-300 @enderror"
-                >
-                @error('first_name') <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span> @enderror
-            </div>
-            <div>
-                <label for="suffix" class="block text-xs font-medium text-gray-700 mb-1">
-                    Suffix <span class="text-gray-400 font-normal">(Optional)</span>
-                </label>
-                <input
-                    wire:model="suffix"
-                    type="text"
-                    id="suffix"
-                    placeholder="Jr., Sr."
-                    class="w-full p-2 border border-gray-300 rounded-lg text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                @error('suffix') <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span> @enderror
-            </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-            <div>
-                <label for="middle_name" class="block text-xs font-medium text-gray-700 mb-1">
-                    Middle Name <span class="text-gray-400 font-normal">(Optional)</span>
-                </label>
-                <input
-                    wire:model="middle_name"
-                    type="text"
-                    id="middle_name"
-                    placeholder="D."
-                    class="w-full p-2 border rounded-lg text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 @error('middle_name') border-red-500 ring-1 ring-red-500 @else border-gray-300 @enderror"
-                >
-                @error('middle_name') <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span> @enderror
-            </div>
-            <div>
-                <label for="last_name" class="block text-xs font-medium text-gray-700 mb-1">
-                    Last Name <span class="text-red-500">*</span>
-                </label>
-                <input
-                    wire:model="last_name"
-                    type="text"
-                    id="last_name"
-                    placeholder="Doe"
-                    class="w-full p-2 border rounded-lg text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 @error('last_name') border-red-500 ring-1 ring-red-500 @else border-gray-300 @enderror"
-                >
-                @error('last_name') <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span> @enderror
-            </div>
-        </div>
-
-        <!-- Contact & Address -->
-        <div>
-            <label for="address" class="block text-xs font-medium text-gray-700 mb-1">
-                Address <span class="text-red-500">*</span>
-            </label>
-            <input
-                wire:model="address"
-                type="text"
-                id="address"
-                placeholder="123 Street, City"
-                class="w-full p-2 border rounded-lg text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 @error('address') border-red-500 ring-1 ring-red-500 @else border-gray-300 @enderror"
-            >
-            @error('address') <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span> @enderror
-        </div>
-
-        <div>
-            <label for="contact_number" class="block text-xs font-medium text-gray-700 mb-1">
-                Contact Number <span class="text-red-500">*</span>
-            </label>
-            <input
-                wire:model="contact_number"
-                type="text"
-                id="contact_number"
-                placeholder="09123456789"
-                class="w-full p-2 border rounded-lg text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 @error('contact_number') border-red-500 ring-1 ring-red-500 @else border-gray-300 @enderror"
-            >
-            @error('contact_number') <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span> @enderror
-        </div>
-
-        <!-- Credentials -->
-        <div class="grid grid-cols-2 gap-2">
-            <div>
-                <label for="email" class="block text-xs font-medium text-gray-700 mb-1">
-                    Email Address <span class="text-red-500">*</span>
-                </label>
-                <input
-                    wire:model="email"
-                    type="email"
-                    id="email"
-                    placeholder="john@example.com"
-                    class="w-full p-2 border rounded-lg text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 @error('email') border-red-500 ring-1 ring-red-500 @else border-gray-300 @enderror"
-                >
-                @error('email') <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span> @enderror
-            </div>
-            <div>
-                <label for="username" class="block text-xs font-medium text-gray-700 mb-1">
-                    Username <span class="text-red-500">*</span>
-                </label>
-                <input
-                    wire:model="username"
-                    type="text"
-                    id="username"
-                    placeholder="johndoe"
-                    class="w-full p-2 border rounded-lg text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 @error('username') border-red-500 ring-1 ring-red-500 @else border-gray-300 @enderror"
-                >
-                @error('username') <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span> @enderror
-            </div>
-        </div>
-
-        <!-- Password Update -->
-        <div class="grid grid-cols-2 gap-2">
-            <div>
-                <label for="password" class="block text-xs font-medium text-gray-700 mb-1">
-                    New Password <span class="text-gray-400 font-normal">(Optional)</span>
-                </label>
-                <input
-                    wire:model="password"
-                    type="password"
-                    id="password"
-                    placeholder="••••••••"
-                    class="w-full p-2 border rounded-lg text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500 @error('password') border-red-500 ring-1 ring-red-500 @else border-gray-300 @enderror"
-                >
-                @error('password') <span class="text-xs text-red-600 mt-1 block">{{ $message }}</span> @enderror
-            </div>
-            <div>
-                <label for="password_confirmation" class="block text-xs font-medium text-gray-700 mb-1">
-                    Confirm Password
-                </label>
-                <input
-                    wire:model="password_confirmation"
-                    type="password"
-                    id="password_confirmation"
-                    placeholder="••••••••"
-                    class="w-full p-2 border border-gray-300 rounded-lg text-sm transition focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-            </div>
-        </div>
-
-        <button
-            type="submit"
-            wire:loading.attr="disabled"
-            class="w-full bg-blue-600 text-white font-medium py-2 rounded-lg hover:bg-blue-700 transition mt-4 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-        >
-            <span wire:loading.remove wire:target="updateProfile">Save &amp; Continue</span>
-            <span wire:loading wire:target="updateProfile">Processing...</span>
-        </button>
-    </form>
 </div>

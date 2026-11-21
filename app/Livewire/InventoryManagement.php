@@ -2,31 +2,38 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\Accession;
 use App\Models\Acquisition;
 use App\Models\AssetType;
 use App\Models\Catalog;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class InventoryManagement extends Component
 {
-    use WithPagination;
+    use WithPagination, SanitizesInputs;
 
     public string $search = '';
     public string $assetTypeFilter = 'all';
     public string $assetTypeSearch = '';
 
-    public function updatingSearch(): void
+    private function likeOperator(): string
     {
-        $this->resetPage();
+        return config('database.default') === 'pgsql' ? 'ilike' : 'like';
     }
 
-    public function updatingAssetTypeFilter(): void
+    public function updatedSearch(): void
     {
+        $this->search = trim(strip_tags($this->search));
         $this->resetPage();
     }
 
@@ -48,21 +55,29 @@ class InventoryManagement extends Component
         }
     }
 
-    public function updatedAssetTypeFilter(string $value): void
+    public function selectAssetType(string $typeId): void
     {
-        if ($value === 'all') {
+        if ($typeId === 'all' || $typeId === '') {
+            $this->assetTypeFilter = 'all';
             $this->assetTypeSearch = '';
-        } else {
-            $type = AssetType::find($value);
-            $this->assetTypeSearch = $type ? strtoupper($type->name) : '';
+            $this->resetPage();
+            return;
         }
 
-        $this->resetPage();
+        $type = AssetType::find($typeId);
+        if ($type) {
+            $this->assetTypeFilter = (string) $type->id;
+            $this->assetTypeSearch = strtoupper((string) $type->name);
+            $this->resetPage();
+        }
     }
 
-    private function likeOperator(): string
+    public function resetFilters(): void
     {
-        return config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        $this->search = '';
+        $this->assetTypeFilter = 'all';
+        $this->assetTypeSearch = '';
+        $this->resetPage();
     }
 
     private function baseAccessionsForCatalog(string $tableAlias = 'acc')
@@ -72,7 +87,7 @@ class InventoryManagement extends Component
             ->whereColumn('acq.catalog_id', 'catalogs.id');
     }
 
-    private function getInventoryQuery()
+    private function getInventoryQuery(): Builder
     {
         $likeOperator = $this->likeOperator();
         $damagedConditions = ['minor damaged', 'minor damage', 'severe damaged', 'damaged'];
@@ -137,13 +152,14 @@ class InventoryManagement extends Component
                 'total_received_quantity'
             )
             ->when($this->assetTypeFilter !== 'all', fn ($q) => $q->where('catalogs.asset_type_id', $this->assetTypeFilter))
-            ->when($this->search, function ($q) use ($likeOperator) {
-                $q->where(function ($sub) use ($likeOperator) {
-                    $sub->where('catalogs.title', $likeOperator, "%{$this->search}%")
-                        ->orWhere('catalogs.isbn_issn', $likeOperator, "%{$this->search}%")
-                        ->orWhereHas('author', fn ($a) => $a->where('name', $likeOperator, "%{$this->search}%"))
-                        ->orWhereHas('acquisitions.accessions', fn ($acc) => $acc->where('call_number', $likeOperator, "%{$this->search}%")
-                            ->orWhere('accession_number', $likeOperator, "%{$this->search}%"));
+            ->when($this->search !== '', function ($q) use ($likeOperator) {
+                $term = "%{$this->search}%";
+                $q->where(function ($sub) use ($likeOperator, $term) {
+                    $sub->where('catalogs.title', $likeOperator, $term)
+                        ->orWhere('catalogs.isbn_issn', $likeOperator, $term)
+                        ->orWhereHas('author', fn ($a) => $a->where('name', $likeOperator, $term))
+                        ->orWhereHas('acquisitions.accessions', fn ($acc) => $acc->where('call_number', $likeOperator, $term)
+                            ->orWhere('accession_number', $likeOperator, $term));
                 });
             })
             ->latest('catalogs.created_at');
@@ -176,96 +192,135 @@ class InventoryManagement extends Component
         ];
     }
 
-    public function exportExcel(): StreamedResponse
+    public function exportExcel(): ?StreamedResponse
     {
-        $filename = 'inventory-summary-' . date('Y-m-d') . '.csv';
+        try {
+            $filename = 'inventory-summary-' . now()->format('Y-m-d') . '.csv';
 
-        $catalogs = $this->getInventoryQuery()->get();
-        $stats = $this->getSystemStats();
-        $searchFilterText = $this->search ? strtoupper("TITLE/AUTHOR/ISBN/ACCESSION: '{$this->search}'") : 'NONE (ALL APPLIED)';
-        $assetTypeText = $this->assetTypeFilter === 'all'
-            ? 'ALL'
-            : strtoupper(AssetType::find($this->assetTypeFilter)->name ?? 'UNKNOWN');
+            $catalogs = $this->getInventoryQuery()->get();
+            $stats = $this->getSystemStats();
+            $searchFilterText = $this->search !== ''
+                ? strtoupper("TITLE/AUTHOR/ISBN/ACCESSION: '{$this->search}'")
+                : 'NONE (ALL APPLIED)';
+            $assetTypeText = $this->assetTypeFilter === 'all'
+                ? 'ALL'
+                : strtoupper((string) (AssetType::find($this->assetTypeFilter)?->name ?? 'UNKNOWN'));
 
-        return response()->stream(function () use ($catalogs, $stats, $searchFilterText, $assetTypeText) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            return response()->stream(function () use ($catalogs, $stats, $searchFilterText, $assetTypeText) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-            fputcsv($file, ['BPS LIBRARY MANAGEMENT SYSTEM']);
-            fputcsv($file, ['INVENTORY SUMMARY REPORT']);
-            fputcsv($file, ['GENERATED ON: ' . strtoupper(date('F d, Y h:i A')), '', '', '', '', '', '', '', '', 'GENERATED BY: ' . strtoupper(auth()->user()->name ?? 'SYSTEM USER')]);
-            fputcsv($file, ['SEARCH FILTER: ' . $searchFilterText, '', '', '', '', '', '', '', '', 'ASSET TYPE FILTER: ' . $assetTypeText]);
-            fputcsv($file, []);
+                fputcsv($file, ['TFVC LIBRARY MANAGEMENT SYSTEM']);
+                fputcsv($file, ['INVENTORY SUMMARY REPORT']);
+                fputcsv($file, ['GENERATED ON: ' . strtoupper(now()->format('F d, Y h:i A')), '', '', '', '', '', '', '', '', 'GENERATED BY: ' . strtoupper((string) (auth()->user()?->name ?? 'SYSTEM USER'))]);
+                fputcsv($file, ['SEARCH FILTER: ' . $searchFilterText, '', '', '', '', '', '', '', '', 'ASSET TYPE FILTER: ' . $assetTypeText]);
+                fputcsv($file, []);
 
-            fputcsv($file, ['OVERVIEW STATISTICS']);
-            fputcsv($file, ['TOTAL ACCESSIONED', 'TOTAL UNACCESSIONED', 'AVAILABLE', 'ON LOAN', 'STORED', 'DAMAGED', 'LOST', 'DUMPED']);
-            fputcsv($file, [$stats['total_accessioned'], $stats['total_unaccessioned'], $stats['total_available'], $stats['total_on_loan'], $stats['total_stored'], $stats['total_damaged'], $stats['total_lost'], $stats['total_dumped']]);
-            fputcsv($file, []);
+                fputcsv($file, ['OVERVIEW STATISTICS']);
+                fputcsv($file, ['TOTAL ACCESSIONED', 'TOTAL UNACCESSIONED', 'AVAILABLE', 'ON LOAN', 'STORED', 'DAMAGED', 'LOST', 'DUMPED']);
+                fputcsv($file, [$stats['total_accessioned'], $stats['total_unaccessioned'], $stats['total_available'], $stats['total_on_loan'], $stats['total_stored'], $stats['total_damaged'], $stats['total_lost'], $stats['total_dumped']]);
+                fputcsv($file, []);
 
-            fputcsv($file, ['TITLE', 'AUTHOR', 'ASSET TYPE', 'TOTAL STOCK', 'ACCESSIONED', 'UNACCESSIONED', 'AVAILABLE', 'ON LOAN', 'STORED', 'MAINTENANCE', 'DUMPED', 'DAMAGED', 'LOST', 'BATCHES']);
+                fputcsv($file, ['TITLE', 'AUTHOR', 'ASSET TYPE', 'TOTAL STOCK', 'ACCESSIONED', 'UNACCESSIONED', 'AVAILABLE', 'ON LOAN', 'STORED', 'MAINTENANCE', 'DUMPED', 'DAMAGED', 'LOST', 'BATCHES']);
 
-            foreach ($catalogs as $catalog) {
-                $accessionedCopies = (int) ($catalog->accessioned_copies ?? 0);
-                $receivedQty = (int) ($catalog->total_received_quantity ?? 0);
-                $totalStock = max($receivedQty, $accessionedCopies);
-                $unaccessionedCopies = max(0, $totalStock - $accessionedCopies);
+                foreach ($catalogs as $catalog) {
+                    $accessionedCopies = (int) ($catalog->accessioned_copies ?? 0);
+                    $receivedQty = (int) ($catalog->total_received_quantity ?? 0);
+                    $totalStock = max($receivedQty, $accessionedCopies);
+                    $unaccessionedCopies = max(0, $totalStock - $accessionedCopies);
 
-                fputcsv($file, [
-                    strtoupper(html_entity_decode(strip_tags($catalog->title . ($catalog->isbn_issn ? ' (ISBN: ' . $catalog->isbn_issn . ')' : '')))),
-                    strtoupper(html_entity_decode(strip_tags($catalog->author->name ?? 'UNKNOWN AUTHOR'))),
-                    strtoupper(html_entity_decode(strip_tags($catalog->assetType->name ?? 'STANDARD'))),
-                    $totalStock,
-                    $accessionedCopies,
-                    $unaccessionedCopies,
-                    $catalog->available_copies,
-                    $catalog->on_loan_copies,
-                    $catalog->stored_copies,
-                    $catalog->maintenance_copies,
-                    $catalog->dumped_copies,
-                    $catalog->damaged_copies,
-                    $catalog->lost_copies,
-                    $catalog->acquisition_batches,
-                ]);
-            }
-            fclose($file);
-        }, 200, [
-            'Content-type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename={$filename}",
-            'Pragma'              => 'no-cache',
-            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires'             => '0',
-        ]);
+                    fputcsv($file, [
+                        strtoupper(html_entity_decode(strip_tags((string) $catalog->title . ($catalog->isbn_issn ? ' (ISBN: ' . $catalog->isbn_issn . ')' : '')))),
+                        strtoupper(html_entity_decode(strip_tags((string) ($catalog->author?->name ?? 'UNKNOWN AUTHOR')))),
+                        strtoupper(html_entity_decode(strip_tags((string) ($catalog->assetType?->name ?? 'STANDARD')))),
+                        $totalStock,
+                        $accessionedCopies,
+                        $unaccessionedCopies,
+                        $catalog->available_copies,
+                        $catalog->on_loan_copies,
+                        $catalog->stored_copies,
+                        $catalog->maintenance_copies,
+                        $catalog->dumped_copies,
+                        $catalog->damaged_copies,
+                        $catalog->lost_copies,
+                        $catalog->acquisition_batches,
+                    ]);
+                }
+
+                fclose($file);
+            }, 200, [
+                'Content-type'        => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => "attachment; filename={$filename}",
+                'Pragma'              => 'no-cache',
+                'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+                'Expires'             => '0',
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Error exporting inventory CSV: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'UNABLE TO EXPORT INVENTORY CSV REPORT.', type: 'error');
+            return null;
+        }
     }
 
-    public function exportPdf()
+    public function exportPdf(): ?StreamedResponse
     {
-        $catalogs = $this->getInventoryQuery()->get();
-        $stats = $this->getSystemStats();
-        $searchFilterText = $this->search ? strtoupper("TITLE/AUTHOR/ISBN/ACCESSION: '{$this->search}'") : 'NONE (ALL APPLIED)';
+        try {
+            $catalogs = $this->getInventoryQuery()->get();
+            $stats = $this->getSystemStats();
+            $searchFilterText = $this->search !== ''
+                ? strtoupper("TITLE/AUTHOR/ISBN/ACCESSION: '{$this->search}'")
+                : 'NONE (ALL APPLIED)';
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.inventory-summary', [
-            'catalogs' => $catalogs,
-            'stats'    => $stats,
-            'search'   => $searchFilterText,
-        ])->setPaper('a4', 'landscape');
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.inventory-summary', [
+                'catalogs' => $catalogs,
+                'stats'    => $stats,
+                'search'   => $searchFilterText,
+            ])->setPaper('a4', 'landscape');
 
-        $filename = 'inventory-summary-' . date('Y-m-d_H-i-s') . '.pdf';
+            $filename = 'inventory-summary-' . now()->format('Y-m-d_H-i-s') . '.pdf';
 
-        return response()->streamDownload(function () use ($pdf) {
-            echo $pdf->output();
-        }, $filename, [
-            'Content-Type' => 'application/pdf',
-        ]);
+            return response()->streamDownload(function () use ($pdf) {
+                echo $pdf->output();
+            }, $filename, [
+                'Content-Type' => 'application/pdf',
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Error exporting inventory PDF: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'UNABLE TO EXPORT INVENTORY PDF REPORT.', type: 'error');
+            return null;
+        }
     }
 
     #[Layout('components.layouts.app')]
     #[Title('Inventory Summary')]
     public function render()
     {
+        try {
+            $catalogs = $this->getInventoryQuery()->paginate(15);
+            $assetTypes = AssetType::orderBy('name')->get();
+            $stats = $this->getSystemStats();
+        } catch (Throwable $e) {
+            Log::error('Error loading inventory management data: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'UNABLE TO LOAD INVENTORY SUMMARY DATA.', type: 'error');
+
+            $catalogs = new \Illuminate\Pagination\LengthAwarePaginator(collect(), 0, 15);
+            $assetTypes = new Collection();
+            $stats = [
+                'total_accessioned'   => 0,
+                'total_unaccessioned' => 0,
+                'total_available'     => 0,
+                'total_on_loan'       => 0,
+                'total_stored'        => 0,
+                'total_damaged'       => 0,
+                'total_lost'          => 0,
+                'total_dumped'        => 0,
+            ];
+        }
+
         return view('livewire.inventory-management', [
-            'catalogs'   => $this->getInventoryQuery()->paginate(15),
-            'assetTypes' => AssetType::orderBy('name')->get(),
-            'stats'      => $this->getSystemStats(),
+            'catalogs'   => $catalogs,
+            'assetTypes' => $assetTypes,
+            'stats'      => $stats,
         ]);
     }
 }

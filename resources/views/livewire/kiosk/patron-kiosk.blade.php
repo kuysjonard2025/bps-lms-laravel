@@ -1,5 +1,10 @@
+{{-- resources/views/livewire/kiosk/patron-kiosk.blade.php --}}
+@php
+    use Illuminate\Support\Str;
+@endphp
+
 <div
-    class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-sky-50 via-slate-100 to-sky-100/60 text-slate-800 p-6 relative select-none"
+    class="flex flex-col items-center justify-center min-h-screen bg-surface-canvas text-content-heading p-6 relative select-none"
     x-data="{
         timer: null,
         rfidBuffer: '',
@@ -27,16 +32,22 @@
         },
 
         startAutoDismiss() {
-            if (this.timer) {
-                clearTimeout(this.timer);
-            }
+            this.clearDismissTimer();
 
             this.timer = setTimeout(() => {
                 this.timer = null;
                 $wire.closeResultModal();
             }, this.displayDurationMs);
+        },
+
+        clearDismissTimer() {
+            if (this.timer) {
+                clearTimeout(this.timer);
+                this.timer = null;
+            }
         }
     }"
+    x-on:livewire:navigating.window="clearDismissTimer()"
     @window.keydown="handleGlobalKey($event)"
     @patron-scanned.window="startAutoDismiss()"
 >
@@ -45,118 +56,139 @@
         <button
             type="button"
             wire:click="exitKiosk"
-            class="flex items-center gap-2 px-4 py-2 text-xs font-bold text-sky-900 bg-white/80 hover:bg-white border border-sky-200/80 hover:border-sky-300 shadow-sm rounded-xl backdrop-blur-md transition-all duration-200 cursor-pointer"
+            wire:loading.attr="disabled"
+            wire:target="exitKiosk"
+            @click="clearDismissTimer()"
+            class="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-content-heading bg-surface-card hover:bg-brand-tint-light border border-surface-border shadow-2xs rounded-xl transition cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/15"
         >
-            <svg class="w-4 h-4 text-sky-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Exit Terminal
+            <x-heroicon-o-arrow-right-on-rectangle class="w-4 h-4 text-brand-primary shrink-0" aria-hidden="true" />
+            <span>Exit Terminal</span>
         </button>
     </div>
 
     <!-- Main Scanner View -->
-    <div class="w-full max-w-xl bg-white/90 backdrop-blur-md border border-sky-100 p-12 rounded-3xl shadow-xl shadow-sky-900/5 text-center flex flex-col items-center relative overflow-hidden">
-        <!-- Top Navy Accent Line -->
-        <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-sky-500 via-sky-700 to-sky-900"></div>
+    <section aria-label="Patron RFID scanner" class="w-full max-w-xl bg-surface-card border border-surface-border p-8 sm:p-12 rounded-3xl shadow-xl text-center flex flex-col items-center relative overflow-hidden">
+        <!-- Top Accent Line -->
+        <div class="absolute top-0 left-0 right-0 h-1.5 bg-brand-primary"></div>
 
         <!-- Operating Hours Badge -->
-        <div class="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100/80 border border-sky-200 text-sky-800 text-xs font-semibold uppercase">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div class="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-tint-light border border-brand-primary/25 text-brand-primary text-xs font-semibold uppercase">
+            <x-heroicon-o-clock class="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
             <span>ACTIVE HOURS: 7:00 AM – 5:00 PM</span>
         </div>
 
-        <!-- Animated Light Blue Scanner Icon -->
-        <div class="mb-8 p-6 bg-sky-50 border border-sky-200/60 rounded-full shadow-inner">
-            <svg class="w-20 h-20 text-sky-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457-.39-2.823-1.07-4" />
-            </svg>
+        <!-- Animated Scanner Icon -->
+        <div class="mb-8 p-6 bg-brand-tint-light border border-brand-primary/25 rounded-full shadow-inner">
+            <x-heroicon-o-identification class="w-16 h-16 sm:w-20 sm:h-20 text-brand-primary animate-pulse" aria-hidden="true" />
         </div>
 
-        <h1 class="text-4xl font-extrabold text-sky-950 tracking-tight mb-3">Please Tap Your Card</h1>
-        <p class="text-slate-500 text-base mb-6">Hold your ID badge near the scanner to log in or out.</p>
+        <h1 class="text-2xl sm:text-4xl font-extrabold text-content-heading tracking-tight mb-3">Please Tap Your Card</h1>
+        <p class="text-content-body text-sm sm:text-base mb-6">Hold your ID badge near the scanner to log in or out.</p>
 
         <!-- Manual Input / Testing Box -->
-        <div class="w-full max-w-xs mt-2">
-            <form wire:submit.prevent="scanRfid">
-                <input
-                    type="text"
-                    wire:model="rfid_number"
-                    maxlength="50"
-                    placeholder="Type School ID / RFID & hit Enter..."
-                    class="w-full px-3 py-2 text-xs bg-sky-50/50 text-slate-700 border border-sky-200 rounded-xl text-center uppercase focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 transition"
-                    autofocus
+        <div class="w-full max-w-sm mt-2">
+            <form wire:submit="scanRfid" class="flex items-center gap-2">
+                <div class="relative flex-1">
+                    <label for="kiosk-rfid-input" class="sr-only">School ID or RFID number</label>
+                    <input
+                        id="kiosk-rfid-input"
+                        type="text"
+                        wire:model="rfid_number"
+                        wire:loading.attr="disabled"
+                        wire:target="scanRfid"
+                        maxlength="50"
+                        placeholder="Type School ID / RFID & hit Enter..."
+                        class="w-full px-3.5 py-2.5 text-xs font-mono bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border rounded-xl text-center uppercase focus:bg-surface-card focus:outline-none focus:ring-4 focus:ring-brand-primary/15 focus:border-brand-primary transition"
+                        autofocus
+                    >
+                </div>
+                <button
+                    type="submit"
+                    wire:loading.attr="disabled"
+                    wire:target="scanRfid"
+                    class="px-3.5 py-2.5 text-xs font-semibold text-white bg-brand-primary hover:bg-brand-primary-hover rounded-xl shadow-2xs transition cursor-pointer disabled:opacity-50 shrink-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/20"
                 >
+                    <span wire:loading.remove wire:target="scanRfid">Log</span>
+                    <span wire:loading wire:target="scanRfid">...</span>
+                </button>
             </form>
         </div>
 
         <!-- Auto-Dismissing Error Alert -->
         @if (session()->has('kiosk_error'))
             <div
-                x-data
-                x-init="setTimeout(() => { $el.remove(); }, 3500)"
-                class="mt-6 w-full p-4 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-sm font-semibold shadow-sm uppercase"
+                x-data="{ visible: true }"
+                x-init="setTimeout(() => { visible = false; }, 3500)"
+                x-show="visible"
+                x-transition.opacity
+                role="alert"
+                class="mt-6 w-full p-4 bg-brand-secondary/15 border border-brand-secondary/35 text-brand-secondary rounded-2xl text-xs sm:text-sm font-semibold uppercase"
             >
                 {{ strtoupper(session('kiosk_error')) }}
             </div>
         @endif
-    </div>
+    </section>
 
     <!-- Patron Tap Details Overlay Popup -->
     @if ($showResultModal && $scannedPatron)
         @php
             $middleInitial = $scannedPatron->middle_name ? mb_substr(trim($scannedPatron->middle_name), 0, 1) . '.' : '';
             $baseName = trim("{$scannedPatron->first_name} {$middleInitial} {$scannedPatron->last_name}");
-            $patronFullName = \Illuminate\Support\Str::title($baseName) . ($scannedPatron->suffix ? ' ' . strtoupper(trim($scannedPatron->suffix)) : '');
+            $patronFullName = Str::title($baseName) . ($scannedPatron->suffix ? ' ' . strtoupper(trim($scannedPatron->suffix)) : '');
         @endphp
-        <div wire:key="scanned-patron-{{ $scanSequence }}" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-6">
-            <div class="bg-white border border-sky-100 rounded-3xl p-10 max-w-lg w-full text-center shadow-2xl relative overflow-hidden">
+        <div
+            wire:key="scanned-patron-{{ $scanSequence }}"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="scanned-patron-name"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-content-heading/60 backdrop-blur-md p-6"
+        >
+            <div class="bg-surface-card border border-surface-border rounded-3xl p-8 sm:p-10 max-w-lg w-full text-center shadow-2xl relative overflow-hidden">
 
                 <!-- Status Badge -->
-                <div class="inline-block px-6 py-2 rounded-full text-xs font-black tracking-widest uppercase mb-6 {{ $actionStatus === 'LOGGED IN' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200' }}">
+                <div class="inline-block px-6 py-2 rounded-full text-xs font-black tracking-widest uppercase mb-6 {{ $actionStatus === 'LOGGED IN' ? 'bg-brand-tint-light text-brand-primary border border-brand-primary/30' : 'bg-brand-secondary/15 text-brand-secondary border border-brand-secondary/30' }}">
                     SUCCESSFULLY {{ strtoupper($actionStatus) }}
                 </div>
 
                 <!-- Patron Name -->
-                <h2 class="text-3xl font-extrabold text-sky-950 mb-1">
+                <h2 id="scanned-patron-name" class="text-2xl sm:text-3xl font-extrabold text-content-heading mb-1">
                     {{ $patronFullName }}
                 </h2>
-                <p class="text-base text-sky-600 font-semibold mb-8 uppercase">
+                <p class="text-sm sm:text-base text-brand-primary font-semibold mb-8 uppercase">
                     {{ $scannedPatron->patronType?->name ? strtoupper($scannedPatron->patronType->name) : 'PATRON' }}
                 </p>
 
                 <!-- Patron Information Details Card -->
-                <div class="bg-sky-50/60 rounded-2xl p-6 border border-sky-100 space-y-3 text-left text-sm mb-4">
-                    <div class="flex justify-between border-b border-sky-200/50 pb-2">
-                        <span class="text-slate-500">School ID:</span>
-                        <span class="font-mono font-bold text-sky-950 uppercase">{{ strtoupper($scannedPatron->school_id) }}</span>
+                <div class="bg-surface-canvas rounded-2xl p-6 border border-surface-border space-y-3 text-left text-xs sm:text-sm mb-4">
+                    <div class="flex justify-between gap-4 border-b border-surface-border/70 pb-2">
+                        <span class="text-content-muted">School ID:</span>
+                        <span class="font-mono font-bold text-content-heading uppercase">{{ strtoupper($scannedPatron->school_id) }}</span>
                     </div>
                     @if ($scannedPatron->department)
-                        <div class="flex justify-between border-b border-sky-200/50 pb-2">
-                            <span class="text-slate-500">Department:</span>
-                            <span class="font-semibold text-slate-800 uppercase">{{ strtoupper($scannedPatron->department->name) }}</span>
+                        <div class="flex justify-between gap-4 border-b border-surface-border/70 pb-2">
+                            <span class="text-content-muted">Department:</span>
+                            <span class="font-semibold text-content-heading uppercase text-right">{{ strtoupper($scannedPatron->department->name) }}</span>
                         </div>
                     @endif
                     @if ($scannedPatron->gradeLevel)
-                        <div class="flex justify-between border-b border-sky-200/50 pb-2">
-                            <span class="text-slate-500">Grade Level:</span>
-                            <span class="font-semibold text-slate-800">{{ \Illuminate\Support\Str::title($scannedPatron->gradeLevel->name) }}</span>
+                        <div class="flex justify-between gap-4 border-b border-surface-border/70 pb-2">
+                            <span class="text-content-muted">Grade Level:</span>
+                            <span class="font-semibold text-content-heading text-right">{{ Str::title($scannedPatron->gradeLevel->name) }}</span>
                         </div>
                     @endif
                     @if ($scannedPatron->section)
-                        <div class="flex justify-between border-b border-sky-200/50 pb-2">
-                            <span class="text-slate-500">Section:</span>
-                            <span class="font-semibold text-slate-800">{{ \Illuminate\Support\Str::title($scannedPatron->section->name) }}</span>
+                        <div class="flex justify-between gap-4 border-b border-surface-border/70 pb-2">
+                            <span class="text-content-muted">Section:</span>
+                            <span class="font-semibold text-content-heading text-right">{{ Str::title($scannedPatron->section->name) }}</span>
                         </div>
                     @endif
-                    <div class="flex justify-between">
-                        <span class="text-slate-500">Timestamp:</span>
-                        <span class="font-bold text-sky-700 uppercase">{{ strtoupper($actionTime) }}</span>
+                    <div class="flex justify-between gap-4">
+                        <span class="text-content-muted">Timestamp:</span>
+                        <span class="font-bold font-mono text-brand-primary uppercase text-right">{{ strtoupper($actionTime) }}</span>
                     </div>
                 </div>
 
-                <div class="text-xs text-sky-800/60 font-medium animate-pulse mt-4">
+                <div class="text-xs text-content-muted font-medium animate-pulse mt-4">
                     Next patron can scan immediately to continue...
                 </div>
             </div>

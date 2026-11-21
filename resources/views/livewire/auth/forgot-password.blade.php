@@ -1,70 +1,91 @@
-<div class="w-full max-w-md mx-auto px-4 space-y-6">
+{{-- resources/views/livewire/auth/forgot-password.blade.php --}}
+<div class="w-full max-w-md mx-auto px-4 py-8 space-y-6">
 
     {{-- Branding --}}
     <div class="text-center">
-        <div class="mx-auto w-28 h-28 flex items-center justify-center p-1 mb-2">
+        <div class="mx-auto w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center p-2 mb-2 rounded-2xl bg-surface-card border border-surface-border shadow-2xs">
             <img
                 src="{{ asset('images/bps-logo.png') }}"
                 alt="BPS Logo"
-                class="w-full h-full object-contain select-none pointer-events-none drop-shadow-sm"
-                onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\'font-black text-blue-900 text-2xl tracking-tighter\'>BPS</span>';"
+                class="w-full h-full object-contain select-none pointer-events-none"
+                onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\'font-extrabold text-brand-primary text-2xl tracking-tight\'>BPS</span>';"
             >
         </div>
-        <h1 class="text-xl sm:text-2xl font-extrabold text-blue-950 tracking-tight">Bicutan Parochial School, Inc.</h1>
-        <p class="text-xs font-medium text-slate-500 mt-0.5">Library Management System</p>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-content-heading tracking-tight">
+            Bicutan Parochial School, Inc.
+        </h1>
+        <p class="text-xs font-medium text-content-body mt-0.5">
+            Library Management System
+        </p>
     </div>
 
     {{-- Card Container --}}
-    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-100 space-y-5">
-        <div class="border-b border-slate-100 pb-3.5">
-            <h2 class="text-base font-bold text-slate-800">Forgot your password?</h2>
-            <p class="text-xs text-slate-500">Enter your email address and we'll send you a password reset link.</p>
+    <div class="bg-surface-card p-6 sm:p-8 rounded-2xl shadow-2xs border border-surface-border space-y-5">
+        <div class="border-b border-surface-border/70 pb-3.5">
+            <h2 class="text-base font-bold text-content-heading">Forgot your password?</h2>
+            <p class="text-xs text-content-body mt-0.5">Enter your email address and we'll send you a password reset link.</p>
         </div>
 
         {{-- Success Banner --}}
         @if ($status)
-            <div class="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-lg flex items-center gap-2.5">
-                <x-heroicon-o-check-circle class="w-4 h-4 shrink-0 text-emerald-500" />
+            <div role="status" class="p-3 bg-brand-tint-light border border-brand-tint text-brand-primary text-xs rounded-xl flex items-center gap-2.5">
+                <x-heroicon-o-check-circle class="w-4 h-4 shrink-0 text-brand-primary" aria-hidden="true" />
                 <span class="font-medium">{{ $status }}</span>
             </div>
         @endif
 
+        @error('warning')
+            <div class="p-3 bg-brand-secondary/10 border border-brand-secondary/30 text-brand-secondary text-xs rounded-xl flex items-center gap-2.5">
+                <x-heroicon-o-exclamation-triangle class="w-4 h-4 shrink-0 text-brand-secondary" aria-hidden="true" />
+                <span class="font-medium">{{ $message }}</span>
+            </div>
+        @enderror
+
         {{-- Form --}}
         <form wire:submit="sendResetLink" class="space-y-4">
             <div>
-                <label for="email" class="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+                <label for="fp_email" class="block text-xs font-semibold text-content-heading mb-1.5">
+                    Email Address
+                </label>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <x-heroicon-o-envelope class="w-4 h-4 text-slate-400" />
+                        <x-heroicon-o-envelope class="w-4 h-4 text-content-muted" aria-hidden="true" />
                     </div>
                     <input
                         wire:model="email"
                         type="email"
-                        id="email"
-                        class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50/50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all placeholder:text-slate-400 @error('email') border-rose-300 bg-rose-50/30 @enderror"
+                        id="fp_email"
+                        autocomplete="email"
                         placeholder="admin@example.com"
                         required
                         autofocus
+                        class="w-full pl-9 pr-3 py-2.5 text-xs bg-surface-canvas text-content-heading placeholder:text-content-muted border rounded-xl focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('email') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                     >
                 </div>
                 @error('email')
-                    <span class="text-[11px] text-rose-600 mt-1 block font-medium">{{ $message }}</span>
+                    <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span>
                 @enderror
             </div>
 
             <button
                 type="submit"
                 wire:loading.attr="disabled"
-                class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold py-2.5 px-4 rounded-lg shadow-sm shadow-blue-500/30 transition duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                wire:target="sendResetLink"
+                class="w-full bg-brand-primary hover:bg-brand-primary-hover active:bg-brand-primary-hover text-white text-xs font-semibold py-2.5 px-4 rounded-xl shadow-2xs transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/20 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
-                <span wire:loading.remove>Send Password Reset Link</span>
-                <span wire:loading class="inline-block">Sending link...</span>
+                <span wire:loading.remove wire:target="sendResetLink">Send Password Reset Link</span>
+                <span wire:loading wire:target="sendResetLink">Sending link...</span>
             </button>
         </form>
 
-        <div class="text-center pt-2">
-            <a href="{{ route('login') }}" wire:navigate class="text-xs font-semibold text-blue-600 hover:text-blue-700 transition">
-                &larr; Back to login
+        <div class="text-center pt-2 border-t border-surface-border/70">
+            <a
+                href="{{ route('login') }}"
+                wire:navigate
+                class="text-xs font-semibold text-brand-primary hover:text-brand-primary-hover transition inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary rounded-md"
+            >
+                <x-heroicon-o-arrow-left class="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Back to login</span>
             </a>
         </div>
     </div>

@@ -1,4 +1,4 @@
-<?php
+<?php // database/migrations/2026_01_01_000001_create_catalogs_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -12,8 +12,8 @@ return new class extends Migration
             $table->id();
 
             // Foreign Key Relationships
-            // Note: constrained() automatically creates indexes on these foreign key columns
-            $table->foreignId('author_id')->constrained()->restrictOnDelete();
+            // author_id is nullable for periodical/non-author asset types (e.g., Newspaper, Magazine, Journal)
+            $table->foreignId('author_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('publisher_id')->constrained()->restrictOnDelete();
             $table->foreignId('general_reference_id')->constrained()->restrictOnDelete();
             $table->foreignId('asset_type_id')->constrained()->restrictOnDelete();

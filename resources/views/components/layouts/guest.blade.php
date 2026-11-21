@@ -1,3 +1,4 @@
+{{-- resources/views/components/layouts/guest.blade.php --}}
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
 <head>
@@ -15,19 +16,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
+    {{-- Disable asset preload tags to prevent console warnings --}}
+    {{ Vite::usePreloadTagAttributes(false) }}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
 </head>
-<body class="min-h-full bg-slate-50 text-slate-900 antialiased selection:bg-blue-600 selection:text-white flex flex-col justify-center relative">
+<body class="min-h-dvh bg-surface-canvas text-content-heading font-sans antialiased selection:bg-brand-primary selection:text-white flex flex-col justify-center relative">
 
-    {{-- Subtle Background Grid Pattern --}}
-    <div class="fixed inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] bg-size-[16px_16px] mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none"></div>
+    {{-- Subtle Dot Background Pattern --}}
+    <div
+        aria-hidden="true"
+        class="fixed inset-0 bg-[radial-gradient(var(--color-surface-border)_1.5px,transparent_1.5px)] bg-size-[18px_18px] mask-[radial-gradient(ellipse_60%_60%_at_50%_50%,#000_72%,transparent_100%)] pointer-events-none"
+    ></div>
 
     {{-- Main Slot --}}
-    <main class="relative z-10 w-full">
+    <main class="relative z-10 w-full py-4">
         {{ $slot }}
     </main>
 
