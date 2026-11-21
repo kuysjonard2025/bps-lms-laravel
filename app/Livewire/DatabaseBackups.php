@@ -11,12 +11,11 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use Livewire\WithPagination;
 use Throwable;
 
 class DatabaseBackups extends Component
 {
-    use WithPagination, SanitizesInputs;
+    use SanitizesInputs;
 
     public bool $isCreatingBackup = false;
 
@@ -44,15 +43,22 @@ class DatabaseBackups extends Component
         $this->isCreatingBackup = true;
 
         try {
-            Artisan::call('backup:run', ['--only-db' => true]);
-            $output = Artisan::output();
+            $exitCode = Artisan::call('backup:run', ['--only-db' => true]);
+            $output = trim(Artisan::output());
 
-            if (
-                str_contains(strtolower($output), 'failed')
-                || str_contains(strtolower($output), 'exception')
-                || str_contains(strtolower($output), 'error')
-            ) {
-                $message = 'Backup failed: ' . substr(trim($output), 0, 300);
+            $lower = strtolower($output);
+            $hasError = $exitCode !== 0
+                || str_contains($lower, 'backup failed')
+                || str_contains($lower, 'exception')
+                || str_contains($lower, 'error:');
+
+            if ($hasError) {
+                Log::error('Spatie backup:run failed', [
+                    'exit_code' => $exitCode,
+                    'output'    => $output,
+                ]);
+
+                $message = 'Backup failed on server. Check dump client (pg_dump/mysqldump), DB_DUMP_BINARY_PATH, and storage permissions.';
                 session()->flash('error', $message);
                 $this->dispatch('toast', message: $message, type: 'error');
             } else {
@@ -68,8 +74,11 @@ class DatabaseBackups extends Component
                 $this->dispatch('toast', message: $message, type: 'success');
             }
         } catch (Throwable $e) {
-            Log::error('Error creating database backup: ' . $e->getMessage());
-            $message = 'Backup failed: ' . $e->getMessage();
+            Log::error('Exception during createBackup: ' . $e->getMessage(), [
+                'exception' => $e,
+            ]);
+
+            $message = 'Backup failed due to a server error. Check server logs.';
             session()->flash('error', $message);
             $this->dispatch('toast', message: $message, type: 'error');
         } finally {
@@ -81,8 +90,9 @@ class DatabaseBackups extends Component
     {
         try {
             if (! $this->isSafeBackupPath($fileName)) {
-                session()->flash('error', 'Invalid backup file path.');
-                $this->dispatch('toast', message: 'Invalid backup file path.', type: 'error');
+                $message = 'Invalid backup file path.';
+                session()->flash('error', $message);
+                $this->dispatch('toast', message: $message, type: 'error');
                 return null;
             }
 
@@ -99,13 +109,15 @@ class DatabaseBackups extends Component
                 return $disk->download($fileName);
             }
 
-            session()->flash('error', 'Backup file not found.');
-            $this->dispatch('toast', message: 'Backup file not found.', type: 'error');
+            $message = 'Backup file not found.';
+            session()->flash('error', $message);
+            $this->dispatch('toast', message: $message, type: 'error');
             return null;
         } catch (Throwable $e) {
             Log::error('Error downloading backup archive: ' . $e->getMessage());
-            session()->flash('error', 'Unable to download backup archive.');
-            $this->dispatch('toast', message: 'Unable to download backup archive.', type: 'error');
+            $message = 'Unable to download backup archive.';
+            session()->flash('error', $message);
+            $this->dispatch('toast', message: $message, type: 'error');
             return null;
         }
     }
@@ -114,8 +126,9 @@ class DatabaseBackups extends Component
     {
         try {
             if (! $this->isSafeBackupPath($fileName)) {
-                session()->flash('error', 'Invalid backup file path.');
-                $this->dispatch('toast', message: 'Invalid backup file path.', type: 'error');
+                $message = 'Invalid backup file path.';
+                session()->flash('error', $message);
+                $this->dispatch('toast', message: $message, type: 'error');
                 return;
             }
 
@@ -131,16 +144,19 @@ class DatabaseBackups extends Component
                     properties: ['file' => $fileName]
                 );
 
-                session()->flash('success', 'Backup file deleted.');
-                $this->dispatch('toast', message: 'Backup file deleted.', type: 'success');
+                $message = 'Backup file deleted.';
+                session()->flash('success', $message);
+                $this->dispatch('toast', message: $message, type: 'success');
             } else {
-                session()->flash('error', 'File could not be found.');
-                $this->dispatch('toast', message: 'File could not be found.', type: 'error');
+                $message = 'File could not be found.';
+                session()->flash('error', $message);
+                $this->dispatch('toast', message: $message, type: 'error');
             }
         } catch (Throwable $e) {
             Log::error('Error deleting backup archive: ' . $e->getMessage());
-            session()->flash('error', 'Unable to delete backup archive.');
-            $this->dispatch('toast', message: 'Unable to delete backup archive.', type: 'error');
+            $message = 'Unable to delete backup archive.';
+            session()->flash('error', $message);
+            $this->dispatch('toast', message: $message, type: 'error');
         }
     }
 
