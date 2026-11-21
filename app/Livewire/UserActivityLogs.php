@@ -2,51 +2,229 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\ActivityLog;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class UserActivityLogs extends Component
 {
-    use WithPagination;
+    use WithPagination, SanitizesInputs;
 
     public string $search = '';
     public string $eventFilter = 'all';
     public string $moduleFilter = 'all';
+    public string $moduleSearch = '';
 
-    public function updatingSearch(): void { $this->resetPage(); }
-    public function updatingEventFilter(): void { $this->resetPage(); }
-    public function updatingModuleFilter(): void { $this->resetPage(); }
-
-    #[Layout('components.layouts.app')]
-    #[Title('User Activity Logs')]
-    public function render()
+    private function likeOperator(): string
     {
-        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        return config('database.default') === 'pgsql' ? 'ilike' : 'like';
+    }
 
-        $stats = [
+    public function updatedSearch(): void
+    {
+        $this->search = trim(strip_tags($this->search));
+        $this->resetPage();
+    }
+
+    public function updatedEventFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedModuleSearch(string $value): void
+    {
+        $clean = trim(strip_tags($value));
+        $this->moduleSearch = $clean;
+
+        if ($clean === '' || strtoupper($clean) === 'ALL MODULES') {
+            $this->moduleFilter = 'all';
+            $this->resetPage();
+            return;
+        }
+
+        $matched = ActivityLog::whereNotNull('log_name')
+            ->where('log_name', '!=', '')
+            ->where('log_name', $this->likeOperator(), $clean)
+            ->value('log_name');
+
+        if ($matched) {
+            $this->moduleFilter = (string) $matched;
+            $this->resetPage();
+        }
+    }
+
+    public function selectModule(string $module): void
+    {
+        $clean = trim(strip_tags($module));
+
+        if ($clean === '' || $clean === 'all' || strtoupper($clean) === 'ALL MODULES') {
+            $this->moduleFilter = 'all';
+            $this->moduleSearch = '';
+            $this->resetPage();
+            return;
+        }
+
+        $this->moduleFilter = $clean;
+        $this->moduleSearch = ucfirst($clean);
+        $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->eventFilter = 'all';
+        $this->moduleFilter = 'all';
+        $this->moduleSearch = '';
+        $this->resetPage();
+    }
+
+    private function getFilteredLogsQuery(): Builder
+    {
+        $likeOperator = $this->likeOperator();
+
+        return ActivityLog::with('user')
+            ->when($this->eventFilter !== 'all', fn ($q) => $q->where('event', $this->eventFilter))
+            ->when($this->moduleFilter !== 'all', fn ($q) => $q->where('log_name', $this->moduleFilter))
+            ->when($this->search !== '', function ($q) use ($likeOperator) {
+                $term = "%{$this->search}%";
+                $q->where(function ($sub) use ($likeOperator, $term) {
+                    $sub->where('description', $likeOperator, $term)
+                        ->orWhere('ip_address', $likeOperator, $term)
+                        ->orWhereHas('user', fn ($u) => $u->where('name', $likeOperator, $term));
+                });
+            })
+            ->latest('created_at');
+    }
+
+    private function getStats(): array
+    {
+        return [
             'total_logs'    => ActivityLog::count(),
             'total_created' => ActivityLog::where('event', 'created')->count(),
             'total_updated' => ActivityLog::where('event', 'updated')->count(),
             'total_deleted' => ActivityLog::where('event', 'deleted')->count(),
         ];
+    }
 
-        $modules = ActivityLog::select('log_name')->distinct()->pluck('log_name');
+    private function getModules(): Collection
+    {
+        return ActivityLog::whereNotNull('log_name')
+            ->where('log_name', '!=', '')
+            ->select('log_name')
+            ->distinct()
+            ->orderBy('log_name')
+            ->pluck('log_name');
+    }
 
-        $logs = ActivityLog::with('user')
-            ->when($this->eventFilter !== 'all', fn ($q) => $q->where('event', $this->eventFilter))
-            ->when($this->moduleFilter !== 'all', fn ($q) => $q->where('log_name', $this->moduleFilter))
-            ->when($this->search, function ($q) use ($likeOperator) {
-                $q->where(function ($sub) use ($likeOperator) {
-                    $sub->where('description', $likeOperator, "%{$this->search}%")
-                        ->orWhere('ip_address', $likeOperator, "%{$this->search}%")
-                        ->orWhereHas('user', fn ($u) => $u->where('name', $likeOperator, "%{$this->search}%"));
-                });
-            })
-            ->latest('created_at')
-            ->paginate(10);
+    public function exportExcel(): ?StreamedResponse
+    {
+        try {
+            $filename = 'user-activity-logs-' . now()->format('Y-m-d') . '.csv';
+            $logs = $this->getFilteredLogsQuery()->get();
+            $stats = $this->getStats();
+
+            return response()->stream(function () use ($logs, $stats) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+                fputcsv($file, ['TFVC LIBRARY MANAGEMENT SYSTEM']);
+                fputcsv($file, ['USER ACTIVITY LOGS AUDIT REPORT']);
+                fputcsv($file, ['Generated On: ' . now()->format('F d, Y h:i A'), '', 'Generated By: ' . (auth()->user()?->name ?? 'System User')]);
+                fputcsv($file, ['Event Filter: ' . $this->eventFilter, 'Module Filter: ' . $this->moduleFilter, 'Search: ' . ($this->search !== '' ? $this->search : 'None')]);
+                fputcsv($file, []);
+
+                fputcsv($file, ['Total Actions', 'Created', 'Updated', 'Deleted']);
+                fputcsv($file, [$stats['total_logs'], $stats['total_created'], $stats['total_updated'], $stats['total_deleted']]);
+                fputcsv($file, []);
+
+                fputcsv($file, ['User Name', 'Email', 'Event', 'Module', 'Description', 'IP Address', 'Timestamp']);
+
+                foreach ($logs as $log) {
+                    fputcsv($file, [
+                        (string) ($log->user?->name ?? 'System/Automated'),
+                        (string) ($log->user?->email ?? 'N/A'),
+                        (string) ($log->event ?? 'unknown'),
+                        (string) ($log->log_name ?? 'general'),
+                        (string) ($log->description ?? ''),
+                        (string) ($log->ip_address ?? 'N/A'),
+                        $log->created_at ? $log->created_at->format('Y-m-d H:i:s') : 'N/A',
+                    ]);
+                }
+
+                fclose($file);
+            }, 200, [
+                'Content-type'        => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => "attachment; filename={$filename}",
+                'Pragma'              => 'no-cache',
+                'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+                'Expires'             => '0',
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Error exporting user activity logs CSV: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to export user activity logs CSV.', type: 'error');
+            return null;
+        }
+    }
+
+    public function exportPdf(): ?StreamedResponse
+    {
+        try {
+            $logs = $this->getFilteredLogsQuery()->get();
+            $stats = $this->getStats();
+
+            $pdf = Pdf::loadView('pdf.user-activity-logs', [
+                'logs'         => $logs,
+                'stats'        => $stats,
+                'eventFilter'  => $this->eventFilter,
+                'moduleFilter' => $this->moduleFilter,
+                'search'       => $this->search,
+            ])->setPaper('a4', 'landscape');
+
+            $filename = 'user-activity-logs-' . now()->format('Y-m-d_H-i-s') . '.pdf';
+
+            return response()->streamDownload(function () use ($pdf) {
+                echo $pdf->output();
+            }, $filename, [
+                'Content-Type' => 'application/pdf',
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Error exporting user activity logs PDF: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to export user activity logs PDF.', type: 'error');
+            return null;
+        }
+    }
+
+    #[Layout('components.layouts.app')]
+    #[Title('User Activity Logs')]
+    public function render()
+    {
+        try {
+            $stats = $this->getStats();
+            $modules = $this->getModules();
+            $logs = $this->getFilteredLogsQuery()->paginate(10);
+        } catch (Throwable $e) {
+            Log::error('Error loading user activity logs: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to load user activity logs.', type: 'error');
+
+            $stats = [
+                'total_logs'    => 0,
+                'total_created' => 0,
+                'total_updated' => 0,
+                'total_deleted' => 0,
+            ];
+            $modules = new Collection();
+            $logs = new LengthAwarePaginator(collect(), 0, 10);
+        }
 
         return view('livewire.user-activity-logs', [
             'logs'    => $logs,

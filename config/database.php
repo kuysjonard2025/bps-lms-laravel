@@ -1,4 +1,4 @@
-<?php
+<?php // config/database.php
 
 use Illuminate\Support\Str;
 use Pdo\Mysql;
@@ -62,6 +62,11 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+            'dump' => [
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', ''),
+                'use_single_transaction' => true,
+                'timeout' => 60 * 5,
+            ],
         ],
 
         'mariadb' => [
@@ -82,23 +87,12 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+            'dump' => [
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', ''),
+                'use_single_transaction' => true,
+                'timeout' => 60 * 5,
+            ],
         ],
-
-        // Default PostgreSQL configuration
-        // 'pgsql' => [
-        //     'driver' => 'pgsql',
-        //     'url' => env('DB_URL'),
-        //     'host' => env('DB_HOST', '127.0.0.1'),
-        //     'port' => env('DB_PORT', '5432'),
-        //     'database' => env('DB_DATABASE', 'laravel'),
-        //     'username' => env('DB_USERNAME', 'root'),
-        //     'password' => env('DB_PASSWORD', ''),
-        //     'charset' => env('DB_CHARSET', 'utf8'),
-        //     'prefix' => '',
-        //     'prefix_indexes' => true,
-        //     'search_path' => 'public',
-        //     'sslmode' => env('DB_SSLMODE', 'prefer'),
-        // ],
 
         'pgsql' => [
             'driver' => 'pgsql',
@@ -114,7 +108,7 @@ return [
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
             'dump' => [
-                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', '/usr/bin'),
+                'dump_binary_path' => env('DB_DUMP_BINARY_PATH', ''),
                 'timeout' => 60 * 5,
             ],
         ],
