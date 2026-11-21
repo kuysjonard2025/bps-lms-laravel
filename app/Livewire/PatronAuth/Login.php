@@ -5,6 +5,8 @@ namespace App\Livewire\PatronAuth;
 use App\Models\Patron;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -39,40 +41,39 @@ class Login extends Component
 
         $this->validate([
             'borrowerNumber' => 'required|string|max:50',
-        ], [], [
-            'borrowerNumber' => 'Student / Employee ID or RFID Tag',
-        ]);
+        ], [], ['borrowerNumber' => 'Student / Employee ID or RFID Tag']);
+
+        $throttleKey = 'patron-login:' . request()->ip();
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 10)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            $this->addError('borrowerNumber', "Too many failed attempts. Please wait {$seconds} seconds.");
+            return;
+        }
 
         try {
-            $op = $this->likeOperator();
+            $lower = Str::lower($cleanId);
 
             $patron = Patron::with('patronType')
-                ->where(function ($query) use ($op, $cleanId) {
-                    $query->where('school_id', $op, $cleanId)
-                        ->orWhere('rfid_tag', $op, $cleanId);
-                })
+                ->where(fn ($q) => $q->whereRaw('LOWER(school_id) = ?', [$lower])
+                                    ->orWhereRaw('LOWER(rfid_tag) = ?', [$lower]))
                 ->first();
 
-            if (! $patron) {
-                $this->addError('borrowerNumber', 'Student / Employee ID or RFID tag not found.');
+            if (! $patron || strtolower((string) $patron->status) !== 'active') {
+                RateLimiter::hit($throttleKey, 60);
+                $this->addError('borrowerNumber', 'ID not found or account inactive. Please approach the librarian if you need help.');
                 return;
             }
 
-            if (strtolower((string) ($patron->status ?? '')) !== 'active') {
-                $this->addError('borrowerNumber', 'Your library account is currently inactive. Please approach the librarian.');
-                return;
-            }
-
+            RateLimiter::clear($throttleKey);
             Session::regenerate();
             Session::put('patron_session_id', $patron->id);
+            Session::put('patron_last_activity', now()->timestamp);
 
             $this->dispatch('toast', type: 'success', message: 'Welcome to the Library Portal!');
             $this->redirect(route('patron.portal'), navigate: true);
         } catch (Throwable $e) {
-            Log::error('Failed patron login attempt in PatronAuth\\Login::login: ' . $e->getMessage(), [
-                'borrower_number' => $cleanId,
-                'exception'       => $e,
-            ]);
+            Log::error('Patron login failed: ' . $e->getMessage(), ['exception' => $e]);
             $this->dispatch('toast', type: 'error', message: 'Unable to process patron sign-in right now.');
         }
     }

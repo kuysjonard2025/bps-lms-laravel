@@ -4,7 +4,9 @@ namespace App\Livewire\Auth;
 
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -17,36 +19,38 @@ class Login extends Component
 
     public function login()
     {
-        // 1. Generate unique key for the IP + endpoint
-        $throttleKey = 'login-attempt:' . request()->ip();
+        $this->validate([
+            'umail' => 'required|string|max:100',
+            'password' => 'required|string',
+        ], [
+            'umail.required' => 'Username or email field is required.',
+        ]);
 
-        // 2. Block execution if attempts exceed limit (5 attempts)
+        $umail = trim($this->umail);
+
+        // Key = username/email + IP, normalized so casing can't create new buckets
+        $throttleKey = Str::transliterate('login-attempt:' . Str::lower($umail) . '|' . request()->ip());
+
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
-            // Dispatch the Lockout event manually so your AuthLog listener catches it
-            event(new Lockout(request()));
-
             $seconds = RateLimiter::availableIn($throttleKey);
+
+            // Fire Lockout only once per lockout window so the auth log isn't flooded
+            if (Cache::add("lockout-logged:{$throttleKey}", true, $seconds)) {
+                event(new Lockout(request()));
+            }
 
             $this->addError(
                 'warning',
                 "Too many failed login attempts. Please wait {$seconds} seconds before trying again."
             );
+            $this->reset('password');
 
             return;
         }
 
-        $this->validate([
-            'umail' => 'required',
-            'password' => 'required',
-        ], [
-            'umail.required' => 'Username or email field is required.',
-        ]);
+        $field = filter_var($umail, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
 
-        // Check if input is email or username
-        $field = filter_var($this->umail, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
-
-        if (Auth::attempt([$field => $this->umail, 'password' => $this->password], $this->remember)) {
-            // Clear attempts on success
+        if (Auth::attempt([$field => $umail, 'password' => $this->password], $this->remember)) {
             RateLimiter::clear($throttleKey);
 
             session()->regenerate();
@@ -54,9 +58,9 @@ class Login extends Component
             return $this->redirectIntended(default: route('dashboard'), navigate: true);
         }
 
-        // 3. Increment failed attempts (expires after 60 seconds)
         RateLimiter::hit($throttleKey, 60);
 
+        $this->reset('password');
         $this->addError('warning', 'The provided credentials do not match our records.');
     }
 
@@ -66,5 +70,4 @@ class Login extends Component
     {
         return view('livewire.auth.login');
     }
-
 }
