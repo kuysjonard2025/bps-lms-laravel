@@ -1,7 +1,17 @@
+# .dockerignore
+
 /node_modules
 /vendor
 /public/storage
 /public/build
+/storage/logs/*
+/bootstrap/cache/*.php
+/tests
 .env
+.env.*
+!.env.example
 .git
 .github
+.phpunit.result.cache
+.DS_Store
+Thumbs.db
