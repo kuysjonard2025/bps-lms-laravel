@@ -8,6 +8,21 @@
 
     <title>{{ $title ? $title . ' - BPS LMS' : 'Bicutan Parochial School, Inc.' }}</title>
 
+    {{-- Prevent Flash of Unstyled Dark/Light Theme --}}
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem('theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+
     {{-- Favicon --}}
     <link rel="icon" type="image/png" href="{{ asset('images/bps-logo.png') }}">
 
