@@ -124,7 +124,7 @@ class CompleteProfile extends Component
 
         session()->flash('status', 'Profile updated successfully!');
 
-        return $this->redirectRoute('asset-details', navigate: true);
+        return $this->redirectRoute('dashboard', navigate: true);
     }
 
     #[Layout('components.layouts.guest')]
