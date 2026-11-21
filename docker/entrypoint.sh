@@ -45,8 +45,12 @@ if [ "$APP_ENV" = "production" ]; then
     php artisan view:cache
 fi
 
-echo "===> Starting PHP-FPM..."
+echo "===> Testing PHP-FPM and Nginx configurations..."
+php-fpm -t
+nginx -t
+
+echo "===> Starting PHP-FPM background service..."
 php-fpm -D
 
-echo "===> Starting Nginx..."
+echo "===> Starting Nginx foreground service..."
 exec nginx -g "daemon off;"

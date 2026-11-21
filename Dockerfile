@@ -14,7 +14,6 @@ RUN npm run build
 # --- Stage 2: Application Runtime ---
 FROM php:8.3-fpm-alpine
 
-# Runtime libraries + build headers compiled into PHP extensions, then build headers cleaned up
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -42,8 +41,9 @@ RUN apk add --no-cache \
     && docker-php-ext-install -j"$(nproc)" pdo pdo_mysql pdo_pgsql bcmath opcache zip gd \
     && apk del .build-deps
 
-# Disable PHP-FPM access logging across configs
-RUN sed -i 's|^access.log = .*|access.log = /dev/null|g' /usr/local/etc/php-fpm.d/www.conf \
+# Ensure PHP-FPM listens on 127.0.0.1:9000 and disables noisy access logs
+RUN sed -i 's|^listen = .*|listen = 127.0.0.1:9000|g' /usr/local/etc/php-fpm.d/www.conf \
+    && sed -i 's|^access.log = .*|access.log = /dev/null|g' /usr/local/etc/php-fpm.d/www.conf \
     && sed -i 's|^access.log = .*|access.log = /dev/null|g' /usr/local/etc/php-fpm.d/docker.conf \
     && echo "access.log = /dev/null" >> /usr/local/etc/php-fpm.d/zz-docker.conf
 
@@ -59,6 +59,7 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-di
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
+RUN rm -f /etc/nginx/http.d/*.conf
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

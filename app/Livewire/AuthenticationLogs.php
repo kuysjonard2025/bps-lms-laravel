@@ -2,59 +2,211 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\AuthLog;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class AuthenticationLogs extends Component
 {
-    use WithPagination;
+    use WithPagination, SanitizesInputs;
 
-    // Filters & Search
     public string $search = '';
     public string $eventFilter = 'all';
     public string $dateRange = 'all';
 
-    public function updatingSearch(): void { $this->resetPage(); }
-    public function updatingEventFilter(): void { $this->resetPage(); }
-    public function updatingDateRange(): void { $this->resetPage(); }
-
-    #[Layout('components.layouts.app')]
-    #[Title('Authentication Logs')]
-    public function render()
+    private function likeOperator(): string
     {
-        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        return config('database.default') === 'pgsql' ? 'ilike' : 'like';
+    }
 
-        // Overall Aggregate Metrics
-        $stats = [
+    public function updatedSearch(): void
+    {
+        $this->search = trim(strip_tags($this->search));
+        $this->resetPage();
+    }
+
+    public function updatedEventFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedDateRange(): void
+    {
+        $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->search = '';
+        $this->eventFilter = 'all';
+        $this->dateRange = 'all';
+        $this->resetPage();
+    }
+
+    private function getFilteredLogsQuery(): Builder
+    {
+        $likeOperator = $this->likeOperator();
+
+        return AuthLog::with('user')
+            ->when($this->eventFilter !== 'all', fn ($q) => $q->where('event', $this->eventFilter))
+            ->when($this->dateRange !== 'all', function ($q) {
+                match ($this->dateRange) {
+                    'today'   => $q->whereDate('logged_at', today()),
+                    '7_days'  => $q->where('logged_at', '>=', now()->subDays(7)),
+                    '30_days' => $q->where('logged_at', '>=', now()->subDays(30)),
+                    default   => null,
+                };
+            })
+            ->when($this->search !== '', function ($q) use ($likeOperator) {
+                $term = "%{$this->search}%";
+                $q->where(function ($sub) use ($likeOperator, $term) {
+                    $sub->where('email', $likeOperator, $term)
+                        ->orWhere('ip_address', $likeOperator, $term)
+                        ->orWhereHas('user', fn ($u) => $u->where('name', $likeOperator, $term));
+                });
+            })
+            ->orderBy('logged_at', 'desc');
+    }
+
+    private function getStats(): array
+    {
+        return [
             'total_logs'    => AuthLog::count(),
             'login_success' => AuthLog::where('event', 'login_success')->count(),
             'login_failed'  => AuthLog::where('event', 'login_failed')->count(),
             'lockouts'      => AuthLog::where('event', 'lockout')->count(),
         ];
+    }
 
-        // Query Logs with Filters
-        $logs = AuthLog::with('user')
-            ->when($this->eventFilter !== 'all', fn ($q) => $q->where('event', $this->eventFilter))
-            ->when($this->dateRange !== 'all', function ($q) {
-                match ($this->dateRange) {
-                    'today'      => $q->whereDate('logged_at', today()),
-                    '7_days'     => $q->where('logged_at', '>=', now()->subDays(7)),
-                    '30_days'    => $q->where('logged_at', '>=', now()->subDays(30)),
-                    default      => null,
-                };
-            })
-            ->when($this->search, function ($q) use ($likeOperator) {
-                $q->where(function ($sub) use ($likeOperator) {
-                    $sub->where('email', $likeOperator, "%{$this->search}%")
-                        ->orWhere('ip_address', $likeOperator, "%{$this->search}%")
-                        ->orWhereHas('user', fn ($u) => $u->where('name', $likeOperator, "%{$this->search}%"));
-                });
-            })
-            ->orderBy('logged_at', 'desc')
-            ->paginate(10);
+    private function resolveLogUserName(AuthLog $log): string
+    {
+        $user = $log->user;
+        if (! $user) {
+            return 'Unregistered User';
+        }
+
+        if (method_exists($user, 'getFullNameAttribute') && filled($user->full_name)) {
+            return (string) $user->full_name;
+        }
+
+        $parts = array_filter([
+            $user->first_name ?? null,
+            $user->middle_name ? mb_substr(trim((string) $user->middle_name), 0, 1) . '.' : null,
+            $user->last_name ?? null,
+        ]);
+
+        if (! empty($parts)) {
+            return trim(implode(' ', $parts) . ($user->suffix ? ' ' . $user->suffix : ''));
+        }
+
+        return (string) ($user->name ?? 'Unregistered User');
+    }
+
+    public function exportExcel(): ?StreamedResponse
+    {
+        try {
+            $filename = 'authentication-logs-' . now()->format('Y-m-d') . '.csv';
+            $logs = $this->getFilteredLogsQuery()->get();
+            $stats = $this->getStats();
+
+            return response()->stream(function () use ($logs, $stats) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+                fputcsv($file, ['TFVC LIBRARY MANAGEMENT SYSTEM']);
+                fputcsv($file, ['AUTHENTICATION LOGS AUDIT REPORT']);
+                fputcsv($file, ['Generated On: ' . now()->format('F d, Y h:i A'), '', 'Generated By: ' . (auth()->user()?->name ?? 'System User')]);
+                fputcsv($file, ['Event Filter: ' . $this->eventFilter, 'Date Range: ' . $this->dateRange, 'Search: ' . ($this->search !== '' ? $this->search : 'None')]);
+                fputcsv($file, []);
+
+                fputcsv($file, ['Total Auth Events', 'Successful Logins', 'Failed Attempts', 'Lockouts']);
+                fputcsv($file, [$stats['total_logs'], $stats['login_success'], $stats['login_failed'], $stats['lockouts']]);
+                fputcsv($file, []);
+
+                fputcsv($file, ['User Name', 'Targeted Email', 'Event', 'IP Address', 'User Agent', 'Timestamp']);
+
+                foreach ($logs as $log) {
+                    fputcsv($file, [
+                        $this->resolveLogUserName($log),
+                        (string) ($log->email ?? 'N/A'),
+                        (string) ($log->event ?? 'unknown'),
+                        (string) ($log->ip_address ?? 'N/A'),
+                        (string) ($log->user_agent ?? 'N/A'),
+                        $log->logged_at ? $log->logged_at->format('Y-m-d H:i:s') : 'N/A',
+                    ]);
+                }
+
+                fclose($file);
+            }, 200, [
+                'Content-type'        => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => "attachment; filename={$filename}",
+                'Pragma'              => 'no-cache',
+                'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+                'Expires'             => '0',
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Error exporting authentication logs CSV: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to export authentication logs CSV.', type: 'error');
+            return null;
+        }
+    }
+
+    public function exportPdf(): ?StreamedResponse
+    {
+        try {
+            $logs = $this->getFilteredLogsQuery()->get();
+            $stats = $this->getStats();
+
+            $pdf = Pdf::loadView('pdf.authentication-logs', [
+                'logs'        => $logs,
+                'stats'       => $stats,
+                'eventFilter' => $this->eventFilter,
+                'dateRange'   => $this->dateRange,
+                'search'      => $this->search,
+            ])->setPaper('a4', 'landscape');
+
+            $filename = 'authentication-logs-' . now()->format('Y-m-d_H-i-s') . '.pdf';
+
+            return response()->streamDownload(function () use ($pdf) {
+                echo $pdf->output();
+            }, $filename, [
+                'Content-Type' => 'application/pdf',
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Error exporting authentication logs PDF: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to export authentication logs PDF.', type: 'error');
+            return null;
+        }
+    }
+
+    #[Layout('components.layouts.app')]
+    #[Title('Authentication Logs')]
+    public function render()
+    {
+        try {
+            $stats = $this->getStats();
+            $logs = $this->getFilteredLogsQuery()->paginate(10);
+        } catch (Throwable $e) {
+            Log::error('Error loading authentication logs: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to load authentication logs.', type: 'error');
+
+            $stats = [
+                'total_logs'    => 0,
+                'login_success' => 0,
+                'login_failed'  => 0,
+                'lockouts'      => 0,
+            ];
+            $logs = new LengthAwarePaginator(collect(), 0, 10);
+        }
 
         return view('livewire.authentication-logs', [
             'logs'  => $logs,
