@@ -2,20 +2,24 @@
 
 namespace App\Livewire;
 
+use App\Exports\CatalogsExcelExport;
 use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\AssetType;
 use App\Models\Author;
 use App\Models\Catalog;
 use App\Models\GeneralReference;
 use App\Models\Publisher;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
 use Throwable;
 
 class Catalogs extends Component
@@ -46,6 +50,37 @@ class Catalogs extends Component
     public string $assetTypeSearch = '';
     public string $publisherSearch = '';
     public string $generalReferenceSearch = '';
+
+    #[On('catalogs-imported')]
+    public function handleCatalogsImported(): void
+    {
+        $this->resetPage();
+    }
+
+    public function exportExcel()
+    {
+        $fileName = 'catalogs-export-' . now()->format('Y-m-d') . '.xlsx';
+
+        return Excel::download(new CatalogsExcelExport($this->search), $fileName);
+    }
+
+    public function exportPdf()
+    {
+        $catalogs = Catalog::with(['author', 'assetType', 'publisher', 'generalReference'])
+            ->when(trim($this->search) !== '', fn ($query) => $query->search(trim($this->search)))
+            ->latest()
+            ->get();
+
+        $pdf = Pdf::loadView('pdf.catalogs-report', [
+            'catalogs' => $catalogs,
+            'search'   => trim($this->search),
+        ])->setPaper('a4', 'landscape');
+
+        return response()->streamDownload(
+            static fn () => print($pdf->output()),
+            'catalogs-report-' . now()->format('Y-m-d') . '.pdf',
+        );
+    }
 
     private function likeOperator(): string
     {

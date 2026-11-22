@@ -53,6 +53,28 @@
                 <x-heroicon-o-plus class="w-4 h-4" aria-hidden="true" />
                 <span>Add Catalog</span>
             </button>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <button
+                    type="button"
+                    wire:click="exportExcel"
+                    wire:target="exportExcel"
+                    wire:loading.attr="disabled"
+                    class="px-3.5 py-2 text-xs font-medium rounded-xl border border-surface-border bg-surface-card hover:bg-surface-canvas text-content-heading transition cursor-pointer disabled:opacity-50"
+                >
+                    Export Excel
+                </button>
+                <button
+                    type="button"
+                    wire:click="exportPdf"
+                    wire:target="exportPdf"
+                    wire:loading.attr="disabled"
+                    class="px-3.5 py-2 text-xs font-medium rounded-xl border border-surface-border bg-surface-card hover:bg-surface-canvas text-content-heading transition cursor-pointer disabled:opacity-50"
+                >
+                    Export PDF
+                </button>
+                {{-- Existing + Add Catalog button --}}
+            </div>
         </div>
     </section>
 
@@ -85,9 +107,6 @@
                             </td>
                             <td class="p-3 pl-4 font-medium text-content-heading max-w-[220px] truncate whitespace-nowrap">
                                 <div class="font-bold truncate" title="{{ Str::title($catalog->title) }}">{{ Str::title($catalog->title) }}</div>
-                                @if($catalog->edition)
-                                    <div class="text-[10px] text-content-muted font-normal">{{ Str::title($catalog->edition) }} Edition</div>
-                                @endif
                             </td>
                             <td class="p-3 text-content-heading whitespace-nowrap font-medium">
                                 @if($catalog->author?->name)

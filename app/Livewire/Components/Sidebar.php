@@ -92,6 +92,11 @@ class Sidebar extends Component
                     'route' => 'kiosk.settings',
                     'icon' => 'key',
                 ],
+                [
+                    'name' => 'Imports Hub',
+                    'route' => 'imports.index',
+                    'icon' => 'arrow-up-tray',
+                ],
             ];
 
             $sections['System Monitoring'] = [

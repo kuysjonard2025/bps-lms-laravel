@@ -16,6 +16,7 @@ use App\Livewire\Circulations;
 use App\Livewire\CirculationPolicy;
 use App\Livewire\Dashboard;
 use App\Livewire\DatabaseBackups;
+use App\Livewire\Imports\ImportsIndex;
 use App\Livewire\InventoryManagement;
 use App\Livewire\Kiosk\KioskLogin;
 use App\Livewire\Kiosk\PatronKiosk;
@@ -88,6 +89,7 @@ Route::middleware('auth')->group(function () {
             // Pages
             Route::get('/asset-details', AssetDetails::class)->name('asset-details');
             Route::get('/catalogs', Catalogs::class)->name('catalogs');
+            Route::get('/imports', ImportsIndex::class)->name('imports.index');
             Route::get('/vendors', Vendors::class)->name('vendors');
             Route::get('/accessions', Accessions::class)->name('accessions');
             Route::get('/academic-info', AcademicInfo::class)->name('academic-info');
