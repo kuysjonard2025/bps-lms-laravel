@@ -57,13 +57,13 @@
                     {{ $limit ? $limit->loan_duration_days . ' ' . Str::plural('Day', $limit->loan_duration_days) : 'Not Configured' }}
                 </p>
             </div>
-            <button
+            {{-- <button
                 wire:click="editLimit({{ $limit?->id }})"
                 type="button"
                 class="text-xs font-semibold text-brand-primary hover:underline cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
             >
                 Edit
-            </button>
+            </button> --}}
         </div>
     </div>
 

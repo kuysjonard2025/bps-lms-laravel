@@ -252,10 +252,11 @@
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1 text-content-body">
                             <div><span class="text-content-muted">Asset Type:</span> <span class="font-medium text-content-heading">{{ $selectedAccession->catalog?->assetType?->name ? Str::title($selectedAccession->catalog->assetType->name) : 'N/A' }}</span></div>
+                            <div><span class="text-content-muted">Call Number:</span> <span class="font-mono font-semibold text-brand-primary">{{ Str::upper($selectedAccession->catalog?->call_number) ?: 'N/A' }}</span></div>
                             <div><span class="text-content-muted">Author:</span> <span class="font-medium text-content-heading">{{ $selectedAccession->catalog?->author?->name ? Str::title($selectedAccession->catalog->author->name) : 'N/A' }}</span></div>
+                            <div><span class="text-content-muted">Publisher:</span> <span class="font-medium text-content-heading">{{ $selectedAccession->catalog?->publisher?->name ? Str::title($selectedAccession->catalog->publisher->name) : 'N/A' }}</span></div>
                             <div><span class="text-content-muted">Copyright Year:</span> <span class="font-mono text-content-heading">{{ $selectedAccession->catalog?->publication_year ?? 'N/A' }}</span></div>
-                            <div><span class="text-content-muted">Call Number:</span> <span class="font-mono font-semibold text-brand-primary">{{ $selectedAccession->call_number ?: 'N/A' }}</span></div>
-                            <div class="sm:col-span-2"><span class="text-content-muted">General Reference:</span> <span class="font-medium text-content-heading">{{ $selectedAccession->catalog?->generalReference?->name ? Str::title($selectedAccession->catalog->generalReference->name) : 'N/A' }}</span></div>
+                            <div><span class="text-content-muted">General Reference:</span> <span class="font-medium text-content-heading">{{ $selectedAccession->catalog?->generalReference?->name ? Str::title($selectedAccession->catalog->generalReference->name) : 'N/A' }}</span></div>
                         </div>
                     </div>
                 @else
