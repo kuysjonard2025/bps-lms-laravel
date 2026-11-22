@@ -273,15 +273,15 @@
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Author</th>
                             <th scope="col" class="px-4 py-3 whitespace-nowrap">Asset Type</th>
                             <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Total</th>
-                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Accessioned</th>
                             <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Unaccessioned</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Accessioned</th>
                             <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Available</th>
-                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">On Loan</th>
                             <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Stored</th>
-                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Maintenance</th>
-                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Dumped</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">On Loan</th>
                             <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Damaged</th>
                             <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Lost</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Maintenance</th>
+                            <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Dumped</th>
                             <th scope="col" class="px-4 py-3 text-center whitespace-nowrap">Batches</th>
                         </tr>
                     </thead>
@@ -309,32 +309,32 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center font-bold font-mono text-content-heading">{{ $totalStock }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-center font-semibold font-mono text-content-heading">{{ $accessionedCopies }}</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono {{ $unaccessionedCopies > 0 ? 'bg-brand-secondary/15 text-brand-secondary' : 'bg-surface-canvas text-content-muted' }}">
                                         {{ $unaccessionedCopies }}
                                     </span>
                                 </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center font-semibold font-mono text-content-heading">{{ $accessionedCopies }}</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono bg-brand-tint-light text-brand-primary">{{ $catalog->available_copies }}</span>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-center">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono bg-brand-tint text-brand-primary">{{ $catalog->on_loan_copies }}</span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono bg-brand-tint-light border border-brand-primary/20 text-brand-primary">{{ $catalog->stored_copies }}</span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono bg-brand-secondary/10 text-brand-secondary">{{ $catalog->maintenance_copies }}</span>
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-center">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono {{ $catalog->dumped_copies > 0 ? 'bg-surface-canvas border border-surface-border text-content-heading' : 'bg-surface-canvas text-content-muted' }}">{{ $catalog->dumped_copies }}</span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono bg-brand-tint text-brand-primary">{{ $catalog->on_loan_copies }}</span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono {{ $catalog->damaged_copies > 0 ? 'bg-brand-secondary/15 text-brand-secondary' : 'bg-surface-canvas text-content-muted' }}">{{ $catalog->damaged_copies }}</span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono {{ $catalog->lost_copies > 0 ? 'bg-brand-secondary/15 text-brand-secondary' : 'bg-surface-canvas text-content-muted' }}">{{ $catalog->lost_copies }}</span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono bg-brand-secondary/10 text-brand-secondary">{{ $catalog->maintenance_copies }}</span>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono {{ $catalog->dumped_copies > 0 ? 'bg-surface-canvas border border-surface-border text-content-heading' : 'bg-surface-canvas text-content-muted' }}">{{ $catalog->dumped_copies }}</span>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center font-mono text-content-body">{{ $catalog->acquisition_batches }}</td>
                             </tr>

@@ -5,7 +5,7 @@
         <div class="bg-surface-card border border-surface-border rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wider text-brand-primary">PATRON KIOSK & OPAC CATALOG</p>
-                <h1 class="text-xl sm:text-2xl font-bold text-content-heading mt-1">LIBRARY PORTAL</h1>
+                <h1 class="text-xl sm:text-2xl font-bold text-content-heading mt-1">BPS LIBRARY PORTAL</h1>
                 <p class="text-sm text-content-body mt-1">BROWSE THE PUBLIC CATALOG, TRACK LOANS & OVERDUE ITEMS, AND VIEW PATRON PROFILE DETAILS.</p>
             </div>
 
