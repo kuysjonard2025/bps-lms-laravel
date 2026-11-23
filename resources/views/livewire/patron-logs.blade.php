@@ -1,4 +1,4 @@
-{{-- resources/views/livewire/patron-logs.blade.php --}}
+<?php // resources/views/livewire/patron-logs.blade.php ?>
 @php
     use Illuminate\Support\Str;
     use Carbon\Carbon;
@@ -80,7 +80,8 @@
 
             <button
                 type="button"
-                wire:click="$set('showForceCheckoutModal', true)"
+                wire:click="openForceCheckoutModal"
+                wire:target="openForceCheckoutModal"
                 wire:loading.attr="disabled"
                 class="inline-flex items-center gap-1.5 rounded-xl bg-brand-secondary px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:opacity-90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-secondary/20 transition cursor-pointer disabled:opacity-50"
             >
@@ -291,9 +292,8 @@
                                     @if(! $log->time_out)
                                         <button
                                             type="button"
-                                            wire:click="manualCheckOut({{ $log->id }})"
-                                            wire:target="manualCheckOut({{ $log->id }})"
-                                            wire:confirm="Are you sure you want to manually log out this patron?"
+                                            wire:click="confirmManualCheckOut({{ $log->id }})"
+                                            wire:target="confirmManualCheckOut({{ $log->id }})"
                                             class="text-xs font-semibold text-brand-secondary hover:bg-brand-secondary/10 px-2.5 py-1 rounded-lg transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary"
                                         >
                                             Log Out
@@ -322,6 +322,51 @@
             </div>
         @endif
     </div>
+
+    {{-- Manual Checkout Confirmation Modal --}}
+    @if($showManualCheckoutModal)
+        <div
+            class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manual-checkout-modal-title"
+            @keydown.escape.window="$wire.set('showManualCheckoutModal', false)"
+        >
+            <div wire:click="$set('showManualCheckoutModal', false)" class="fixed inset-0 bg-content-heading/55 backdrop-blur-2xs"></div>
+            <div class="relative bg-surface-card border border-surface-border rounded-2xl shadow-xl w-full max-w-md z-10 overflow-hidden my-auto p-6 space-y-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-brand-secondary/15 text-brand-secondary flex items-center justify-center shrink-0">
+                        <x-heroicon-o-exclamation-triangle class="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <h3 id="manual-checkout-modal-title" class="text-sm font-bold text-content-heading">Manual Patron Log Out</h3>
+                </div>
+
+                <p class="text-xs text-content-body leading-relaxed">
+                    Are you sure you want to manually log out this active patron session?
+                </p>
+
+                <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-3 border-t border-surface-border/70">
+                    <button
+                        type="button"
+                        wire:click="$set('showManualCheckoutModal', false)"
+                        class="w-full sm:w-auto px-3.5 py-2 text-xs font-semibold text-content-body bg-surface-canvas border border-surface-border hover:text-content-heading rounded-xl transition cursor-pointer"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="manualCheckOut"
+                        wire:target="manualCheckOut"
+                        wire:loading.attr="disabled"
+                        class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-white bg-brand-secondary hover:opacity-90 rounded-xl shadow-2xs transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        <span wire:loading wire:target="manualCheckOut" class="animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                        <span>Confirm Log Out</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 
     {{-- Force Checkout Modal --}}
     @if($showForceCheckoutModal)

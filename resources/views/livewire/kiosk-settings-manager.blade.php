@@ -1,4 +1,4 @@
-{{-- resources/views/livewire/kiosk-settings.blade.php --}}
+<?php // resources/views/livewire/kiosk-settings.blade.php ?>
 @php
     use Illuminate\Support\Str;
 @endphp
@@ -52,7 +52,7 @@
                     type="text"
                     wire:model="terminal_name"
                     placeholder="e.g. Main Library Entrance Kiosk"
-                    class="w-full px-3 py-2 bg-surface-canvas border border-surface-border rounded-xl text-xs text-content-heading placeholder:text-content-muted focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                    class="w-full px-3 py-2 bg-surface-canvas border rounded-xl text-xs text-content-heading placeholder:text-content-muted focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('terminal_name') border-brand-secondary @else border-surface-border @enderror"
                 >
                 @error('terminal_name') <span class="text-brand-secondary text-[11px] mt-1 block font-medium">{{ $message }}</span> @enderror
             </div>
@@ -66,7 +66,7 @@
                     type="password"
                     wire:model="pin"
                     placeholder="Enter new PIN (min 4 characters)"
-                    class="w-full px-3 py-2 bg-surface-canvas border border-surface-border rounded-xl text-xs font-mono tracking-widest text-content-heading placeholder:text-content-muted focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                    class="w-full px-3 py-2 bg-surface-canvas border rounded-xl text-xs font-mono tracking-widest text-content-heading placeholder:text-content-muted focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('pin') border-brand-secondary @else border-surface-border @enderror"
                 >
                 @error('pin') <span class="text-brand-secondary text-[11px] mt-1 block font-medium">{{ $message }}</span> @enderror
             </div>
@@ -80,7 +80,7 @@
                     type="password"
                     wire:model="pin_confirmation"
                     placeholder="Re-enter new PIN"
-                    class="w-full px-3 py-2 bg-surface-canvas border border-surface-border rounded-xl text-xs font-mono tracking-widest text-content-heading placeholder:text-content-muted focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                    class="w-full px-3 py-2 bg-surface-canvas border rounded-xl text-xs font-mono tracking-widest text-content-heading placeholder:text-content-muted focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('pin_confirmation') border-brand-secondary @else border-surface-border @enderror"
                 >
                 @error('pin_confirmation') <span class="text-brand-secondary text-[11px] mt-1 block font-medium">{{ $message }}</span> @enderror
             </div>

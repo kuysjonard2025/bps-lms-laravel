@@ -1,6 +1,4 @@
-<?php
-
-// app/Livewire/Acquisitions.php
+<?php // app/Livewire/Acquisitions.php
 
 namespace App\Livewire;
 
@@ -52,14 +50,19 @@ class Acquisitions extends Component
     public ?int $acquisitionIdBeingEdited = null;
     public ?int $acquisitionIdBeingDeleted = null;
 
-    protected function rules(): array
+    private function likeOperator(): string
+    {
+        return DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+    }
+
+    private function validationRules(): array
     {
         return [
             'transaction_number' => ['required', 'string', 'min:1', 'max:50'],
             'delivery_type'      => ['required', 'string', 'in:purchase,donation'],
             'status'             => ['required', 'string', 'in:pending,partial,delivered'],
-            'vendor_id'          => 'required|integer|exists:vendors,id',
-            'catalog_id'         => 'required|integer|exists:catalogs,id',
+            'vendor_id'          => ['required', 'integer', 'exists:vendors,id'],
+            'catalog_id'         => ['required', 'integer', 'exists:catalogs,id'],
             'quantity_ordered'   => [
                 'required',
                 'integer',
@@ -69,13 +72,13 @@ class Acquisitions extends Component
                     if ($this->acquisitionIdBeingEdited) {
                         $accessionedCount = Accession::where('acquisition_id', $this->acquisitionIdBeingEdited)->count();
 
-                        if ($value < $accessionedCount) {
+                        if ((int) $value < $accessionedCount) {
                             $fail("Ordered quantity cannot be lower than {$accessionedCount} because that many items have already been accessioned.");
                         }
                     }
                 },
             ],
-            'quantity_received' => [
+            'quantity_received'  => [
                 'required',
                 'integer',
                 'min:0',
@@ -84,29 +87,46 @@ class Acquisitions extends Component
                     if ($this->acquisitionIdBeingEdited) {
                         $accessionedCount = Accession::where('acquisition_id', $this->acquisitionIdBeingEdited)->count();
 
-                        if ($value < $accessionedCount) {
+                        if ((int) $value < $accessionedCount) {
                             $fail("Received quantity cannot be lower than {$accessionedCount} because that many items have already been accessioned.");
                         }
                     }
                 },
             ],
-            'unit_cost'     => 'required|numeric|min:0|max:99999999.99',
-            'delivery_date' => ['required', 'date', 'after_or_equal:today', 'before_or_equal:' . now()->addMonths(2)->format('Y-m-d')],
-            'received_date' => 'nullable|date|before_or_equal:today|required_if:status,delivered,partial',
-            'remarks'       => 'nullable|string',
+            'unit_cost'          => ['required', 'numeric', 'min:0', 'max:99999999.99'],
+            'delivery_date'      => ['required', 'date', 'after_or_equal:today', 'before_or_equal:' . now()->addMonths(2)->format('Y-m-d')],
+            'received_date'      => ['nullable', 'date', 'before_or_equal:today', 'required_if:status,delivered,partial'],
+            'remarks'            => ['nullable', 'string'],
         ];
     }
 
-    protected function messages(): array
+    private function validationMessages(): array
     {
         return [
-            'transaction_number.max'         => 'Transaction number must not exceed 50 characters.',
-            'delivery_type.in'               => 'Selected delivery type must be either purchase or donation.',
-            'quantity_received.lte'          => 'Received quantity cannot exceed ordered quantity.',
-            'delivery_date.required'         => 'Expected delivery date is required.',
-            'delivery_date.after_or_equal'   => 'The expected delivery date must be today or a future date.',
-            'delivery_date.before_or_equal'  => 'The expected delivery date cannot be more than 2 months from today.',
-            'received_date.required_if'      => 'Received date is required when the acquisition is marked as delivered or partial.',
+            'transaction_number.max'        => 'Transaction number must not exceed 50 characters.',
+            'delivery_type.in'              => 'Selected delivery type must be either purchase or donation.',
+            'quantity_received.lte'         => 'Received quantity cannot exceed ordered quantity.',
+            'delivery_date.required'        => 'Expected delivery date is required.',
+            'delivery_date.after_or_equal'  => 'The expected delivery date must be today or a future date.',
+            'delivery_date.before_or_equal' => 'The expected delivery date cannot be more than 2 months from today.',
+            'received_date.required_if'     => 'Received date is required when the acquisition is marked as delivered or partial.',
+        ];
+    }
+
+    private function validationAttributes(): array
+    {
+        return [
+            'transaction_number' => 'Transaction / Invoice #',
+            'delivery_type'      => 'Delivery Type',
+            'status'             => 'Fulfillment Status',
+            'vendor_id'          => 'Vendor',
+            'catalog_id'         => 'Catalog Item',
+            'quantity_ordered'   => 'Quantity Ordered',
+            'quantity_received'  => 'Quantity Received',
+            'unit_cost'          => 'Unit Cost',
+            'delivery_date'      => 'Expected Delivery Date',
+            'received_date'      => 'Received Date',
+            'remarks'            => 'Remarks',
         ];
     }
 
@@ -133,8 +153,9 @@ class Acquisitions extends Component
         }
 
         if ($value === 'donation') {
+            $this->unit_cost = 0.0;
             $this->status = 'delivered';
-            $this->quantity_received = $this->quantity_ordered;
+            $this->quantity_received = (int) $this->quantity_ordered;
             $this->received_date = $this->received_date ?? now()->format('Y-m-d');
         }
     }
@@ -163,6 +184,7 @@ class Acquisitions extends Component
 
     public function updatedSearch(): void
     {
+        $this->search = trim(strip_tags($this->search));
         $this->resetPage();
     }
 
@@ -181,35 +203,47 @@ class Acquisitions extends Component
     #[Computed]
     public function vendors()
     {
-        return Vendor::orderBy('company_name')
-            ->get([
-                'id',
-                'company_name',
-                'contact_first_name',
-                'contact_middle_name',
-                'contact_last_name',
-                'contact_email',
-                'contact_number',
-                'company_address',
-            ])
-            ->map(function ($vendor) {
-                $vendor->company_name = mb_convert_encoding((string) $vendor->company_name, 'UTF-8', 'UTF-8');
+        try {
+            return Vendor::orderBy('company_name')
+                ->get([
+                    'id',
+                    'company_name',
+                    'contact_first_name',
+                    'contact_middle_name',
+                    'contact_last_name',
+                    'contact_email',
+                    'contact_number',
+                    'company_address',
+                ])
+                ->map(function ($vendor) {
+                    $vendor->company_name = mb_convert_encoding((string) $vendor->company_name, 'UTF-8', 'UTF-8');
 
-                return $vendor;
-            });
+                    return $vendor;
+                });
+        } catch (Throwable $e) {
+            Log::error('Error loading vendors for acquisitions: ' . $e->getMessage());
+
+            return collect();
+        }
     }
 
     #[Computed]
     public function catalogs()
     {
-        return Catalog::with(['author', 'assetType', 'publisher', 'generalReference'])
-            ->orderBy('title')
-            ->get()
-            ->map(function ($catalog) {
-                $catalog->title = mb_convert_encoding((string) $catalog->title, 'UTF-8', 'UTF-8');
+        try {
+            return Catalog::with(['author', 'assetType', 'publisher', 'generalReference'])
+                ->orderBy('title')
+                ->get()
+                ->map(function ($catalog) {
+                    $catalog->title = mb_convert_encoding((string) $catalog->title, 'UTF-8', 'UTF-8');
 
-                return $catalog;
-            });
+                    return $catalog;
+                });
+        } catch (Throwable $e) {
+            Log::error('Error loading catalogs for acquisitions: ' . $e->getMessage());
+
+            return collect();
+        }
     }
 
     #[Computed]
@@ -223,45 +257,59 @@ class Acquisitions extends Component
 
     public function openCreateModal(): void
     {
-        $this->resetValidation();
-        $this->resetForm();
+        try {
+            $this->resetValidation();
+            $this->resetForm();
 
-        $this->acquisition_number = $this->generateAcquisitionNumber();
-        $this->delivery_type = 'purchase';
-        $this->status = 'pending';
-        $this->quantity_ordered = 1;
-        $this->quantity_received = 0;
-        $this->delivery_date = now()->format('Y-m-d');
-        $this->received_date = null;
-        $this->showModal = true;
+            $this->acquisition_number = $this->generateAcquisitionNumber();
+            $this->delivery_type = 'purchase';
+            $this->status = 'pending';
+            $this->quantity_ordered = 1;
+            $this->quantity_received = 0;
+            $this->delivery_date = now()->format('Y-m-d');
+            $this->received_date = null;
+            $this->showModal = true;
+        } catch (Throwable $e) {
+            Log::error('Error opening create acquisition modal: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to initialize new acquisition form.', type: 'error');
+        }
     }
 
     public function addMoreFromExisting(int $id): void
     {
-        $this->resetValidation();
-        $existing = Acquisition::findOrFail($id);
+        try {
+            $this->resetValidation();
+            $existing = Acquisition::findOrFail($id);
 
-        $this->resetForm();
+            $this->resetForm();
 
-        $this->vendor_id = $existing->vendor_id;
-        $this->transaction_number = mb_convert_encoding((string) $existing->transaction_number, 'UTF-8', 'UTF-8');
-        $this->delivery_type = $existing->delivery_type;
-        $this->delivery_date = $existing->delivery_date ? $existing->delivery_date->format('Y-m-d') : now()->format('Y-m-d');
+            $this->vendor_id = $existing->vendor_id;
+            $this->transaction_number = mb_convert_encoding((string) $existing->transaction_number, 'UTF-8', 'UTF-8');
+            $this->delivery_type = $existing->delivery_type;
+            $this->delivery_date = $existing->delivery_date ? $existing->delivery_date->format('Y-m-d') : now()->format('Y-m-d');
 
-        $this->status = 'pending';
-        $this->quantity_ordered = 1;
-        $this->quantity_received = 0;
-        $this->received_date = null;
+            $this->status = 'pending';
+            $this->quantity_ordered = 1;
+            $this->quantity_received = 0;
+            $this->received_date = null;
 
-        $this->acquisition_number = $this->generateAcquisitionNumber();
-
-        $this->showModal = true;
+            $this->acquisition_number = $this->generateAcquisitionNumber();
+            $this->showModal = true;
+        } catch (Throwable $e) {
+            Log::error('Error preparing follow-up acquisition: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to load existing acquisition details.', type: 'error');
+        }
     }
 
     public function viewAccessions(int $id): void
     {
-        $this->viewingAcquisition = Acquisition::with(['catalog', 'accessions'])->findOrFail($id);
-        $this->showAccessionsModal = true;
+        try {
+            $this->viewingAcquisition = Acquisition::with(['catalog', 'accessions'])->findOrFail($id);
+            $this->showAccessionsModal = true;
+        } catch (Throwable $e) {
+            Log::error('Error loading accessions for acquisition: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to load accessioned items for this acquisition.', type: 'error');
+        }
     }
 
     private function generateAcquisitionNumber(): string
@@ -289,48 +337,59 @@ class Acquisitions extends Component
 
     public function openEditModal(int $id): void
     {
-        $this->resetValidation();
-        $this->acquisitionIdBeingEdited = $id;
+        try {
+            $this->resetValidation();
+            $this->acquisitionIdBeingEdited = $id;
 
-        $acq = Acquisition::findOrFail($id);
+            $acq = Acquisition::findOrFail($id);
 
-        $this->acquisition_number = mb_convert_encoding((string) $acq->acquisition_number, 'UTF-8', 'UTF-8');
-        $this->transaction_number = mb_convert_encoding((string) $acq->transaction_number, 'UTF-8', 'UTF-8');
-        $this->status = $acq->status;
-        $this->delivery_type = $acq->delivery_type;
-        $this->vendor_id = $acq->vendor_id;
-        $this->catalog_id = $acq->catalog_id;
-        $this->quantity_ordered = $acq->quantity_ordered;
-        $this->quantity_received = $acq->quantity_received;
-        $this->unit_cost = $acq->unit_cost;
-        $this->delivery_date = $acq->delivery_date ? $acq->delivery_date->format('Y-m-d') : null;
-        $this->received_date = $acq->received_date ? $acq->received_date->format('Y-m-d') : null;
-        $this->remarks = $acq->remarks ? mb_convert_encoding((string) $acq->remarks, 'UTF-8', 'UTF-8') : null;
+            $this->acquisition_number = mb_convert_encoding((string) $acq->acquisition_number, 'UTF-8', 'UTF-8');
+            $this->transaction_number = mb_convert_encoding((string) $acq->transaction_number, 'UTF-8', 'UTF-8');
+            $this->status = $acq->status;
+            $this->delivery_type = $acq->delivery_type;
+            $this->vendor_id = $acq->vendor_id;
+            $this->catalog_id = $acq->catalog_id;
+            $this->quantity_ordered = $acq->quantity_ordered;
+            $this->quantity_received = $acq->quantity_received;
+            $this->unit_cost = $acq->unit_cost;
+            $this->delivery_date = $acq->delivery_date ? $acq->delivery_date->format('Y-m-d') : null;
+            $this->received_date = $acq->received_date ? $acq->received_date->format('Y-m-d') : null;
+            $this->remarks = $acq->remarks ? mb_convert_encoding((string) $acq->remarks, 'UTF-8', 'UTF-8') : null;
 
-        $this->showModal = true;
+            $this->showModal = true;
+        } catch (Throwable $e) {
+            Log::error('Error opening edit acquisition modal: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to load acquisition record for editing.', type: 'error');
+        }
     }
 
-    public function saveAcquisition(): void
+    private function persistAcquisition(bool $isEditing): array
     {
         $this->cleanFields(['transaction_number', 'remarks']);
 
-        $validated = $this->validate();
+        $validated = $this->validate(
+            $this->validationRules(),
+            $this->validationMessages(),
+            $this->validationAttributes()
+        );
 
         if ($validated['delivery_type'] === 'donation') {
             $validated['status'] = 'delivered';
-            $validated['quantity_received'] = $validated['quantity_ordered'];
+            $validated['quantity_received'] = (int) $validated['quantity_ordered'];
             $validated['received_date'] = $validated['received_date'] ?? now()->format('Y-m-d');
-        } elseif ($validated['quantity_received'] === 0) {
+            if (! $isEditing) {
+                $validated['unit_cost'] = 0.0;
+            }
+        } elseif ((int) $validated['quantity_received'] === 0) {
             $validated['status'] = 'pending';
             $validated['received_date'] = null;
-        } elseif ($validated['quantity_received'] < $validated['quantity_ordered']) {
+        } elseif ((int) $validated['quantity_received'] < (int) $validated['quantity_ordered']) {
             $validated['status'] = 'partial';
         } else {
             $validated['status'] = 'delivered';
             $validated['received_date'] = $validated['received_date'] ?? now()->format('Y-m-d');
         }
 
-        $isEditing = (bool) $this->acquisitionIdBeingEdited;
         $maxAttempts = $isEditing ? 1 : 3;
         $saved = false;
 
@@ -338,7 +397,10 @@ class Acquisitions extends Component
             try {
                 DB::transaction(function () use ($validated, $isEditing) {
                     if ($isEditing) {
-                        $acq = Acquisition::findOrFail($this->acquisitionIdBeingEdited);
+                        $acq = Acquisition::where('id', $this->acquisitionIdBeingEdited)
+                            ->lockForUpdate()
+                            ->firstOrFail();
+
                         $acq->update([
                             'quantity_ordered'  => $validated['quantity_ordered'],
                             'quantity_received' => $validated['quantity_received'],
@@ -384,13 +446,29 @@ class Acquisitions extends Component
             ]);
         }
 
-        $message = $isEditing
-            ? 'Acquisition record updated successfully.'
-            : 'Acquisition record created successfully.';
+        return $validated;
+    }
 
-        $this->showModal = false;
-        $this->resetForm();
-        $this->dispatch('toast', message: $message, type: 'success');
+    public function saveAcquisition(): void
+    {
+        $isEditing = (bool) $this->acquisitionIdBeingEdited;
+
+        try {
+            $this->persistAcquisition($isEditing);
+
+            $message = $isEditing
+                ? 'Acquisition record updated successfully.'
+                : 'Acquisition record created successfully.';
+
+            $this->showModal = false;
+            $this->resetForm();
+            $this->dispatch('toast', message: $message, type: 'success');
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            Log::error('Error saving acquisition: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to save acquisition record right now.', type: 'error');
+        }
     }
 
     public function saveAndCreateAnother(): void
@@ -399,73 +477,53 @@ class Acquisitions extends Component
             return;
         }
 
-        $this->cleanFields(['transaction_number', 'remarks']);
+        try {
+            $validated = $this->persistAcquisition(false);
 
-        $validated = $this->validate();
+            $savedVendorId = $this->vendor_id;
+            $savedTxn = $this->transaction_number;
+            $savedDeliveryType = $this->delivery_type;
+            $savedStatus = $validated['status'];
+            $savedDeliveryDate = $this->delivery_date;
+            $savedDate = $validated['received_date'];
 
-        if ($validated['delivery_type'] === 'donation') {
-            $validated['status'] = 'delivered';
-            $validated['quantity_received'] = $validated['quantity_ordered'];
-            $validated['received_date'] = $validated['received_date'] ?? now()->format('Y-m-d');
-        } elseif ($validated['quantity_received'] === 0) {
-            $validated['status'] = 'pending';
-            $validated['received_date'] = null;
-        } elseif ($validated['quantity_received'] < $validated['quantity_ordered']) {
-            $validated['status'] = 'partial';
-        } else {
-            $validated['status'] = 'delivered';
-            $validated['received_date'] = $validated['received_date'] ?? now()->format('Y-m-d');
+            $this->resetForm();
+
+            $this->vendor_id = $savedVendorId;
+            $this->transaction_number = $savedTxn;
+            $this->delivery_type = $savedDeliveryType;
+            $this->status = $savedStatus;
+            $this->delivery_date = $savedDeliveryDate;
+            $this->received_date = $savedDate;
+            $this->acquisition_number = $this->generateAcquisitionNumber();
+            $this->showModal = true;
+
+            $this->dispatch('toast', message: 'Item saved successfully. Ready for the next item on this invoice.', type: 'success');
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            Log::error('Error in saveAndCreateAnother acquisition: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to save acquisition record right now.', type: 'error');
         }
-
-        DB::transaction(function () use ($validated) {
-            $exists = Acquisition::where('transaction_number', $validated['transaction_number'])
-                ->where('catalog_id', $this->catalog_id)
-                ->where('vendor_id', $this->vendor_id)
-                ->exists();
-
-            if ($exists) {
-                throw ValidationException::withMessages([
-                    'catalog_id' => 'This catalog item is already included under this invoice/transaction number for this vendor.',
-                ]);
-            }
-
-            $validated['acquisition_number'] = $this->generateAcquisitionNumber();
-            Acquisition::create($validated);
-        });
-
-        $savedVendorId = $this->vendor_id;
-        $savedTxn = $this->transaction_number;
-        $savedDeliveryType = $this->delivery_type;
-        $savedStatus = $this->status;
-        $savedDeliveryDate = $this->delivery_date;
-        $savedDate = $this->received_date;
-
-        $this->resetForm();
-
-        $this->vendor_id = $savedVendorId;
-        $this->transaction_number = $savedTxn;
-        $this->delivery_type = $savedDeliveryType;
-        $this->status = $savedStatus;
-        $this->delivery_date = $savedDeliveryDate;
-        $this->received_date = $savedDate;
-        $this->acquisition_number = $this->generateAcquisitionNumber();
-        $this->showModal = true;
-
-        $this->dispatch('toast', message: 'Item saved successfully. Ready for the next item on this invoice.', type: 'success');
     }
 
     public function confirmDelete(int $id): void
     {
-        $hasAccessions = Accession::where('acquisition_id', $id)->exists();
+        try {
+            $hasAccessions = Accession::where('acquisition_id', $id)->exists();
 
-        if ($hasAccessions) {
-            $this->dispatch('toast', message: 'Cannot delete: Acquisition has active accessioned items attached.', type: 'error');
+            if ($hasAccessions) {
+                $this->dispatch('toast', message: 'Cannot delete: Acquisition has active accessioned items attached.', type: 'error');
 
-            return;
+                return;
+            }
+
+            $this->acquisitionIdBeingDeleted = $id;
+            $this->showDeleteModal = true;
+        } catch (Throwable $e) {
+            Log::error('Error checking accessions before delete: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to verify acquisition dependencies.', type: 'error');
         }
-
-        $this->acquisitionIdBeingDeleted = $id;
-        $this->showDeleteModal = true;
     }
 
     public function deleteAcquisition(): void
@@ -499,7 +557,11 @@ class Acquisitions extends Component
         } catch (ValidationException $e) {
             $this->dispatch('toast', message: 'Deletion blocked: Accession records exist for this acquisition.', type: 'error');
         } catch (QueryException $e) {
+            Log::error('QueryException deleting acquisition: ' . $e->getMessage());
             $this->dispatch('toast', message: 'Cannot delete: Acquisition is referenced by other system records.', type: 'error');
+        } catch (Throwable $e) {
+            Log::error('Error deleting acquisition: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to delete acquisition record right now.', type: 'error');
         }
 
         $this->showDeleteModal = false;
@@ -531,7 +593,7 @@ class Acquisitions extends Component
 
     private function filteredAcquisitionsQuery(): Builder
     {
-        $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        $likeOperator = $this->likeOperator();
         $searchTerm = strtolower(mb_convert_encoding(addcslashes(trim($this->search), '%_\\'), 'UTF-8', 'UTF-8'));
 
         return Acquisition::with(['catalog.author', 'catalog.assetType', 'vendor'])
@@ -591,17 +653,22 @@ class Acquisitions extends Component
     #[Title('Acquisitions')]
     public function render()
     {
-        $acquisitions = $this->filteredAcquisitionsQuery()->paginate(10);
+        try {
+            $acquisitions = $this->filteredAcquisitionsQuery()->paginate(10);
 
-        $acquisitions->getCollection()->transform(function ($acq) {
-            $acq->acquisition_number = mb_convert_encoding((string) $acq->acquisition_number, 'UTF-8', 'UTF-8');
-            $acq->transaction_number = mb_convert_encoding((string) $acq->transaction_number, 'UTF-8', 'UTF-8');
-            if ($acq->remarks) {
-                $acq->remarks = mb_convert_encoding((string) $acq->remarks, 'UTF-8', 'UTF-8');
-            }
+            $acquisitions->getCollection()->transform(function ($acq) {
+                $acq->acquisition_number = mb_convert_encoding((string) $acq->acquisition_number, 'UTF-8', 'UTF-8');
+                $acq->transaction_number = mb_convert_encoding((string) $acq->transaction_number, 'UTF-8', 'UTF-8');
+                if ($acq->remarks) {
+                    $acq->remarks = mb_convert_encoding((string) $acq->remarks, 'UTF-8', 'UTF-8');
+                }
 
-            return $acq;
-        });
+                return $acq;
+            });
+        } catch (Throwable $e) {
+            Log::error('Error rendering acquisitions list: ' . $e->getMessage());
+            $acquisitions = Acquisition::query()->whereRaw('1 = 0')->paginate(10);
+        }
 
         return view('livewire.acquisitions', [
             'acquisitions' => $acquisitions,

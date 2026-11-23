@@ -1,4 +1,4 @@
-{{-- resources/views/livewire/acquisitions.blade.php --}}
+<?php // resources/views/livewire/acquisitions.blade.php ?>
 @php
     use Illuminate\Support\Str;
 @endphp
@@ -154,7 +154,7 @@
                             <button wire:click="viewAccessions({{ $acq->id }})" type="button" class="text-brand-primary hover:bg-brand-tint-light font-semibold px-2 py-1 rounded-lg transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary">View</button>
                             <button wire:click="addMoreFromExisting({{ $acq->id }})" type="button" class="text-brand-primary hover:bg-brand-tint-light font-semibold px-2 py-1 rounded-lg transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary">Add</button>
                             <button wire:click="openEditModal({{ $acq->id }})" type="button" class="text-brand-primary hover:bg-brand-tint-light font-semibold px-2 py-1 rounded-lg transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary">Edit</button>
-                            <button wire:click="confirmDelete({{ $acq->id }})" type="button" class="text-brand-secondary hover:bg-brand-secondary/10 font-semibold px-2 py-1 rounded-lg transition cursor-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary">Del</button>
+                            <button wire:click="confirmDelete({{ $acq->id }})" type="button" class="text-brand-secondary hover:bg-brand-secondary/10 font-semibold px-2 py-1 rounded-lg transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary">Del</button>
                         </td>
                     </tr>
                 @empty

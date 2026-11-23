@@ -1,4 +1,4 @@
-<?php
+<?php // app/Livewire/CirculationPolicy.php
 
 namespace App\Livewire;
 
@@ -10,6 +10,7 @@ use App\Models\PolicyLoanLimit;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -18,6 +19,8 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 
+#[Layout('components.layouts.app')]
+#[Title('Circulation Policies')]
 class CirculationPolicy extends Component
 {
     use WithPagination, SanitizesInputs;
@@ -39,6 +42,8 @@ class CirculationPolicy extends Component
     public string $studentTypeName = 'Student';
     public bool $showModal = false;
     public bool $showLimitModal = false;
+    public bool $showDeleteModal = false;
+    public ?int $policyIdBeingDeleted = null;
     public bool $isEditing = false;
     public string $search = '';
 
@@ -49,7 +54,7 @@ class CirculationPolicy extends Component
 
     private function likeOperator(): string
     {
-        return config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        return DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
     }
 
     private function resolveStudentPatronType(): void
@@ -90,32 +95,6 @@ class CirculationPolicy extends Component
         $this->resetPage();
         $this->search = '';
         $this->resetValidation();
-    }
-
-    protected function rules(): array
-    {
-        if ($this->activeTab === 'limits') {
-            return [
-                'limit_patron_type_id' => 'required|integer|exists:patron_types,id',
-                'max_borrow_limit' => 'required|integer|min:1|max:20',
-                'loan_duration_days' => 'required|integer|min:1|max:60',
-            ];
-        }
-
-        $patronTypeId = (int) ($this->patron_type_id ?? 0);
-
-        return [
-            'patron_type_id' => 'required|integer|exists:patron_types,id',
-            'asset_type_id' => [
-                'required',
-                'integer',
-                'exists:asset_types,id',
-                Rule::unique('circulation_penalties', 'asset_type_id')
-                    ->where(fn ($query) => $query->where('patron_type_id', $patronTypeId))
-                    ->ignore($this->policy_id),
-            ],
-            'lost_after_days' => 'required|integer|min:1|max:365',
-        ];
     }
 
     protected function messages(): array
@@ -206,19 +185,36 @@ class CirculationPolicy extends Component
         if ($this->activeTab === 'limits') {
             $this->limit_patron_type_id = $this->patron_type_id;
             $this->cleanFields(['limit_patron_type_id', 'max_borrow_limit', 'loan_duration_days']);
-            $validated = $this->validate();
+
+            $rules = [
+                'limit_patron_type_id' => ['required', 'integer', 'exists:patron_types,id'],
+                'max_borrow_limit' => ['required', 'integer', 'min:1', 'max:20'],
+                'loan_duration_days' => ['required', 'integer', 'min:1', 'max:60'],
+            ];
+
+            $attributes = [
+                'limit_patron_type_id' => 'patron type',
+                'max_borrow_limit' => 'max borrow limit',
+                'loan_duration_days' => 'loan duration',
+            ];
+
+            $validated = $this->validate($rules, $this->messages(), $attributes);
 
             try {
-                $existingLimit = $this->studentLoanLimitQuery()->first();
-                $wasExisting = (bool) $existingLimit;
+                $wasExisting = false;
 
-                PolicyLoanLimit::updateOrCreate(
-                    ['patron_type_id' => (int) $this->patron_type_id],
-                    [
-                        'max_borrow_limit' => (int) $validated['max_borrow_limit'],
-                        'loan_duration_days' => (int) $validated['loan_duration_days'],
-                    ]
-                );
+                DB::transaction(function () use ($validated, &$wasExisting): void {
+                    $existingLimit = $this->studentLoanLimitQuery()->lockForUpdate()->first();
+                    $wasExisting = (bool) $existingLimit;
+
+                    PolicyLoanLimit::updateOrCreate(
+                        ['patron_type_id' => (int) $this->patron_type_id],
+                        [
+                            'max_borrow_limit' => (int) $validated['max_borrow_limit'],
+                            'loan_duration_days' => (int) $validated['loan_duration_days'],
+                        ]
+                    );
+                });
             } catch (QueryException $e) {
                 Log::error('PolicyLoanLimit save database error', ['message' => $e->getMessage()]);
                 $this->dispatch('toast', message: 'Database error occurred while saving student loan limit.', type: 'error');
@@ -233,9 +229,30 @@ class CirculationPolicy extends Component
             return;
         }
 
-        $fields = ['patron_type_id', 'asset_type_id', 'lost_after_days'];
-        $this->cleanFields($fields);
-        $validated = $this->validate();
+        $this->cleanFields(['patron_type_id', 'asset_type_id', 'lost_after_days']);
+
+        $patronTypeId = (int) ($this->patron_type_id ?? 0);
+
+        $rules = [
+            'patron_type_id' => ['required', 'integer', 'exists:patron_types,id'],
+            'asset_type_id' => [
+                'required',
+                'integer',
+                'exists:asset_types,id',
+                Rule::unique('circulation_penalties', 'asset_type_id')
+                    ->where(fn ($query) => $query->where('patron_type_id', $patronTypeId))
+                    ->ignore($this->policy_id),
+            ],
+            'lost_after_days' => ['required', 'integer', 'min:1', 'max:365'],
+        ];
+
+        $attributes = [
+            'patron_type_id' => 'patron type',
+            'asset_type_id' => 'asset type',
+            'lost_after_days' => 'lost after overdue days',
+        ];
+
+        $validated = $this->validate($rules, $this->messages(), $attributes);
 
         $payload = [
             'patron_type_id' => (int) ($this->patron_type_id ?? $validated['patron_type_id']),
@@ -246,11 +263,14 @@ class CirculationPolicy extends Component
         try {
             $isUpdate = (bool) $this->policy_id;
 
-            if ($isUpdate) {
-                CirculationPenalty::findOrFail($this->policy_id)->update($payload);
-            } else {
-                CirculationPenalty::create($payload);
-            }
+            DB::transaction(function () use ($isUpdate, $payload): void {
+                if ($isUpdate) {
+                    $policy = CirculationPenalty::query()->lockForUpdate()->findOrFail($this->policy_id);
+                    $policy->update($payload);
+                } else {
+                    CirculationPenalty::query()->create($payload);
+                }
+            });
 
             $message = $isUpdate
                 ? 'Penalty rule updated successfully.'
@@ -265,21 +285,39 @@ class CirculationPolicy extends Component
         $this->dispatch('toast', message: $message, type: 'success');
     }
 
-    public function deletePolicy(int $id): void
+    public function confirmDeletePolicy(int $id): void
+    {
+        $this->policyIdBeingDeleted = $id;
+        $this->showDeleteModal = true;
+    }
+
+    public function closeDeleteModal(): void
+    {
+        $this->showDeleteModal = false;
+        $this->reset(['policyIdBeingDeleted']);
+    }
+
+    public function deletePolicy(): void
     {
         try {
-            $policy = CirculationPenalty::find($id);
-            if ($policy) {
+            DB::transaction(function (): void {
+                $policy = CirculationPenalty::query()->lockForUpdate()->find($this->policyIdBeingDeleted);
+
+                if (! $policy) {
+                    $this->dispatch('toast', message: 'Policy rule already removed.', type: 'error');
+                    return;
+                }
+
                 $policy->delete();
                 $this->dispatch('toast', message: 'Penalty rule deleted successfully.', type: 'success');
-            } else {
-                $this->dispatch('toast', message: 'Policy rule already removed.', type: 'error');
-            }
+            });
         } catch (QueryException $e) {
             $this->dispatch('toast', message: 'Cannot delete: This rule is linked to existing transactions.', type: 'error');
         } catch (\Throwable $e) {
             $this->dispatch('toast', message: 'An error occurred while deleting the rule.', type: 'error');
         }
+
+        $this->closeDeleteModal();
     }
 
     public function closeModal(): void
@@ -311,8 +349,6 @@ class CirculationPolicy extends Component
         $this->loan_duration_days = 7;
     }
 
-    #[Layout('components.layouts.app')]
-    #[Title('Circulation Policies')]
     public function render(): View
     {
         $searchTerm = trim(strip_tags($this->search));

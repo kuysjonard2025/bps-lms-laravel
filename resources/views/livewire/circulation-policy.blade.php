@@ -1,4 +1,4 @@
-<?php // resources/views/livewire/circulation-policies.blade.php ?>
+<?php // resources/views/livewire/circulation-policy.blade.php ?>
 @php
     use Illuminate\Support\Str;
 @endphp
@@ -152,8 +152,7 @@
                                             Edit
                                         </button>
                                         <button
-                                            wire:click="deletePolicy({{ $policy->id }})"
-                                            wire:confirm="Delete this asset penalty rule?"
+                                            wire:click="confirmDeletePolicy({{ $policy->id }})"
                                             type="button"
                                             class="px-2.5 py-1 text-xs font-semibold text-brand-secondary hover:bg-brand-secondary/10 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary"
                                         >
@@ -398,11 +397,55 @@
                             wire:target="save"
                             class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-white bg-brand-primary hover:bg-brand-primary-hover rounded-xl cursor-pointer disabled:opacity-50 transition-colors shadow-2xs"
                         >
-                            <span wire:loading.remove wire:target="save">Save {{ Str::headline($studentTypeName) }} Limit</span>
+                            <span wire:loading.remove wire:target="save">{{ $isEditing ? 'Update ' . Str::headline($studentTypeName) . ' Limit' : 'Save ' . Str::headline($studentTypeName) . ' Limit' }}</span>
                             <span wire:loading wire:target="save">Saving...</span>
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    @endif
+
+    {{-- Delete Confirmation Modal --}}
+    @if ($showDeleteModal)
+        <div
+            @keydown.escape.window="$wire.closeDeleteModal()"
+            class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="policy-delete-modal-title"
+        >
+            <div wire:click="closeDeleteModal" class="fixed inset-0 bg-content-heading/55 backdrop-blur-2xs"></div>
+
+            <div class="relative bg-surface-card rounded-2xl shadow-xl max-w-sm w-full p-6 border border-surface-border space-y-4 z-10 text-center">
+                <div class="w-12 h-12 bg-brand-secondary/15 text-brand-secondary rounded-full flex items-center justify-center mx-auto">
+                    <x-heroicon-o-exclamation-triangle class="w-6 h-6" aria-hidden="true" />
+                </div>
+
+                <div>
+                    <h2 id="policy-delete-modal-title" class="text-sm sm:text-base font-bold text-content-heading">Confirm Deletion</h2>
+                    <p class="text-xs text-content-body mt-1">Are you sure you want to delete this asset penalty rule? This action cannot be undone.</p>
+                </div>
+
+                <div class="flex flex-col-reverse sm:flex-row justify-center gap-2 sm:gap-3 pt-2">
+                    <button
+                        type="button"
+                        wire:click="closeDeleteModal"
+                        class="w-full sm:w-auto px-4 py-2 bg-surface-canvas border border-surface-border rounded-xl text-xs font-semibold text-content-body hover:text-content-heading cursor-pointer transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="deletePolicy"
+                        wire:loading.attr="disabled"
+                        wire:target="deletePolicy"
+                        class="w-full sm:w-auto px-4 py-2 bg-brand-secondary rounded-xl text-xs font-semibold text-white hover:opacity-90 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-opacity"
+                    >
+                        <span wire:loading wire:target="deletePolicy" class="animate-spin h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                        <span>Delete</span>
+                    </button>
+                </div>
             </div>
         </div>
     @endif
