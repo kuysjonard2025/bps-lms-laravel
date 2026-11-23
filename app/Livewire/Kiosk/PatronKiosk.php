@@ -6,9 +6,11 @@ use App\Models\Patron;
 use App\Models\PatronLog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Throwable;
 
 class PatronKiosk extends Component
 {
@@ -32,7 +34,7 @@ class PatronKiosk extends Component
     public function mount(): void
     {
         if (! $this->hasValidKioskSession()) {
-            $this->redirectRoute('kiosk.login');
+            $this->redirectRoute('kiosk.login', navigate: true);
         }
     }
 
@@ -42,7 +44,7 @@ class PatronKiosk extends Component
     {
         try {
             if (! $this->hasValidKioskSession()) {
-                $this->redirectRoute('kiosk.login');
+                $this->redirectRoute('kiosk.login', navigate: true);
                 return;
             }
 
@@ -56,7 +58,7 @@ class PatronKiosk extends Component
             }
 
             $targetRfid = $rfid ?? $this->rfid_number;
-            $trimmedRfid = trim($targetRfid);
+            $trimmedRfid = Str::lower(trim($targetRfid));
 
             $this->rfid_number = '';
 
@@ -83,7 +85,7 @@ class PatronKiosk extends Component
                 return;
             }
 
-            if ($patron->status !== 'active') {
+            if (Str::lower(trim((string) $patron->status)) !== 'active') {
                 session()->flash('kiosk_error', 'Patron Account Is Currently Inactive.');
                 return;
             }
@@ -120,8 +122,10 @@ class PatronKiosk extends Component
             $this->showResultModal = true;
 
             $this->dispatch('patron-scanned', sequence: $this->scanSequence);
-        } catch (\Exception $e) {
-            Log::error('Kiosk scan error: ' . $e->getMessage());
+        } catch (Throwable $e) {
+            Log::error('Kiosk scan error: ' . $e->getMessage(), [
+                'exception' => $e,
+            ]);
             session()->flash('kiosk_error', 'An Unexpected System Error Occurred. Please Try Scanning Again.');
         }
     }
@@ -136,8 +140,15 @@ class PatronKiosk extends Component
 
     public function exitKiosk(): void
     {
-        session()->forget(['kiosk_authenticated', 'kiosk_session', 'kiosk_unlocked_by']);
-        $this->redirectRoute('kiosk.login');
+        try {
+            session()->forget(['kiosk_authenticated', 'kiosk_session', 'kiosk_unlocked_by']);
+            $this->redirectRoute('kiosk.login', navigate: true);
+        } catch (Throwable $e) {
+            Log::error('Failed exiting kiosk terminal: ' . $e->getMessage(), [
+                'exception' => $e,
+            ]);
+            $this->dispatch('toast', type: 'error', message: 'Unable to exit the kiosk terminal right now.');
+        }
     }
 
     public function render()

@@ -1,11 +1,11 @@
-<?php // app/Livewire/PatronAuth/Login.php
+<?php
 
 namespace App\Livewire\PatronAuth;
 
 use App\Models\Patron;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -20,6 +20,7 @@ class Login extends Component
     {
         try {
             if (Session::has('patron_session_id')) {
+                Session::put('patron_last_activity', now()->timestamp);
                 $this->redirect(route('patron.portal'), navigate: true);
             }
         } catch (Throwable $e) {
@@ -29,9 +30,10 @@ class Login extends Component
         }
     }
 
-    private function likeOperator(): string
+    public function clearBorrowerNumber(): void
     {
-        return config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        $this->borrowerNumber = '';
+        $this->resetErrorBag('borrowerNumber');
     }
 
     public function login(): void
@@ -40,14 +42,19 @@ class Login extends Component
         $this->borrowerNumber = $cleanId;
 
         $this->validate([
-            'borrowerNumber' => 'required|string|max:50',
-        ], [], ['borrowerNumber' => 'Student / Employee ID or RFID Tag']);
+            'borrowerNumber' => ['required', 'string', 'max:50'],
+        ], [
+            'borrowerNumber.required' => 'Please enter your Student / Employee ID or scan your RFID card.',
+            'borrowerNumber.max'      => 'The ID or RFID tag must not exceed 50 characters.',
+        ], [
+            'borrowerNumber' => 'Student / Employee ID or RFID Tag',
+        ]);
 
         $throttleKey = 'patron-login:' . request()->ip();
 
         if (RateLimiter::tooManyAttempts($throttleKey, 10)) {
             $seconds = RateLimiter::availableIn($throttleKey);
-            $this->addError('borrowerNumber', "Too many failed attempts. Please wait {$seconds} seconds.");
+            $this->addError('borrowerNumber', "Too many failed attempts. Please wait {$seconds} seconds before trying again.");
             return;
         }
 
@@ -55,8 +62,10 @@ class Login extends Component
             $lower = Str::lower($cleanId);
 
             $patron = Patron::with('patronType')
-                ->where(fn ($q) => $q->whereRaw('LOWER(school_id) = ?', [$lower])
-                                    ->orWhereRaw('LOWER(rfid_tag) = ?', [$lower]))
+                ->where(function ($query) use ($lower) {
+                    $query->whereRaw('LOWER(school_id) = ?', [$lower])
+                        ->orWhereRaw('LOWER(rfid_tag) = ?', [$lower]);
+                })
                 ->first();
 
             if (! $patron || strtolower((string) $patron->status) !== 'active') {

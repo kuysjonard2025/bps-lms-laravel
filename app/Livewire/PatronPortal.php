@@ -1,4 +1,4 @@
-<?php // app/Livewire/PatronPortal.php
+<?php
 
 namespace App\Livewire;
 
@@ -32,6 +32,34 @@ class PatronPortal extends Component
     public string $search = '';
     public string $assetTypeFilter = 'all';
     public string $assetTypeSearch = '';
+
+    private ?Patron $cachedPatron = null;
+    private bool $patronResolved = false;
+
+    /** @var array<string, bool> */
+    private static array $tableExistsCache = [];
+
+    /** @var array<string, bool> */
+    private static array $columnExistsCache = [];
+
+    private function hasTableCached(string $table): bool
+    {
+        if (! array_key_exists($table, self::$tableExistsCache)) {
+            self::$tableExistsCache[$table] = Schema::hasTable($table);
+        }
+
+        return self::$tableExistsCache[$table];
+    }
+
+    private function hasColumnCached(string $table, string $column): bool
+    {
+        $key = "{$table}.{$column}";
+        if (! array_key_exists($key, self::$columnExistsCache)) {
+            self::$columnExistsCache[$key] = $this->hasTableCached($table) && Schema::hasColumn($table, $column);
+        }
+
+        return self::$columnExistsCache[$key];
+    }
 
     public function setTab(string $tab): void
     {
@@ -75,10 +103,10 @@ class PatronPortal extends Component
     public function updatedAssetTypeSearch(string $value): void
     {
         try {
-            $clean = strtoupper(trim(strip_tags($value)));
+            $clean = trim(strip_tags($value));
             $this->assetTypeSearch = $clean;
 
-            if ($clean === '' || $clean === 'ALL ASSET TYPES') {
+            if ($clean === '' || strtoupper($clean) === 'ALL ASSET TYPES') {
                 $this->assetTypeFilter = 'all';
                 $this->resetPage();
                 return;
@@ -88,6 +116,12 @@ class PatronPortal extends Component
             if ($matched) {
                 $this->assetTypeFilter = (string) $matched->id;
                 $this->resetPage();
+            } elseif ($this->assetTypeFilter !== 'all') {
+                $currentType = AssetType::find($this->assetTypeFilter);
+                if (! $currentType || strcasecmp((string) $currentType->name, $clean) !== 0) {
+                    $this->assetTypeFilter = 'all';
+                    $this->resetPage();
+                }
             }
         } catch (Throwable $e) {
             Log::error('Failed filtering asset type search in PatronPortal: ' . $e->getMessage(), [
@@ -100,9 +134,9 @@ class PatronPortal extends Component
     public function selectAssetType(string $value): void
     {
         try {
-            if ($value === 'all') {
+            if ($value === 'all' || $value === '') {
                 $this->assetTypeFilter = 'all';
-                $this->assetTypeSearch = 'ALL ASSET TYPES';
+                $this->assetTypeSearch = '';
                 $this->resetPage();
                 return;
             }
@@ -110,7 +144,7 @@ class PatronPortal extends Component
             $type = AssetType::find($value);
             if ($type) {
                 $this->assetTypeFilter = (string) $type->id;
-                $this->assetTypeSearch = strtoupper((string) $type->name);
+                $this->assetTypeSearch = (string) $type->name;
                 $this->resetPage();
             }
         } catch (Throwable $e) {
@@ -124,14 +158,19 @@ class PatronPortal extends Component
     public function logoutPatron(): void
     {
         try {
-            Session::forget(['patron_session_id', 'patron_id']);
-            if (Auth::guard('patron')->check()) {
+            Session::forget(['patron_session_id', 'patron_id', 'patron_last_activity']);
+
+            if (array_key_exists('patron', config('auth.guards', [])) && Auth::guard('patron')->check()) {
                 Auth::guard('patron')->logout();
             }
+
             Session::regenerateToken();
 
+            $this->cachedPatron = null;
+            $this->patronResolved = true;
             $this->activeTab = 'catalog';
-            $this->dispatch('toast', type: 'success', message: 'Patron session ended.');
+
+            session()->flash('toast', ['type' => 'success', 'message' => 'Patron session ended.']);
             $this->redirect(route('patron.login'), navigate: true);
         } catch (Throwable $e) {
             Log::error('Failed ending patron session in PatronPortal::logoutPatron: ' . $e->getMessage(), [
@@ -161,6 +200,12 @@ class PatronPortal extends Component
 
     private function resolveCurrentPatron(): ?Patron
     {
+        if ($this->patronResolved) {
+            return $this->cachedPatron;
+        }
+
+        $this->patronResolved = true;
+
         try {
             $relations = $this->patronRelations();
 
@@ -168,23 +213,23 @@ class PatronPortal extends Component
             if ($sessionPatronId) {
                 $patron = Patron::with($relations)->find($sessionPatronId);
                 if ($patron) {
-                    return $patron;
+                    return $this->cachedPatron = $patron;
                 }
             }
 
-            if (Auth::guard('patron')->check()) {
+            if (array_key_exists('patron', config('auth.guards', [])) && Auth::guard('patron')->check()) {
                 $guardUser = Auth::guard('patron')->user();
                 if ($guardUser instanceof Patron) {
-                    return $guardUser->loadMissing($relations);
+                    return $this->cachedPatron = $guardUser->loadMissing($relations);
                 }
                 if ($guardUser?->id) {
-                    return Patron::with($relations)->find($guardUser->id);
+                    return $this->cachedPatron = Patron::with($relations)->find($guardUser->id);
                 }
             }
 
             $authUser = Auth::user();
             if ($authUser?->email) {
-                return Patron::with($relations)
+                return $this->cachedPatron = Patron::with($relations)
                     ->where('email', $this->likeOperator(), $authUser->email)
                     ->first();
             }
@@ -192,6 +237,19 @@ class PatronPortal extends Component
             Log::error('Failed resolving patron in PatronPortal: ' . $e->getMessage(), [
                 'exception' => $e,
             ]);
+        }
+
+        return $this->cachedPatron = null;
+    }
+
+    private function resolveDueColumn(): ?string
+    {
+        if ($this->hasColumnCached('circulations', 'due_at')) {
+            return 'cir.due_at';
+        }
+
+        if ($this->hasColumnCached('circulations', 'due_date')) {
+            return 'cir.due_date';
         }
 
         return null;
@@ -206,8 +264,8 @@ class PatronPortal extends Component
 
     private function unaccessionedSubquery()
     {
-        $hasAcqStatus = Schema::hasColumn('acquisitions', 'status');
-        $hasQty = Schema::hasColumn('acquisitions', 'quantity');
+        $hasAcqStatus = $this->hasColumnCached('acquisitions', 'status');
+        $hasQty = $this->hasColumnCached('acquisitions', 'quantity');
 
         $query = Acquisition::from('acquisitions as acq_unacc')
             ->whereColumn('acq_unacc.catalog_id', 'catalogs.id');
@@ -287,7 +345,7 @@ class PatronPortal extends Component
 
     private function buildPatronCirculationsBaseQuery(int $patronId)
     {
-        if (! Schema::hasTable('circulations') || ! Schema::hasColumn('circulations', 'patron_id')) {
+        if (! $this->hasColumnCached('circulations', 'patron_id')) {
             return null;
         }
 
@@ -313,9 +371,9 @@ class PatronPortal extends Component
                 return $stats;
             }
 
-            $hasStatus = Schema::hasColumn('circulations', 'status');
-            $hasReturnedAt = Schema::hasColumn('circulations', 'returned_at');
-            $hasDueDate = Schema::hasColumn('circulations', 'due_date');
+            $hasStatus = $this->hasColumnCached('circulations', 'status');
+            $hasReturnedAt = $this->hasColumnCached('circulations', 'returned_at');
+            $dueCol = $this->resolveDueColumn();
             $now = Carbon::now();
 
             $rows = (clone $base)
@@ -323,7 +381,7 @@ class PatronPortal extends Component
                     'cir.id',
                     $hasStatus ? DB::raw('LOWER(COALESCE(cir.status, \'\')) as cir_status') : DB::raw('\'\' as cir_status'),
                     $hasReturnedAt ? 'cir.returned_at' : DB::raw('NULL as returned_at'),
-                    $hasDueDate ? 'cir.due_date' : DB::raw('NULL as due_date'),
+                    $dueCol ? DB::raw("{$dueCol} as due_at") : DB::raw('NULL as due_at'),
                 ])
                 ->get();
 
@@ -335,7 +393,7 @@ class PatronPortal extends Component
                 }
 
                 $isOverdue = $row->cir_status === 'overdue'
-                    || (! empty($row->due_date) && Carbon::parse($row->due_date)->lt($now));
+                    || (! empty($row->due_at) && Carbon::parse($row->due_at)->lt($now));
 
                 if ($isOverdue) {
                     $stats['overdue']++;
@@ -363,24 +421,24 @@ class PatronPortal extends Component
 
             $op = $this->likeOperator();
             $cleanSearch = trim(strip_tags($this->recordSearch));
-            $hasStatus = Schema::hasColumn('circulations', 'status');
-            $hasReturnedAt = Schema::hasColumn('circulations', 'returned_at');
-            $hasDueDate = Schema::hasColumn('circulations', 'due_date');
-            $hasBorrowedAt = Schema::hasColumn('circulations', 'borrowed_at');
-            $hasAccNum = Schema::hasColumn('accessions', 'accession_number');
-            $hasCallNum = Schema::hasColumn('accessions', 'call_number');
+            $hasStatus = $this->hasColumnCached('circulations', 'status');
+            $hasReturnedAt = $this->hasColumnCached('circulations', 'returned_at');
+            $dueCol = $this->resolveDueColumn();
+            $hasBorrowedAt = $this->hasColumnCached('circulations', 'borrowed_at');
+            $hasAccNum = $this->hasColumnCached('accessions', 'accession_number');
+            $hasCallNum = $this->hasColumnCached('accessions', 'call_number');
             $now = Carbon::now();
 
             $query = $base->select([
                 'cir.id',
                 $hasStatus ? DB::raw('LOWER(COALESCE(cir.status, \'\')) as cir_status') : DB::raw('\'\' as cir_status'),
                 $hasBorrowedAt ? 'cir.borrowed_at' : DB::raw('cir.created_at as borrowed_at'),
-                $hasDueDate ? 'cir.due_date' : DB::raw('NULL as due_date'),
+                $dueCol ? DB::raw("{$dueCol} as due_at") : DB::raw('NULL as due_at'),
                 $hasReturnedAt ? 'cir.returned_at' : DB::raw('NULL as returned_at'),
                 $hasAccNum ? 'acc.accession_number' : DB::raw('NULL as accession_number'),
                 $hasCallNum ? 'acc.call_number' : DB::raw('cat.call_number as call_number'),
-                DB::raw('COALESCE(cat.title, \'UNTITLED ITEM\') as catalog_title'),
-                DB::raw('COALESCE(aut.name, \'UNKNOWN AUTHOR\') as author_name'),
+                DB::raw('COALESCE(cat.title, \'Untitled Item\') as catalog_title'),
+                DB::raw('COALESCE(aut.name, \'N/A\') as author_name'),
             ]);
 
             if ($this->recordFilter === 'returned') {
@@ -394,35 +452,35 @@ class PatronPortal extends Component
                     }
                 });
             } elseif ($this->recordFilter === 'overdue') {
-                $query->where(function ($q) use ($hasReturnedAt, $hasStatus, $hasDueDate, $now) {
+                $query->where(function ($q) use ($hasReturnedAt, $hasStatus, $dueCol, $now) {
                     if ($hasReturnedAt) {
                         $q->whereNull('cir.returned_at');
                     }
                     if ($hasStatus) {
                         $q->whereNotIn(DB::raw('LOWER(cir.status)'), ['returned', 'completed', 'checked_in']);
                     }
-                    $q->where(function ($dueSub) use ($hasStatus, $hasDueDate, $now) {
+                    $q->where(function ($dueSub) use ($hasStatus, $dueCol, $now) {
                         if ($hasStatus) {
                             $dueSub->whereRaw('LOWER(cir.status) = ?', ['overdue']);
                         }
-                        if ($hasDueDate) {
+                        if ($dueCol) {
                             $dueMethod = $hasStatus ? 'orWhere' : 'where';
-                            $dueSub->{$dueMethod}('cir.due_date', '<', $now);
+                            $dueSub->{$dueMethod}($dueCol, '<', $now);
                         }
                     });
                 });
             } elseif ($this->recordFilter === 'borrowed') {
-                $query->where(function ($q) use ($hasReturnedAt, $hasStatus, $hasDueDate, $now) {
+                $query->where(function ($q) use ($hasReturnedAt, $hasStatus, $dueCol, $now) {
                     if ($hasReturnedAt) {
                         $q->whereNull('cir.returned_at');
                     }
                     if ($hasStatus) {
                         $q->whereNotIn(DB::raw('LOWER(cir.status)'), ['returned', 'completed', 'checked_in', 'overdue']);
                     }
-                    if ($hasDueDate) {
-                        $q->where(function ($notOverdue) use ($now) {
-                            $notOverdue->whereNull('cir.due_date')
-                                ->orWhere('cir.due_date', '>=', $now);
+                    if ($dueCol) {
+                        $q->where(function ($notOverdue) use ($dueCol, $now) {
+                            $notOverdue->whereNull($dueCol)
+                                ->orWhere($dueCol, '>=', $now);
                         });
                     }
                 });
@@ -448,11 +506,11 @@ class PatronPortal extends Component
             $paginator->getCollection()->transform(function ($item) use ($now) {
                 $status = strtolower((string) ($item->cir_status ?? ''));
                 $isReturned = ! empty($item->returned_at) || in_array($status, ['returned', 'completed', 'checked_in'], true);
-                $isOverdue = ! $isReturned && ($status === 'overdue' || (! empty($item->due_date) && Carbon::parse($item->due_date)->lt($now)));
+                $isOverdue = ! $isReturned && ($status === 'overdue' || (! empty($item->due_at) && Carbon::parse($item->due_at)->lt($now)));
 
                 $item->computed_state = $isReturned ? 'returned' : ($isOverdue ? 'overdue' : 'borrowed');
                 $item->borrowed_label = ! empty($item->borrowed_at) ? Carbon::parse($item->borrowed_at)->format('M d, Y') : 'N/A';
-                $item->due_label = ! empty($item->due_date) ? Carbon::parse($item->due_date)->format('M d, Y') : 'N/A';
+                $item->due_label = ! empty($item->due_at) ? Carbon::parse($item->due_at)->format('M d, Y') : 'N/A';
                 $item->returned_label = ! empty($item->returned_at) ? Carbon::parse($item->returned_at)->format('M d, Y') : '—';
 
                 return $item;
@@ -553,7 +611,7 @@ class PatronPortal extends Component
 
             $attrs = $patron->getAttributes();
             $fkId = $attrs[$fkColumn] ?? $patron->{$fkColumn} ?? null;
-            if ($fkId && $fallbackTable && Schema::hasTable($fallbackTable)) {
+            if ($fkId && $fallbackTable && $this->hasTableCached($fallbackTable)) {
                 $row = DB::table($fallbackTable)->where('id', $fkId)->first();
                 $rowValue = $this->extractPatronField($row);
                 if ($rowValue) {
@@ -585,11 +643,11 @@ class PatronPortal extends Component
             $attrs = $patron->getAttributes();
             $sectionId = $attrs['section_id'] ?? $patron->section_id ?? null;
 
-            if ($sectionId && Schema::hasTable('sections')) {
+            if ($sectionId && $this->hasTableCached('sections')) {
                 $sectionRow = DB::table('sections')->where('id', $sectionId)->first();
                 if ($sectionRow) {
                     $sectionArr = (array) $sectionRow;
-                    if (! empty($sectionArr['adviser_id']) && Schema::hasTable('advisers')) {
+                    if (! empty($sectionArr['adviser_id']) && $this->hasTableCached('advisers')) {
                         $adviserRow = DB::table('advisers')->where('id', $sectionArr['adviser_id'])->first();
                         $adviserName = $this->extractPatronField($adviserRow);
                         if ($adviserName) {
@@ -631,7 +689,7 @@ class PatronPortal extends Component
                     fn ($q) => $q->where('name', $op, "%{$typeTerm}%")
                 )
                 ->orderBy('name')
-                ->limit(25)
+                ->limit(100)
                 ->get();
 
             $catalogs = $this->activeTab === 'catalog'

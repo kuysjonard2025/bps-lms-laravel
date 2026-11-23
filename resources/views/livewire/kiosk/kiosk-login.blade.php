@@ -1,9 +1,21 @@
 {{-- resources/views/livewire/kiosk/kiosk-login.blade.php --}}
 <div
     x-data="{ showPassword: false, showPin: false }"
-    class="flex items-center justify-center min-h-screen bg-surface-canvas p-6 select-none"
+    class="flex flex-col items-center justify-center min-h-screen bg-surface-canvas p-4 sm:p-6 relative select-none"
 >
-    <div class="w-full max-w-sm bg-surface-card border border-surface-border rounded-3xl p-8 shadow-xl text-center">
+    <!-- Top-Right Navigation to Main Route -->
+    <div class="w-full max-w-sm flex justify-end mb-3 sm:mb-0 sm:w-auto sm:fixed sm:top-6 sm:right-6 z-10">
+        <a
+            href="{{ route('login') }}"
+            wire:navigate
+            class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-content-heading bg-surface-card hover:bg-brand-tint-light border border-surface-border shadow-2xs rounded-xl transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/15"
+        >
+            <x-heroicon-o-home class="w-4 h-4 text-brand-primary shrink-0" aria-hidden="true" />
+            <span>Main Home</span>
+        </a>
+    </div>
+
+    <div class="w-full max-w-sm bg-surface-card border border-surface-border rounded-3xl p-6 sm:p-8 shadow-xl text-center">
         <div class="mb-6 p-4 bg-brand-tint-light border border-brand-primary/25 rounded-2xl inline-flex items-center justify-center">
             <x-heroicon-o-lock-closed class="w-10 h-10 text-brand-primary" aria-hidden="true" />
         </div>
