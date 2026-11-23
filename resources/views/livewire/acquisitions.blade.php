@@ -35,6 +35,33 @@
                 @endif
             </div>
 
+            <!-- Export Actions -->
+            <div class="flex items-center gap-2">
+                <button
+                    wire:click="exportExcel"
+                    wire:loading.attr="disabled"
+                    wire:target="exportExcel"
+                    type="button"
+                    class="px-3.5 py-2 text-xs font-semibold text-content-heading bg-surface-canvas hover:bg-brand-tint-light hover:text-brand-primary border border-surface-border rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/15"
+                >
+                    <x-heroicon-o-table-cells class="w-4 h-4" aria-hidden="true" />
+                    <span wire:loading.remove wire:target="exportExcel">Export Excel</span>
+                    <span wire:loading wire:target="exportExcel">Exporting...</span>
+                </button>
+
+                <button
+                    wire:click="exportPdf"
+                    wire:loading.attr="disabled"
+                    wire:target="exportPdf"
+                    type="button"
+                    class="px-3.5 py-2 text-xs font-semibold text-content-heading bg-surface-canvas hover:bg-brand-tint-light hover:text-brand-primary border border-surface-border rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/15"
+                >
+                    <x-heroicon-o-document-arrow-down class="w-4 h-4" aria-hidden="true" />
+                    <span wire:loading.remove wire:target="exportPdf">Export PDF</span>
+                    <span wire:loading wire:target="exportPdf">Exporting...</span>
+                </button>
+            </div>
+
             <!-- Action Button -->
             <button
                 wire:click="openCreateModal"
@@ -127,7 +154,7 @@
                             <button wire:click="viewAccessions({{ $acq->id }})" type="button" class="text-brand-primary hover:bg-brand-tint-light font-semibold px-2 py-1 rounded-lg transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary">View</button>
                             <button wire:click="addMoreFromExisting({{ $acq->id }})" type="button" class="text-brand-primary hover:bg-brand-tint-light font-semibold px-2 py-1 rounded-lg transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary">Add</button>
                             <button wire:click="openEditModal({{ $acq->id }})" type="button" class="text-brand-primary hover:bg-brand-tint-light font-semibold px-2 py-1 rounded-lg transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary">Edit</button>
-                            <button wire:click="confirmDelete({{ $acq->id }})" type="button" class="text-brand-secondary hover:bg-brand-secondary/10 font-semibold px-2 py-1 rounded-lg transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary">Del</button>
+                            <button wire:click="confirmDelete({{ $acq->id }})" type="button" class="text-brand-secondary hover:bg-brand-secondary/10 font-semibold px-2 py-1 rounded-lg transition cursor-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary">Del</button>
                         </td>
                     </tr>
                 @empty

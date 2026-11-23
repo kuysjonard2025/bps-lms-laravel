@@ -1,8 +1,10 @@
 <?php
 
+// app/Livewire/Acquisitions.php
+
 namespace App\Livewire;
 
-use App\Exports\AcquisitionsExport;
+use App\Exports\AcquisitionsExcelExport;
 use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\Accession;
 use App\Models\Acquisition;
@@ -13,6 +15,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -20,13 +23,14 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class Acquisitions extends Component
 {
     use WithPagination, SanitizesInputs;
 
-    // Form Properties
     public ?string $acquisition_number = null;
     public string $transaction_number = '';
     public string $status = 'pending';
@@ -40,7 +44,6 @@ class Acquisitions extends Component
     public ?string $received_date = null;
     public ?string $remarks = null;
 
-    // Component Control Properties
     public string $search = '';
     public bool $showModal = false;
     public bool $showDeleteModal = false;
@@ -187,10 +190,11 @@ class Acquisitions extends Component
                 'contact_last_name',
                 'contact_email',
                 'contact_number',
-                'company_address'
+                'company_address',
             ])
             ->map(function ($vendor) {
                 $vendor->company_name = mb_convert_encoding((string) $vendor->company_name, 'UTF-8', 'UTF-8');
+
                 return $vendor;
             });
     }
@@ -203,6 +207,7 @@ class Acquisitions extends Component
             ->get()
             ->map(function ($catalog) {
                 $catalog->title = mb_convert_encoding((string) $catalog->title, 'UTF-8', 'UTF-8');
+
                 return $catalog;
             });
     }
@@ -238,15 +243,15 @@ class Acquisitions extends Component
 
         $this->resetForm();
 
-        $this->vendor_id          = $existing->vendor_id;
+        $this->vendor_id = $existing->vendor_id;
         $this->transaction_number = mb_convert_encoding((string) $existing->transaction_number, 'UTF-8', 'UTF-8');
-        $this->delivery_type      = $existing->delivery_type;
-        $this->delivery_date      = $existing->delivery_date ? $existing->delivery_date->format('Y-m-d') : now()->format('Y-m-d');
+        $this->delivery_type = $existing->delivery_type;
+        $this->delivery_date = $existing->delivery_date ? $existing->delivery_date->format('Y-m-d') : now()->format('Y-m-d');
 
-        $this->status             = 'pending';
-        $this->quantity_ordered   = 1;
-        $this->quantity_received  = 0;
-        $this->received_date      = null;
+        $this->status = 'pending';
+        $this->quantity_ordered = 1;
+        $this->quantity_received = 0;
+        $this->received_date = null;
 
         $this->acquisition_number = $this->generateAcquisitionNumber();
 
@@ -291,16 +296,16 @@ class Acquisitions extends Component
 
         $this->acquisition_number = mb_convert_encoding((string) $acq->acquisition_number, 'UTF-8', 'UTF-8');
         $this->transaction_number = mb_convert_encoding((string) $acq->transaction_number, 'UTF-8', 'UTF-8');
-        $this->status             = $acq->status;
-        $this->delivery_type      = $acq->delivery_type;
-        $this->vendor_id          = $acq->vendor_id;
-        $this->catalog_id         = $acq->catalog_id;
-        $this->quantity_ordered   = $acq->quantity_ordered;
-        $this->quantity_received  = $acq->quantity_received;
-        $this->unit_cost          = $acq->unit_cost;
-        $this->delivery_date      = $acq->delivery_date ? $acq->delivery_date->format('Y-m-d') : null;
-        $this->received_date      = $acq->received_date ? $acq->received_date->format('Y-m-d') : null;
-        $this->remarks            = $acq->remarks ? mb_convert_encoding((string) $acq->remarks, 'UTF-8', 'UTF-8') : null;
+        $this->status = $acq->status;
+        $this->delivery_type = $acq->delivery_type;
+        $this->vendor_id = $acq->vendor_id;
+        $this->catalog_id = $acq->catalog_id;
+        $this->quantity_ordered = $acq->quantity_ordered;
+        $this->quantity_received = $acq->quantity_received;
+        $this->unit_cost = $acq->unit_cost;
+        $this->delivery_date = $acq->delivery_date ? $acq->delivery_date->format('Y-m-d') : null;
+        $this->received_date = $acq->received_date ? $acq->received_date->format('Y-m-d') : null;
+        $this->remarks = $acq->remarks ? mb_convert_encoding((string) $acq->remarks, 'UTF-8', 'UTF-8') : null;
 
         $this->showModal = true;
     }
@@ -368,6 +373,7 @@ class Acquisitions extends Component
                         'transaction_number' => 'A database conflict occurred while saving this record. Please try again.',
                     ]);
                 }
+
                 continue;
             }
         }
@@ -454,6 +460,7 @@ class Acquisitions extends Component
 
         if ($hasAccessions) {
             $this->dispatch('toast', message: 'Cannot delete: Acquisition has active accessioned items attached.', type: 'error');
+
             return;
         }
 
@@ -465,6 +472,7 @@ class Acquisitions extends Component
     {
         if (! $this->acquisitionIdBeingDeleted) {
             $this->showDeleteModal = false;
+
             return;
         }
 
@@ -530,39 +538,53 @@ class Acquisitions extends Component
             ->when($searchTerm !== '', function ($query) use ($likeOperator, $searchTerm) {
                 $query->where(function ($q) use ($likeOperator, $searchTerm) {
                     $q->where('acquisition_number', $likeOperator, "%{$searchTerm}%")
-                    ->orWhere('transaction_number', $likeOperator, "%{$searchTerm}%")
-                    ->orWhere('status', $likeOperator, "%{$searchTerm}%")
-                    ->orWhere('delivery_type', $likeOperator, "%{$searchTerm}%")
-                    ->orWhereHas('catalog', fn ($sub) => $sub->where('title', $likeOperator, "%{$searchTerm}%"))
-                    ->orWhereHas('catalog.author', fn ($sub) => $sub->where('name', $likeOperator, "%{$searchTerm}%"))
-                    ->orWhereHas('catalog.assetType', fn ($sub) => $sub->where('name', $likeOperator, "%{$searchTerm}%"))
-                    ->orWhereHas('vendor', fn ($sub) => $sub->where('company_name', $likeOperator, "%{$searchTerm}%"));
+                        ->orWhere('transaction_number', $likeOperator, "%{$searchTerm}%")
+                        ->orWhere('status', $likeOperator, "%{$searchTerm}%")
+                        ->orWhere('delivery_type', $likeOperator, "%{$searchTerm}%")
+                        ->orWhereHas('catalog', fn ($sub) => $sub->where('title', $likeOperator, "%{$searchTerm}%"))
+                        ->orWhereHas('catalog.author', fn ($sub) => $sub->where('name', $likeOperator, "%{$searchTerm}%"))
+                        ->orWhereHas('catalog.assetType', fn ($sub) => $sub->where('name', $likeOperator, "%{$searchTerm}%"))
+                        ->orWhereHas('vendor', fn ($sub) => $sub->where('company_name', $likeOperator, "%{$searchTerm}%"));
                 });
             })
             ->latest();
     }
 
-    public function exportExcel()
+    public function exportExcel(): BinaryFileResponse|StreamedResponse|null
     {
-        return Excel::download(
-            new AcquisitionsExport(trim($this->search)),
-            'acquisitions-report-' . now()->format('Y-m-d_His') . '.xlsx'
-        );
+        try {
+            return Excel::download(
+                new AcquisitionsExcelExport(trim($this->search)),
+                'acquisitions-report-' . now()->format('Y-m-d_His') . '.xlsx'
+            );
+        } catch (Throwable $e) {
+            Log::error('Error exporting acquisitions Excel: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to export acquisitions Excel report.', type: 'error');
+
+            return null;
+        }
     }
 
-    public function exportPdf(): StreamedResponse
+    public function exportPdf(): ?StreamedResponse
     {
-        $acquisitions = $this->filteredAcquisitionsQuery()->get();
+        try {
+            $acquisitions = $this->filteredAcquisitionsQuery()->get();
 
-        $pdf = Pdf::loadView('pdf.acquisitions-report', [
-            'acquisitions' => $acquisitions,
-            'searchTerm'   => trim($this->search),
-            'date'         => now(),
-        ])->setPaper('a4', 'landscape');
+            $pdf = Pdf::loadView('pdf.acquisitions-report', [
+                'acquisitions' => $acquisitions,
+                'searchTerm'   => trim($this->search),
+                'date'         => now(),
+            ])->setPaper('a4', 'landscape');
 
-        return response()->streamDownload(function () use ($pdf) {
-            echo $pdf->output();
-        }, 'acquisitions-report-' . now()->format('Y-m-d') . '.pdf');
+            return response()->streamDownload(function () use ($pdf) {
+                echo $pdf->output();
+            }, 'acquisitions-report-' . now()->format('Y-m-d') . '.pdf');
+        } catch (Throwable $e) {
+            Log::error('Error exporting acquisitions PDF: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to export acquisitions PDF report.', type: 'error');
+
+            return null;
+        }
     }
 
     #[Layout('components.layouts.app')]
@@ -577,6 +599,7 @@ class Acquisitions extends Component
             if ($acq->remarks) {
                 $acq->remarks = mb_convert_encoding((string) $acq->remarks, 'UTF-8', 'UTF-8');
             }
+
             return $acq;
         });
 
