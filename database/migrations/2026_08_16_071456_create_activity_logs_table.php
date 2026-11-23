@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('description'); // e.g., "Created new catalog record #12"
             $table->json('properties')->nullable(); // Stores before/after values for updates
             $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
             $table->timestamp('created_at')->useCurrent();
         });
     }

@@ -1,4 +1,4 @@
-<?php
+<?php // app/Livewire/InventoryManagement.php
 
 namespace App\Livewire;
 
@@ -7,9 +7,13 @@ use App\Models\Accession;
 use App\Models\Acquisition;
 use App\Models\AssetType;
 use App\Models\Catalog;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator as ConcreteLengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -28,30 +32,44 @@ class InventoryManagement extends Component
 
     private function likeOperator(): string
     {
-        return config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        return DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
     }
 
     public function updatedSearch(): void
     {
         $this->search = trim(strip_tags($this->search));
+        if (mb_strlen($this->search) > 100) {
+            $this->search = mb_substr($this->search, 0, 100);
+        }
         $this->resetPage();
     }
 
-    public function updatedAssetTypeSearch(string $value): void
+    public function updatedAssetTypeSearch(mixed $value): void
     {
-        $clean = trim(strip_tags($value));
+        $clean = trim(strip_tags((string) $value));
+        if (mb_strlen($clean) > 100) {
+            $clean = mb_substr($clean, 0, 100);
+        }
         $this->assetTypeSearch = $clean;
 
         if ($clean === '' || strtoupper($clean) === 'ALL ASSET TYPES') {
             $this->assetTypeFilter = 'all';
             $this->resetPage();
+
             return;
         }
 
-        $matched = AssetType::where('name', $this->likeOperator(), $clean)->first();
-        if ($matched) {
-            $this->assetTypeFilter = (string) $matched->id;
-            $this->resetPage();
+        try {
+            $matched = AssetType::query()
+                ->where('name', $this->likeOperator(), $clean)
+                ->first();
+
+            if ($matched) {
+                $this->assetTypeFilter = (string) $matched->id;
+                $this->resetPage();
+            }
+        } catch (Throwable $e) {
+            Log::error('Error matching asset type search: ' . $e->getMessage());
         }
     }
 
@@ -61,14 +79,20 @@ class InventoryManagement extends Component
             $this->assetTypeFilter = 'all';
             $this->assetTypeSearch = '';
             $this->resetPage();
+
             return;
         }
 
-        $type = AssetType::find($typeId);
-        if ($type) {
-            $this->assetTypeFilter = (string) $type->id;
-            $this->assetTypeSearch = strtoupper((string) $type->name);
-            $this->resetPage();
+        try {
+            $type = AssetType::query()->find($typeId);
+            if ($type) {
+                $this->assetTypeFilter = (string) $type->id;
+                $this->assetTypeSearch = strtoupper((string) $type->name);
+                $this->resetPage();
+            }
+        } catch (Throwable $e) {
+            Log::error('Error selecting asset type filter: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'UNABLE TO APPLY ASSET TYPE FILTER.', type: 'error');
         }
     }
 
@@ -77,7 +101,30 @@ class InventoryManagement extends Component
         $this->search = '';
         $this->assetTypeFilter = 'all';
         $this->assetTypeSearch = '';
+        $this->resetErrorBag();
         $this->resetPage();
+    }
+
+    private function validateFilters(): void
+    {
+        $rules = [
+            'search'          => ['nullable', 'string', 'max:100'],
+            'assetTypeFilter' => ['required', 'string', 'max:50'],
+            'assetTypeSearch' => ['nullable', 'string', 'max:100'],
+        ];
+
+        $messages = [
+            'search.max'          => 'Search keyword cannot exceed 100 characters.',
+            'assetTypeSearch.max' => 'Asset type search cannot exceed 100 characters.',
+        ];
+
+        $attributes = [
+            'search'          => 'Inventory Search',
+            'assetTypeFilter' => 'Asset Type Filter',
+            'assetTypeSearch' => 'Asset Type Search',
+        ];
+
+        $this->validate($rules, $messages, $attributes);
     }
 
     private function baseAccessionsForCatalog(string $tableAlias = 'acc')
@@ -91,8 +138,10 @@ class InventoryManagement extends Component
     {
         $likeOperator = $this->likeOperator();
         $damagedConditions = ['minor damaged', 'minor damage', 'severe damaged', 'damaged'];
+        $term = '%' . addcslashes(trim($this->search), '%_\\') . '%';
 
-        return Catalog::with(['author', 'assetType'])
+        return Catalog::query()
+            ->with(['author', 'assetType'])
             ->select('catalogs.*')
             ->selectSub(
                 $this->baseAccessionsForCatalog('acc_phys')->selectRaw('count(*)'),
@@ -116,7 +165,7 @@ class InventoryManagement extends Component
             )
             ->selectSub(
                 $this->baseAccessionsForCatalog('acc_dmg')
-                    ->where(function ($sub) use ($damagedConditions) {
+                    ->where(function (Builder $sub) use ($damagedConditions): void {
                         $sub->whereIn('acc_dmg.condition', $damagedConditions)
                             ->orWhereIn('acc_dmg.status', $damagedConditions);
                     })
@@ -125,7 +174,7 @@ class InventoryManagement extends Component
             )
             ->selectSub(
                 $this->baseAccessionsForCatalog('acc_lost')
-                    ->where(function ($sub) {
+                    ->where(function (Builder $sub): void {
                         $sub->whereIn('acc_lost.condition', ['lost', 'missing'])
                             ->orWhereIn('acc_lost.status', ['lost', 'missing']);
                     })
@@ -134,7 +183,7 @@ class InventoryManagement extends Component
             )
             ->selectSub(
                 $this->baseAccessionsForCatalog('acc_dump')
-                    ->where(function ($sub) {
+                    ->where(function (Builder $sub): void {
                         $sub->where('acc_dump.condition', 'dumped')
                             ->orWhere('acc_dump.status', 'dumped');
                     })
@@ -151,14 +200,13 @@ class InventoryManagement extends Component
                     ->selectRaw('coalesce(sum(acq_sum.quantity_received), 0)'),
                 'total_received_quantity'
             )
-            ->when($this->assetTypeFilter !== 'all', fn ($q) => $q->where('catalogs.asset_type_id', $this->assetTypeFilter))
-            ->when($this->search !== '', function ($q) use ($likeOperator) {
-                $term = "%{$this->search}%";
-                $q->where(function ($sub) use ($likeOperator, $term) {
+            ->when($this->assetTypeFilter !== 'all', fn (Builder $q) => $q->where('catalogs.asset_type_id', $this->assetTypeFilter))
+            ->when(trim($this->search) !== '', function (Builder $q) use ($likeOperator, $term): void {
+                $q->where(function (Builder $sub) use ($likeOperator, $term): void {
                     $sub->where('catalogs.title', $likeOperator, $term)
                         ->orWhere('catalogs.isbn_issn', $likeOperator, $term)
-                        ->orWhereHas('author', fn ($a) => $a->where('name', $likeOperator, $term))
-                        ->orWhereHas('acquisitions.accessions', fn ($acc) => $acc->where('call_number', $likeOperator, $term)
+                        ->orWhereHas('author', fn (Builder $a) => $a->where('name', $likeOperator, $term))
+                        ->orWhereHas('acquisitions.accessions', fn (Builder $acc) => $acc->where('call_number', $likeOperator, $term)
                             ->orWhere('accession_number', $likeOperator, $term));
                 });
             })
@@ -168,24 +216,25 @@ class InventoryManagement extends Component
     private function getSystemStats(): array
     {
         $damagedConditions = ['minor damaged', 'minor damage', 'severe damaged', 'damaged'];
-        $totalReceived = (int) Acquisition::sum('quantity_received');
-        $totalAccessioned = (int) Accession::count();
+        $totalReceived = (int) Acquisition::query()->sum('quantity_received');
+        $totalAccessioned = (int) Accession::query()->count();
 
         return [
             'total_accessioned'   => $totalAccessioned,
             'total_unaccessioned' => max(0, $totalReceived - $totalAccessioned),
-            'total_available'     => Accession::where('status', 'available')->count(),
-            'total_on_loan'       => Accession::where('status', 'on loan')->count(),
-            'total_stored'        => Accession::where('status', 'stored')->count(),
-            'total_damaged'       => Accession::where(function ($q) use ($damagedConditions) {
+            'total_available'     => Accession::query()->where('status', 'available')->count(),
+            'total_on_loan'       => Accession::query()->where('status', 'on loan')->count(),
+            'total_stored'        => Accession::query()->where('status', 'stored')->count(),
+            'total_maintenance'   => Accession::query()->where('status', 'under maintenance')->count(),
+            'total_damaged'       => Accession::query()->where(function (Builder $q) use ($damagedConditions): void {
                 $q->whereIn('condition', $damagedConditions)
                     ->orWhereIn('status', $damagedConditions);
             })->count(),
-            'total_lost'          => Accession::where(function ($q) {
+            'total_lost'          => Accession::query()->where(function (Builder $q): void {
                 $q->whereIn('condition', ['lost', 'missing'])
                     ->orWhereIn('status', ['lost', 'missing']);
             })->count(),
-            'total_dumped'        => Accession::where(function ($q) {
+            'total_dumped'        => Accession::query()->where(function (Builder $q): void {
                 $q->where('condition', 'dumped')
                     ->orWhere('status', 'dumped');
             })->count(),
@@ -194,31 +243,44 @@ class InventoryManagement extends Component
 
     public function exportExcel(): ?StreamedResponse
     {
+        $this->validateFilters();
+
         try {
             $filename = 'inventory-summary-' . now()->format('Y-m-d') . '.csv';
 
             $catalogs = $this->getInventoryQuery()->get();
             $stats = $this->getSystemStats();
-            $searchFilterText = $this->search !== ''
-                ? strtoupper("TITLE/AUTHOR/ISBN/ACCESSION: '{$this->search}'")
+            $searchFilterText = trim($this->search) !== ''
+                ? strtoupper("TITLE/AUTHOR/ISBN/ACCESSION: '" . trim($this->search) . "'")
                 : 'NONE (ALL APPLIED)';
             $assetTypeText = $this->assetTypeFilter === 'all'
                 ? 'ALL'
-                : strtoupper((string) (AssetType::find($this->assetTypeFilter)?->name ?? 'UNKNOWN'));
+                : strtoupper((string) (AssetType::query()->find($this->assetTypeFilter)?->name ?? 'UNKNOWN'));
+            $generatedBy = strtoupper((string) (Auth::user()?->name ?? 'SYSTEM USER'));
 
-            return response()->stream(function () use ($catalogs, $stats, $searchFilterText, $assetTypeText) {
+            return response()->stream(function () use ($catalogs, $stats, $searchFilterText, $assetTypeText, $generatedBy): void {
                 $file = fopen('php://output', 'w');
                 fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
                 fputcsv($file, ['TFVC LIBRARY MANAGEMENT SYSTEM']);
                 fputcsv($file, ['INVENTORY SUMMARY REPORT']);
-                fputcsv($file, ['GENERATED ON: ' . strtoupper(now()->format('F d, Y h:i A')), '', '', '', '', '', '', '', '', 'GENERATED BY: ' . strtoupper((string) (auth()->user()?->name ?? 'SYSTEM USER'))]);
+                fputcsv($file, ['GENERATED ON: ' . strtoupper(now()->format('F d, Y h:i A')), '', '', '', '', '', '', '', '', 'GENERATED BY: ' . $generatedBy]);
                 fputcsv($file, ['SEARCH FILTER: ' . $searchFilterText, '', '', '', '', '', '', '', '', 'ASSET TYPE FILTER: ' . $assetTypeText]);
                 fputcsv($file, []);
 
                 fputcsv($file, ['OVERVIEW STATISTICS']);
-                fputcsv($file, ['TOTAL ACCESSIONED', 'TOTAL UNACCESSIONED', 'AVAILABLE', 'ON LOAN', 'STORED', 'DAMAGED', 'LOST', 'DUMPED']);
-                fputcsv($file, [$stats['total_accessioned'], $stats['total_unaccessioned'], $stats['total_available'], $stats['total_on_loan'], $stats['total_stored'], $stats['total_damaged'], $stats['total_lost'], $stats['total_dumped']]);
+                fputcsv($file, ['TOTAL ACCESSIONED', 'TOTAL UNACCESSIONED', 'AVAILABLE', 'ON LOAN', 'STORED', 'MAINTENANCE', 'DAMAGED', 'LOST', 'DUMPED']);
+                fputcsv($file, [
+                    $stats['total_accessioned'],
+                    $stats['total_unaccessioned'],
+                    $stats['total_available'],
+                    $stats['total_on_loan'],
+                    $stats['total_stored'],
+                    $stats['total_maintenance'],
+                    $stats['total_damaged'],
+                    $stats['total_lost'],
+                    $stats['total_dumped'],
+                ]);
                 fputcsv($file, []);
 
                 fputcsv($file, ['TITLE', 'AUTHOR', 'ASSET TYPE', 'TOTAL STOCK', 'ACCESSIONED', 'UNACCESSIONED', 'AVAILABLE', 'ON LOAN', 'STORED', 'MAINTENANCE', 'DUMPED', 'DAMAGED', 'LOST', 'BATCHES']);
@@ -258,20 +320,23 @@ class InventoryManagement extends Component
         } catch (Throwable $e) {
             Log::error('Error exporting inventory CSV: ' . $e->getMessage());
             $this->dispatch('toast', message: 'UNABLE TO EXPORT INVENTORY CSV REPORT.', type: 'error');
+
             return null;
         }
     }
 
     public function exportPdf(): ?StreamedResponse
     {
+        $this->validateFilters();
+
         try {
             $catalogs = $this->getInventoryQuery()->get();
             $stats = $this->getSystemStats();
-            $searchFilterText = $this->search !== ''
-                ? strtoupper("TITLE/AUTHOR/ISBN/ACCESSION: '{$this->search}'")
+            $searchFilterText = trim($this->search) !== ''
+                ? strtoupper("TITLE/AUTHOR/ISBN/ACCESSION: '" . trim($this->search) . "'")
                 : 'NONE (ALL APPLIED)';
 
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.inventory-summary', [
+            $pdf = Pdf::loadView('pdf.inventory-summary', [
                 'catalogs' => $catalogs,
                 'stats'    => $stats,
                 'search'   => $searchFilterText,
@@ -279,7 +344,7 @@ class InventoryManagement extends Component
 
             $filename = 'inventory-summary-' . now()->format('Y-m-d_H-i-s') . '.pdf';
 
-            return response()->streamDownload(function () use ($pdf) {
+            return response()->streamDownload(function () use ($pdf): void {
                 echo $pdf->output();
             }, $filename, [
                 'Content-Type' => 'application/pdf',
@@ -287,6 +352,7 @@ class InventoryManagement extends Component
         } catch (Throwable $e) {
             Log::error('Error exporting inventory PDF: ' . $e->getMessage());
             $this->dispatch('toast', message: 'UNABLE TO EXPORT INVENTORY PDF REPORT.', type: 'error');
+
             return null;
         }
     }
@@ -295,26 +361,27 @@ class InventoryManagement extends Component
     #[Title('Inventory Summary')]
     public function render()
     {
+        $catalogs = new ConcreteLengthAwarePaginator(collect(), 0, 15);
+        $assetTypes = new Collection();
+        $stats = [
+            'total_accessioned'   => 0,
+            'total_unaccessioned' => 0,
+            'total_available'     => 0,
+            'total_on_loan'       => 0,
+            'total_stored'        => 0,
+            'total_maintenance'   => 0,
+            'total_damaged'       => 0,
+            'total_lost'          => 0,
+            'total_dumped'        => 0,
+        ];
+
         try {
             $catalogs = $this->getInventoryQuery()->paginate(15);
-            $assetTypes = AssetType::orderBy('name')->get();
+            $assetTypes = AssetType::query()->orderBy('name')->get();
             $stats = $this->getSystemStats();
         } catch (Throwable $e) {
             Log::error('Error loading inventory management data: ' . $e->getMessage());
             $this->dispatch('toast', message: 'UNABLE TO LOAD INVENTORY SUMMARY DATA.', type: 'error');
-
-            $catalogs = new \Illuminate\Pagination\LengthAwarePaginator(collect(), 0, 15);
-            $assetTypes = new Collection();
-            $stats = [
-                'total_accessioned'   => 0,
-                'total_unaccessioned' => 0,
-                'total_available'     => 0,
-                'total_on_loan'       => 0,
-                'total_stored'        => 0,
-                'total_damaged'       => 0,
-                'total_lost'          => 0,
-                'total_dumped'        => 0,
-            ];
         }
 
         return view('livewire.inventory-management', [

@@ -1,4 +1,4 @@
-<?php
+<?php // app/Livewire/Traits/LogsActivity.php
 
 namespace App\Livewire\Traits;
 
@@ -49,6 +49,7 @@ trait LogsActivity
             'description'  => $description . ' (' . class_basename($model) . " #{$model->getKey()})",
             'properties'   => $properties ?: null,
             'ip_address'   => request()->ip(),
+            'user_agent'   => request()->userAgent(),
             'created_at'   => now(),
         ]);
     }
@@ -67,6 +68,7 @@ trait LogsActivity
             'description'  => $description,
             'properties'   => $properties ?: null,
             'ip_address'   => request()->ip(),
+            'user_agent'   => request()->userAgent(),
             'created_at'   => now(),
         ]);
     }

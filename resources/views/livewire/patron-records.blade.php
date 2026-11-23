@@ -1,4 +1,4 @@
-{{-- resources/views/livewire/patron-records.blade.php --}}
+<?php // resources/views/livewire/patron-records.blade.php ?>
 @php
     use Illuminate\Support\Str;
 @endphp
@@ -104,7 +104,7 @@
                 @endforelse
             </div>
 
-            @if ($patrons->hasPages())
+            @if (method_exists($patrons, 'hasPages') && $patrons->hasPages())
                 <div class="pt-1">
                     {{ $patrons->links() }}
                 </div>
@@ -119,6 +119,10 @@
                     $selIdLabel = $selTypeLower === 'student' ? 'Student #' : 'Employee #';
                     $selMiddle = $selectedPatron->middle_name ? mb_substr(trim($selectedPatron->middle_name), 0, 1) . '.' : '';
                     $selFullName = Str::title(trim("{$selectedPatron->first_name} {$selMiddle} {$selectedPatron->last_name}")) . ($selectedPatron->suffix ? ' ' . strtoupper(trim($selectedPatron->suffix)) : '');
+                    $gradeSectionText = collect([
+                        $selectedPatron->gradeLevel?->name ? Str::title($selectedPatron->gradeLevel->name) : null,
+                        $selectedPatron->section?->name ? '(' . Str::title($selectedPatron->section->name) . ')' : null,
+                    ])->filter()->implode(' ');
                 @endphp
 
                 {{-- Patron Summary Card --}}
@@ -156,16 +160,18 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
                         <div class="bg-surface-canvas p-3 rounded-xl border border-surface-border">
                             <span class="text-content-muted text-[11px] font-semibold block">Type</span>
                             <strong class="text-content-heading mt-0.5 block">{{ $selectedPatron->patronType?->name ? Str::title($selectedPatron->patronType->name) : 'N/A' }}</strong>
                         </div>
                         <div class="bg-surface-canvas p-3 rounded-xl border border-surface-border">
+                            <span class="text-content-muted text-[11px] font-semibold block">Department</span>
+                            <strong class="text-content-heading mt-0.5 block">{{ $selectedPatron->department?->name ? Str::title($selectedPatron->department->name) : '—' }}</strong>
+                        </div>
+                        <div class="bg-surface-canvas p-3 rounded-xl border border-surface-border">
                             <span class="text-content-muted text-[11px] font-semibold block">Grade / Section</span>
-                            <strong class="text-content-heading mt-0.5 block">
-                                {{ $selectedPatron->gradeLevel?->name ? Str::title($selectedPatron->gradeLevel->name) : '—' }} {{ $selectedPatron->section?->name ? '(' . Str::title($selectedPatron->section->name) . ')' : '' }}
-                            </strong>
+                            <strong class="text-content-heading mt-0.5 block">{{ $gradeSectionText !== '' ? $gradeSectionText : '—' }}</strong>
                         </div>
                         <div class="bg-surface-canvas p-3 rounded-xl border border-surface-border">
                             <span class="text-content-muted text-[11px] font-semibold block">Account Status</span>
@@ -274,7 +280,7 @@
                         </div>
                     </div>
 
-                    @if ($patronLoans->hasPages())
+                    @if ($patronLoans && method_exists($patronLoans, 'hasPages') && $patronLoans->hasPages())
                         <div class="pt-1">
                             {{ $patronLoans->links() }}
                         </div>

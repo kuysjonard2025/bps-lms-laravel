@@ -1,79 +1,9 @@
-{{-- resources/views/livewire/circulations.blade.php --}}
+<?php // resources/views/livewire/circulations.blade.php ?>
 @php
     use Illuminate\Support\Str;
 @endphp
 
-<div
-    class="space-y-5 text-content-body"
-    x-data="{ toastMessage: '', toastType: 'success', showToast: false }"
-    x-on:toast.window="toastMessage = $event.detail.message; toastType = $event.detail.type || 'success'; showToast = true; setTimeout(() => showToast = false, 4000)"
->
-
-    {{-- Toast Notification --}}
-    <div
-        x-show="showToast"
-        x-cloak
-        role="status"
-        aria-live="polite"
-        x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 translate-y-2"
-        x-transition:enter-end="opacity-100 translate-y-0"
-        x-transition:leave="transition ease-in duration-200"
-        x-transition:leave-start="opacity-100 translate-y-0"
-        x-transition:leave-end="opacity-0 translate-y-2"
-        class="fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-xl px-4 py-3 shadow-lg text-xs font-semibold text-white"
-        :class="toastType === 'error' ? 'bg-brand-secondary' : 'bg-brand-primary'"
-    >
-        <span x-text="toastMessage"></span>
-        <button
-            type="button"
-            @click="showToast = false"
-            aria-label="Dismiss notification"
-            class="text-white/80 hover:text-white cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-        >&times;</button>
-    </div>
-
-    {{-- Flash Messages --}}
-    @if (session()->has('message'))
-        <div
-            x-data="{ show: true }"
-            x-show="show"
-            role="status"
-            class="flex items-center justify-between gap-3 rounded-2xl border border-brand-primary/25 bg-brand-tint-light px-5 py-3.5 text-xs font-semibold text-brand-primary shadow-2xs"
-        >
-            <div class="flex items-center gap-2.5">
-                <x-heroicon-o-check-circle class="h-4 w-4 shrink-0 text-brand-primary" aria-hidden="true" />
-                <span>{{ session('message') }}</span>
-            </div>
-            <button
-                type="button"
-                @click="show = false"
-                aria-label="Dismiss message"
-                class="text-brand-primary hover:text-content-heading cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-            >&times;</button>
-        </div>
-    @endif
-
-    @if (session()->has('error'))
-        <div
-            x-data="{ show: true }"
-            x-show="show"
-            role="alert"
-            class="flex items-center justify-between gap-3 rounded-2xl border border-brand-secondary/30 bg-brand-secondary/10 px-5 py-3.5 text-xs font-semibold text-brand-secondary shadow-2xs"
-        >
-            <div class="flex items-center gap-2.5">
-                <x-heroicon-o-exclamation-circle class="h-4 w-4 shrink-0 text-brand-secondary" aria-hidden="true" />
-                <span>{{ session('error') }}</span>
-            </div>
-            <button
-                type="button"
-                @click="show = false"
-                aria-label="Dismiss error"
-                class="text-brand-secondary hover:text-content-heading cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary"
-            >&times;</button>
-        </div>
-    @endif
-
+<div class="space-y-5 text-content-body">
     {{-- Header Card & Mode Switcher --}}
     <section aria-label="Circulation desk header" class="flex flex-col gap-4 rounded-2xl border border-surface-border bg-surface-card px-6 py-5 shadow-2xs lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -147,7 +77,6 @@
                             wire:keydown.escape="$set('patronInput', '')"
                             placeholder="Search ID or scan RFID..."
                             class="w-full rounded-xl border border-surface-border bg-surface-canvas py-2.5 pl-10 pr-4 text-xs text-content-heading placeholder:text-content-muted transition focus:bg-surface-card focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-                            autofocus
                         />
                     </div>
                     @error('patronInput') <span class="text-xs text-brand-secondary block mt-1 font-medium">{{ $message }}</span> @enderror
@@ -295,7 +224,6 @@
                             wire:model.live.debounce.300ms="returnAccessionInput"
                             placeholder="Scan or enter accession # to inspect loan..."
                             class="w-full rounded-xl border border-surface-border bg-surface-canvas py-2.5 px-4 text-xs text-content-heading placeholder:text-content-muted transition focus:bg-surface-card focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-                            autofocus
                         />
                         @error('returnAccessionInput') <span class="text-xs text-brand-secondary block mt-1 font-medium">{{ $message }}</span> @enderror
                     </div>

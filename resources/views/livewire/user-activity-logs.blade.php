@@ -1,4 +1,4 @@
-{{-- resources/views/livewire/user-activity-logs.blade.php --}}
+<?php // resources/views/livewire/user-activity-logs.blade.php ?>
 <div class="space-y-6 text-content-body">
     {{-- Header Card with Inline Search, Filters & Export Actions --}}
     <section aria-label="User activity logs header and filters" class="bg-surface-card p-5 sm:p-6 rounded-2xl border border-surface-border shadow-2xs flex flex-col xl:flex-row xl:items-center justify-between gap-4">
@@ -51,6 +51,19 @@
                         if (!q || q === 'all modules') return this.items;
                         return this.items.filter(i => i.label.toLowerCase().includes(q) || i.value.toLowerCase().includes(q));
                     },
+                    onType(e) {
+                        this.query = e.target.value;
+                        this.open = true;
+                        const trimmed = this.query.trim().toLowerCase();
+                        if (trimmed === '' || trimmed === 'all modules') {
+                            $wire.selectModule('all');
+                            return;
+                        }
+                        const exact = this.items.find(i => i.label.toLowerCase() === trimmed || i.value.toLowerCase() === trimmed);
+                        if (exact) {
+                            $wire.selectModule(exact.value);
+                        }
+                    },
                     choose(value, label) {
                         this.query = label;
                         this.open = false;
@@ -74,10 +87,9 @@
                         aria-autocomplete="list"
                         aria-controls="activity-module-listbox"
                         :aria-expanded="open.toString()"
-                        x-model="query"
+                        :value="query"
                         @focus="open = true"
-                        @input="open = true"
-                        wire:model.live.debounce.300ms="moduleSearch"
+                        @input="onType($event)"
                         placeholder="All Modules..."
                         class="w-full py-2 pl-3 pr-14 text-xs font-medium rounded-xl border border-surface-border bg-surface-card text-content-heading placeholder:text-content-muted focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 transition"
                     >
@@ -261,6 +273,7 @@
                         <th scope="col" class="px-4 py-3.5 whitespace-nowrap">Module</th>
                         <th scope="col" class="px-4 py-3.5 whitespace-nowrap">Description</th>
                         <th scope="col" class="px-4 py-3.5 whitespace-nowrap">IP Address</th>
+                        <th scope="col" class="px-4 py-3.5 whitespace-nowrap">Device (Browser / OS)</th>
                         <th scope="col" class="px-5 py-3.5 text-right whitespace-nowrap">Timestamp</th>
                     </tr>
                 </thead>
@@ -316,13 +329,19 @@
                                 {{ $log->ip_address ?? '—' }}
                             </td>
 
+                            <td class="px-4 py-3.5 whitespace-nowrap" title="{{ $log->user_agent }}">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-surface-canvas border border-surface-border text-content-heading">
+                                    {{ $log->device_browser_os ?? 'Unknown' }}
+                                </span>
+                            </td>
+
                             <td class="px-5 py-3.5 text-right whitespace-nowrap font-mono text-content-muted">
                                 {{ $log->created_at ? $log->created_at->format('M d, Y H:i:s') : '—' }}
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-10 px-4 text-content-muted">
+                            <td colspan="7" class="text-center py-10 px-4 text-content-muted">
                                 No activity logs recorded yet.
                             </td>
                         </tr>

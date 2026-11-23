@@ -1,4 +1,4 @@
-{{-- resources/views/livewire/authentication-logs.blade.php --}}
+<?php // resources/views/livewire/authentication-logs.blade.php ?>
 <div class="space-y-6 text-content-body">
     {{-- Header Card with Inline Search, Filters & Export Actions --}}
     <section aria-label="Authentication logs header and filters" class="bg-surface-card p-5 sm:p-6 rounded-2xl border border-surface-border shadow-2xs flex flex-col xl:flex-row xl:items-center justify-between gap-4">
@@ -172,7 +172,7 @@
                         <th scope="col" class="px-5 py-3.5 whitespace-nowrap">User / Targeted Email</th>
                         <th scope="col" class="px-4 py-3.5 whitespace-nowrap">Event Status</th>
                         <th scope="col" class="px-4 py-3.5 whitespace-nowrap">IP Address</th>
-                        <th scope="col" class="px-4 py-3.5 whitespace-nowrap">User Agent</th>
+                        <th scope="col" class="px-4 py-3.5 whitespace-nowrap">Device (Browser / OS)</th>
                         <th scope="col" class="px-5 py-3.5 text-right whitespace-nowrap">Timestamp</th>
                     </tr>
                 </thead>
@@ -224,8 +224,10 @@
                                 {{ $log->ip_address ?? '—' }}
                             </td>
 
-                            <td class="px-4 py-3.5 max-w-xs truncate text-[11px] text-content-muted" title="{{ $log->user_agent }}">
-                                {{ $log->user_agent ?? '—' }}
+                            <td class="px-4 py-3.5 whitespace-nowrap" title="{{ $log->user_agent }}">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-surface-canvas border border-surface-border text-content-heading">
+                                    {{ $log->device_browser_os ?? 'Unknown' }}
+                                </span>
                             </td>
 
                             <td class="px-5 py-3.5 text-right whitespace-nowrap font-mono text-content-muted">

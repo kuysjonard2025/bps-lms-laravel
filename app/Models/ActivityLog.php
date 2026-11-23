@@ -1,8 +1,7 @@
-<?php
+<?php // app/Models/ActivityLog.php
 
 namespace App\Models;
 
-use App\Livewire\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -20,6 +19,7 @@ class ActivityLog extends Model
         'description',
         'properties',
         'ip_address',
+        'user_agent',
         'created_at',
     ];
 

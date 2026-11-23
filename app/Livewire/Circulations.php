@@ -1,4 +1,4 @@
-<?php
+<?php // app/Livewire/Circulations.php
 
 namespace App\Livewire;
 
@@ -15,6 +15,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -25,6 +27,7 @@ use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class Circulations extends Component
 {
@@ -95,6 +98,7 @@ class Circulations extends Component
     {
         if ($value === '' || $value === null || ! is_numeric($value)) {
             $this->assessmentFeeAmount = 0.00;
+
             return;
         }
 
@@ -103,7 +107,7 @@ class Circulations extends Component
 
     private function likeOperator(): string
     {
-        return config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        return DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
     }
 
     private function isStudentPatron(?Patron $patron): bool
@@ -167,11 +171,18 @@ class Circulations extends Component
 
     public function updatedFilterStatus(): void
     {
+        if (! in_array($this->filterStatus, ['borrowed', 'overdue', 'returned', 'all'], true)) {
+            $this->filterStatus = 'borrowed';
+        }
         $this->resetPage();
     }
 
     public function updatedFilterCondition(): void
     {
+        $allowedConditions = ['all', 'good', 'minor damaged', 'severe damaged', 'lost'];
+        if (! in_array($this->filterCondition, $allowedConditions, true)) {
+            $this->filterCondition = 'all';
+        }
         $this->resetPage();
     }
 
@@ -185,6 +196,10 @@ class Circulations extends Component
 
     public function switchMode(string $mode): void
     {
+        if (! in_array($mode, ['checkout', 'checkin', 'active_loans'], true)) {
+            return;
+        }
+
         $this->activeMode = $mode;
         $this->resetErrorBag();
     }
@@ -196,27 +211,31 @@ class Circulations extends Component
             if ($code === '') {
                 $this->selectedPatron = null;
                 $this->isTimedIn = true;
+
                 return;
             }
 
             $op = $this->likeOperator();
 
-            $this->selectedPatron = Patron::with(['patronType'])
-                ->where(function ($q) use ($code, $op) {
+            $this->selectedPatron = Patron::query()
+                ->with(['patronType'])
+                ->where(function (Builder $q) use ($code, $op): void {
                     $q->where('school_id', $op, $code)
                         ->orWhere('rfid_tag', $op, $code);
                 })
                 ->first();
 
             if ($this->selectedPatron) {
-                $this->isTimedIn = PatronLog::where('patron_id', $this->selectedPatron->id)
-                    ->where('log_date', now()->toDateString())
+                $this->isTimedIn = PatronLog::query()
+                    ->where('patron_id', $this->selectedPatron->id)
+                    ->whereDate('log_date', now()->toDateString())
                     ->whereNull('time_out')
                     ->exists();
             } else {
                 $this->isTimedIn = true;
             }
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            Log::error('Error looking up patron during checkout: ' . $e->getMessage());
             $this->selectedPatron = null;
             $this->isTimedIn = true;
         }
@@ -228,13 +247,16 @@ class Circulations extends Component
             $code = trim(strip_tags($this->accessionInput));
             if ($code === '') {
                 $this->selectedAccession = null;
+
                 return;
             }
 
-            $this->selectedAccession = Accession::with(['catalog.author', 'catalog.assetType', 'catalog.generalReference'])
+            $this->selectedAccession = Accession::query()
+                ->with(['catalog.author', 'catalog.assetType', 'catalog.generalReference', 'catalog.publisher'])
                 ->where('accession_number', $this->likeOperator(), $code)
                 ->first();
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            Log::error('Error looking up accession during checkout: ' . $e->getMessage());
             $this->selectedAccession = null;
         }
     }
@@ -243,11 +265,13 @@ class Circulations extends Component
     {
         if ($this->returnCondition === 'good') {
             $this->assessmentFeeAmount = 0.00;
+
             return;
         }
 
         if ($this->returnCondition === 'minor damaged') {
             $this->assessmentFeeAmount = $this->suggestedMinorDamagedFee;
+
             return;
         }
 
@@ -267,18 +291,21 @@ class Circulations extends Component
     public function payFine(int $loanId): void
     {
         try {
-            $loan = Circulation::where('id', $loanId)
+            $loan = Circulation::query()
+                ->where('id', $loanId)
                 ->whereIn('status', ['returned', 'lost'])
                 ->where('is_paid', false)
                 ->first();
 
             if (! $loan) {
                 $this->dispatch('toast', message: 'NO UNPAID FINE RECORD FOUND FOR THIS PATRON.', type: 'error');
+
                 return;
             }
 
             $this->openEditPaymentModal($loan->id);
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            Log::error('Error locating fine record: ' . $e->getMessage());
             $this->dispatch('toast', message: 'AN ERROR OCCURRED LOCATING THE RECORD.', type: 'error');
         }
     }
@@ -286,13 +313,15 @@ class Circulations extends Component
     public function openEditPaymentModal(int $loanId): void
     {
         try {
-            $loan = Circulation::where('id', $loanId)
+            $loan = Circulation::query()
+                ->where('id', $loanId)
                 ->whereIn('status', ['returned', 'lost'])
                 ->where('is_paid', false)
                 ->first();
 
             if (! $loan) {
                 $this->dispatch('toast', message: 'RECORD DOES NOT MEET PAYMENT CRITERIA.', type: 'error');
+
                 return;
             }
 
@@ -300,8 +329,10 @@ class Circulations extends Component
             $this->editFineAmount = max(5.00, (float) $loan->fine_amount);
             $this->editReceiptNumber = $loan->receipt_number ?? '';
             $this->isEditPaid = (bool) $loan->is_paid;
+            $this->resetErrorBag();
             $this->showEditPaymentModal = true;
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            Log::error('Error opening payment editor: ' . $e->getMessage());
             $this->dispatch('toast', message: 'UNABLE TO OPEN PAYMENT EDITOR.', type: 'error');
         }
     }
@@ -319,35 +350,63 @@ class Circulations extends Component
             return;
         }
 
-        $fields = ['editFineAmount', 'editReceiptNumber'];
-        $this->cleanFields($fields);
+        $this->cleanFields(['editFineAmount', 'editReceiptNumber']);
 
-        $this->validate([
-            'editFineAmount'    => 'required|numeric|min:5.00',
-            'editReceiptNumber' => $this->isEditPaid ? 'required|string|max:50' : 'nullable|string|max:50',
-        ], [], [
+        $rules = [
+            'editFineAmount'    => ['required', 'numeric', 'min:5.00', 'max:99999999.99'],
+            'editReceiptNumber' => $this->isEditPaid
+                ? ['required', 'string', 'max:50']
+                : ['nullable', 'string', 'max:50'],
+        ];
+
+        $messages = [
+            'editFineAmount.min'         => 'Fine amount must be at least ₱5.00.',
+            'editReceiptNumber.required' => 'Receipt number is required when marking a fine as paid.',
+        ];
+
+        $attributes = [
             'editFineAmount'    => 'Fine Amount',
             'editReceiptNumber' => 'Receipt Number',
-        ]);
+        ];
+
+        $this->validate($rules, $messages, $attributes);
 
         try {
-            $loan = Circulation::where('id', $this->editingLoanId)
-                ->whereIn('status', ['returned', 'lost'])
-                ->where('is_paid', false)
-                ->first();
+            $updated = false;
 
-            if ($loan) {
+            DB::transaction(function () use (&$updated): void {
+                $loan = Circulation::query()
+                    ->where('id', $this->editingLoanId)
+                    ->whereIn('status', ['returned', 'lost'])
+                    ->where('is_paid', false)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $loan) {
+                    return;
+                }
+
+                $fineAmount = round((float) $this->editFineAmount, 2);
+                $isPaid = $fineAmount > 0 ? (bool) $this->isEditPaid : true;
+
                 $loan->update([
-                    'fine_amount'    => $this->editFineAmount,
-                    'is_paid'        => $this->editFineAmount > 0 ? $this->isEditPaid : true,
-                    'receipt_number' => $this->isEditPaid ? strtoupper(trim((string) $this->editReceiptNumber)) : null,
+                    'fine_amount'    => $fineAmount,
+                    'is_paid'        => $isPaid,
+                    'receipt_number' => $isPaid && trim((string) $this->editReceiptNumber) !== ''
+                        ? strtoupper(trim((string) $this->editReceiptNumber))
+                        : null,
                 ]);
 
+                $updated = true;
+            });
+
+            if ($updated) {
                 $this->dispatch('toast', message: 'PAYMENT DETAILS UPDATED SUCCESSFULLY.', type: 'success');
             } else {
                 $this->dispatch('toast', message: 'UNABLE TO UPDATE. RECORD NO LONGER VALID.', type: 'error');
             }
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            Log::error('Database error while saving payment update: ' . $e->getMessage());
             $this->dispatch('toast', message: 'DATABASE ERROR WHILE SAVING PAYMENT UPDATE.', type: 'error');
         }
 
@@ -356,23 +415,33 @@ class Circulations extends Component
 
     public function processCheckout(): void
     {
-        $fields = ['patronInput', 'accessionInput'];
-        $this->cleanFields($fields);
+        $this->cleanFields(['patronInput', 'accessionInput']);
 
-        $this->validate([
-            'patronInput'    => 'required|string',
-            'accessionInput' => 'required|string',
-        ], [], [
+        $rules = [
+            'patronInput'    => ['required', 'string', 'max:100'],
+            'accessionInput' => ['required', 'string', 'max:100'],
+        ];
+
+        $messages = [
+            'patronInput.required'    => 'Please enter or scan a patron ID or RFID tag.',
+            'accessionInput.required' => 'Please enter or scan an accession number.',
+        ];
+
+        $attributes = [
             'patronInput'    => 'Patron',
             'accessionInput' => 'Accession',
-        ]);
+        ];
+
+        $this->validate($rules, $messages, $attributes);
 
         try {
             $op = $this->likeOperator();
             $patronCode = trim($this->patronInput);
+            $accessionCode = trim($this->accessionInput);
 
-            $patron = Patron::with(['patronType'])
-                ->where(function ($q) use ($patronCode, $op) {
+            $patron = Patron::query()
+                ->with(['patronType'])
+                ->where(function (Builder $q) use ($patronCode, $op): void {
                     $q->where('school_id', $op, $patronCode)
                         ->orWhere('rfid_tag', $op, $patronCode);
                 })
@@ -380,74 +449,96 @@ class Circulations extends Component
 
             if (! $patron) {
                 $this->dispatch('toast', message: 'PATRON NOT FOUND.', type: 'error');
+
                 return;
             }
 
             if (strtolower($patron->status ?? '') !== 'active') {
                 $this->dispatch('toast', message: 'PATRON ACCOUNT IS NOT ACTIVE.', type: 'error');
+
                 return;
             }
 
-            $hasTimedIn = PatronLog::where('patron_id', $patron->id)
-                ->where('log_date', now()->toDateString())
+            $hasTimedIn = PatronLog::query()
+                ->where('patron_id', $patron->id)
+                ->whereDate('log_date', now()->toDateString())
                 ->whereNull('time_out')
                 ->exists();
 
             if (! $hasTimedIn) {
                 $this->dispatch('toast', message: 'BORROWING FAILED: PATRON HAS NOT TIMED IN TODAY OR IS ALREADY TIMED OUT.', type: 'error');
+
                 return;
             }
 
-            $accessionCode = trim($this->accessionInput);
-            $accession = Accession::with('catalog')
+            $previewAccession = Accession::query()
                 ->where('accession_number', $op, $accessionCode)
                 ->first();
 
-            if (! $accession) {
+            if (! $previewAccession) {
                 $this->dispatch('toast', message: 'ACCESSION / ITEM NOT FOUND.', type: 'error');
+
                 return;
             }
 
-            if (strtolower($accession->status ?? '') !== 'available') {
-                $this->dispatch('toast', message: 'ITEM IS CURRENTLY ' . strtoupper((string) $accession->status) . '.', type: 'error');
+            if (strtolower($previewAccession->status ?? '') !== 'available') {
+                $this->dispatch('toast', message: 'ITEM IS CURRENTLY ' . strtoupper((string) $previewAccession->status) . '.', type: 'error');
+
                 return;
             }
 
             $isStudent = $this->isStudentPatron($patron);
             $loanDays = 7;
-            $maxBorrowLimit = 3;
-
-            if ($isStudent) {
-                $policy = PolicyLoanLimit::where('patron_type_id', $patron->patron_type_id)->first();
-
-                if (! $policy) {
-                    $this->dispatch('toast', message: 'BORROWING FAILED: POLICY LOAN LIMIT HAS NOT BEEN SET FOR THIS STUDENT PATRON TYPE.', type: 'error');
-                    return;
-                }
-
-                $loanDays = (int) ($policy->loan_duration_days ?? 7);
-                $maxBorrowLimit = (int) ($policy->max_borrow_limit ?? 3);
-
-                $activeBorrowCount = Circulation::where('patron_id', $patron->id)
-                    ->where('status', 'borrowed')
-                    ->count();
-
-                if ($activeBorrowCount >= $maxBorrowLimit) {
-                    $this->dispatch('toast', message: "BORROWING LIMIT REACHED ({$maxBorrowLimit} ITEMS MAX).", type: 'error');
-                    return;
-                }
-            }
 
             $circulationRecord = null;
+            $errorMessage = null;
 
-            DB::transaction(function () use ($patron, $accession, $loanDays, &$circulationRecord) {
+            DB::transaction(function () use ($patron, $previewAccession, $isStudent, &$loanDays, &$circulationRecord, &$errorMessage): void {
+                $lockedAccession = Accession::query()
+                    ->where('id', $previewAccession->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $lockedAccession || strtolower($lockedAccession->status ?? '') !== 'available') {
+                    $errorMessage = 'ITEM IS CURRENTLY ' . strtoupper((string) ($lockedAccession?->status ?? 'UNAVAILABLE')) . '.';
+
+                    return;
+                }
+
+                if ($isStudent) {
+                    $policy = PolicyLoanLimit::query()
+                        ->where('patron_type_id', $patron->patron_type_id)
+                        ->first();
+
+                    if (! $policy) {
+                        $errorMessage = 'BORROWING FAILED: POLICY LOAN LIMIT HAS NOT BEEN SET FOR THIS STUDENT PATRON TYPE.';
+
+                        return;
+                    }
+
+                    $loanDays = (int) ($policy->loan_duration_days ?? 7);
+                    $maxBorrowLimit = (int) ($policy->max_borrow_limit ?? 3);
+
+                    $activeBorrowCount = Circulation::query()
+                        ->where('patron_id', $patron->id)
+                        ->where('status', 'borrowed')
+                        ->lockForUpdate()
+                        ->count();
+
+                    if ($activeBorrowCount >= $maxBorrowLimit) {
+                        $errorMessage = "BORROWING LIMIT REACHED ({$maxBorrowLimit} ITEMS MAX).";
+
+                        return;
+                    }
+                }
+
                 $now = now();
                 $dueDate = $now->copy()->addDays($loanDays);
 
-                $circulationRecord = Circulation::create([
+                $circulationRecord = Circulation::query()->create([
                     'patron_id'      => $patron->id,
-                    'accession_id'   => $accession->id,
-                    'user_id'        => auth()->id(),
+                    'accession_id'   => $lockedAccession->id,
+                    'user_id'        => Auth::id(),
                     'borrowed_at'    => $now,
                     'due_at'         => $dueDate,
                     'fine_amount'    => 0.00,
@@ -457,19 +548,29 @@ class Circulations extends Component
                     'condition'      => 'good',
                 ]);
 
-                $accession->update(['status' => 'on loan']);
+                $lockedAccession->update(['status' => 'on loan']);
             });
 
+            if ($errorMessage) {
+                $this->dispatch('toast', message: $errorMessage, type: 'error');
+
+                return;
+            }
+
             if ($patron->email && $circulationRecord) {
-                Mail::to($patron->email)->send(new ItemBorrowedMail($circulationRecord));
+                try {
+                    Mail::to($patron->email)->send(new ItemBorrowedMail($circulationRecord));
+                } catch (Throwable $mailException) {
+                    Log::error('Failed to send borrowed item email: ' . $mailException->getMessage());
+                }
             }
 
             $this->reset(['accessionInput', 'selectedAccession']);
-            $this->dispatch('toast', message: 'ITEM ISSUED SUCCESSFULLY AND EMAIL SENT.', type: 'success');
+            $this->dispatch('toast', message: 'ITEM ISSUED SUCCESSFULLY.', type: 'success');
         } catch (QueryException $e) {
             Log::error('Database error during checkout: ' . $e->getMessage());
             $this->dispatch('toast', message: 'DATABASE ERROR OCCURRED DURING CHECKOUT TRANSACTION.', type: 'error');
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
             Log::error('Unexpected error during checkout: ' . $e->getMessage());
             $this->dispatch('toast', message: 'AN UNEXPECTED ERROR OCCURRED DURING CHECKOUT.', type: 'error');
         }
@@ -492,14 +593,19 @@ class Circulations extends Component
                 return;
             }
 
-            $accession = Accession::where('accession_number', $op, $code)->first();
+            $accession = Accession::query()
+                ->where('accession_number', $op, $code)
+                ->first();
+
             if (! $accession) {
                 $this->dispatch('toast', message: 'ACCESSION NUMBER NOT FOUND.', type: 'error');
                 $this->inspectedLoan = null;
+
                 return;
             }
 
-            $activeLoan = Circulation::with(['patron.patronType', 'accession.catalog.assetType', 'accession.acquisition'])
+            $activeLoan = Circulation::query()
+                ->with(['patron.patronType', 'accession.catalog.assetType', 'accession.acquisition'])
                 ->where('accession_id', $accession->id)
                 ->where('status', 'borrowed')
                 ->first();
@@ -507,6 +613,7 @@ class Circulations extends Component
             if (! $activeLoan) {
                 $this->dispatch('toast', message: 'THIS ITEM IS NOT CURRENTLY RECORDED AS BORROWED.', type: 'error');
                 $this->inspectedLoan = null;
+
                 return;
             }
 
@@ -529,7 +636,7 @@ class Circulations extends Component
 
             $assetTypeId = $activeLoan->accession?->catalog?->asset_type_id;
             $penalty = $assetTypeId
-                ? CirculationPenalty::where('asset_type_id', $assetTypeId)->first()
+                ? CirculationPenalty::query()->where('asset_type_id', $assetTypeId)->first()
                 : null;
 
             $lostAfterDays = max(1, (int) ($penalty?->lost_after_days ?? $penalty?->max_days ?? 14));
@@ -551,7 +658,8 @@ class Circulations extends Component
                     $this->exceededLostThreshold = true;
                 }
             }
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            Log::error('Error inspecting return item: ' . $e->getMessage());
             $this->dispatch('toast', message: 'ERROR INSPECTING THE RETURN ITEM.', type: 'error');
         }
     }
@@ -562,38 +670,57 @@ class Circulations extends Component
             return;
         }
 
-        $this->validate([
-            'returnCondition' => 'required|string|in:good,minor damaged,severe damaged,lost',
-        ]);
-
         $minAssessment = match ($this->returnCondition) {
             'minor damaged'          => 5.00,
             'severe damaged', 'lost' => 50.00,
             default                  => 0.00,
         };
 
-        $rules = [
-            'assessmentFeeAmount' => $this->isConditionFeeRequired($this->returnCondition)
-                ? "required|numeric|min:{$minAssessment}"
-                : 'nullable|numeric|min:0',
-        ];
-
         $totalFine = $this->totalCalculatedFine;
 
-        if ($totalFine > 0 && $this->isPaidNow) {
-            $rules['checkinReceiptNumber'] = 'required|string|max:50';
-        }
+        $rules = [
+            'returnCondition'      => ['required', 'string', 'in:good,minor damaged,severe damaged,lost'],
+            'assessmentFeeAmount'  => $this->isConditionFeeRequired($this->returnCondition)
+                ? ['required', 'numeric', "min:{$minAssessment}", 'max:99999999.99']
+                : ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'checkinReceiptNumber' => ($totalFine > 0 && $this->isPaidNow)
+                ? ['required', 'string', 'max:50']
+                : ['nullable', 'string', 'max:50'],
+        ];
 
-        $this->validate($rules, [], [
+        $messages = [
+            'returnCondition.in'          => 'Selected return condition is invalid.',
+            'assessmentFeeAmount.min'     => "Assessment fee must be at least ₱{$minAssessment}.",
+            'checkinReceiptNumber.required' => 'Receipt number is required when settling a fine.',
+        ];
+
+        $attributes = [
+            'returnCondition'      => 'Return Condition',
             'assessmentFeeAmount'  => 'Assessment Fee',
             'checkinReceiptNumber' => 'Receipt Number',
-        ]);
+        ];
+
+        $this->validate($rules, $messages, $attributes);
 
         try {
-            $loan = $this->inspectedLoan;
-            $accession = $loan->accession;
+            $loanId = $this->inspectedLoan->id;
 
-            DB::transaction(function () use ($loan, $accession, $totalFine) {
+            DB::transaction(function () use ($loanId, $totalFine): void {
+                $loan = Circulation::query()
+                    ->with('accession')
+                    ->where('id', $loanId)
+                    ->where('status', 'borrowed')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $loan) {
+                    return;
+                }
+
+                $accession = $loan->accession
+                    ? Accession::query()->where('id', $loan->accession->id)->lockForUpdate()->first()
+                    : null;
+
                 $isMinorDamage = $this->returnCondition === 'minor damaged';
                 $isLostCondition = in_array($this->returnCondition, ['severe damaged', 'lost'], true)
                     || ($this->exceededLostThreshold && ! $isMinorDamage && $this->returnCondition === 'good');
@@ -614,8 +741,10 @@ class Circulations extends Component
                 $loan->update([
                     'returned_at'    => now(),
                     'fine_amount'    => $totalFine,
-                    'is_paid'        => $totalFine > 0 ? $this->isPaidNow : true,
-                    'receipt_number' => $this->isPaidNow ? strtoupper(trim($this->checkinReceiptNumber)) : null,
+                    'is_paid'        => $totalFine > 0 ? (bool) $this->isPaidNow : true,
+                    'receipt_number' => ($totalFine > 0 && $this->isPaidNow)
+                        ? strtoupper(trim($this->checkinReceiptNumber))
+                        : null,
                     'status'         => $loanStatus,
                     'condition'      => $loanCondition,
                 ]);
@@ -628,7 +757,8 @@ class Circulations extends Component
 
             $this->cancelInspection();
             $this->dispatch('toast', message: 'ITEM CHECKED IN SUCCESSFULLY.', type: 'success');
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            Log::error('Error processing check-in: ' . $e->getMessage());
             $this->dispatch('toast', message: 'ERROR PROCESSING CHECK-IN.', type: 'error');
         }
     }
@@ -637,28 +767,45 @@ class Circulations extends Component
     {
         try {
             $cleanAcc = trim(strip_tags($accessionNumber));
-            $loan = Circulation::with('accession')
-                ->whereHas('accession', fn ($q) => $q->where('accession_number', $this->likeOperator(), $cleanAcc))
-                ->where('status', 'borrowed')
-                ->latest('borrowed_at')
-                ->first();
-
-            if (! $loan) {
-                $this->dispatch('toast', message: 'ACTIVE LOAN ITEM NOT FOUND.', type: 'error');
+            if ($cleanAcc === '') {
                 return;
             }
 
-            DB::transaction(function () use ($loan) {
+            $checkedIn = false;
+
+            DB::transaction(function () use ($cleanAcc, &$checkedIn): void {
+                $loan = Circulation::query()
+                    ->with('accession')
+                    ->whereHas('accession', fn (Builder $q) => $q->where('accession_number', $this->likeOperator(), $cleanAcc))
+                    ->where('status', 'borrowed')
+                    ->latest('borrowed_at')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $loan) {
+                    return;
+                }
+
+                $accession = $loan->accession
+                    ? Accession::query()->where('id', $loan->accession->id)->lockForUpdate()->first()
+                    : null;
+
                 $loan->update([
                     'returned_at' => now(),
                     'status'      => 'returned',
                 ]);
 
-                $loan->accession?->update(['status' => 'available']);
+                $accession?->update(['status' => 'available']);
+                $checkedIn = true;
             });
 
-            $this->dispatch('toast', message: 'ITEM RETURNED DIRECTLY.', type: 'success');
-        } catch (\Exception $e) {
+            if ($checkedIn) {
+                $this->dispatch('toast', message: 'ITEM RETURNED DIRECTLY.', type: 'success');
+            } else {
+                $this->dispatch('toast', message: 'ACTIVE LOAN ITEM NOT FOUND.', type: 'error');
+            }
+        } catch (Throwable $e) {
+            Log::error('Error processing quick check-in: ' . $e->getMessage());
             $this->dispatch('toast', message: 'ERROR PROCESSING QUICK CHECK-IN.', type: 'error');
         }
     }
@@ -685,62 +832,70 @@ class Circulations extends Component
     {
         $likeOperator = $this->likeOperator();
         $allowedConditions = ['good', 'minor damaged', 'severe damaged', 'lost'];
+        $term = '%' . addcslashes(trim($this->search), '%_\\') . '%';
 
-        return Circulation::with(['patron.patronType', 'accession.catalog', 'user'])
-            ->when($this->filterStatus === 'borrowed', function ($q) {
+        return Circulation::query()
+            ->with(['patron.patronType', 'accession.catalog', 'user'])
+            ->when($this->filterStatus === 'borrowed', function (Builder $q): void {
                 $q->where('status', 'borrowed')
-                    ->where(function ($sub) {
+                    ->where(function (Builder $sub): void {
                         $sub->whereNull('due_at')
                             ->orWhere('due_at', '>=', now());
                     });
             })
-            ->when($this->filterStatus === 'overdue', function ($q) {
+            ->when($this->filterStatus === 'overdue', function (Builder $q): void {
                 $q->where('status', 'borrowed')
                     ->whereNotNull('due_at')
                     ->where('due_at', '<', now());
             })
-            ->when($this->filterStatus === 'returned', function ($q) {
+            ->when($this->filterStatus === 'returned', function (Builder $q): void {
                 $q->whereIn('status', ['returned', 'lost']);
             })
-            ->when(in_array($this->filterCondition, $allowedConditions, true), function ($q) {
+            ->when(in_array($this->filterCondition, $allowedConditions, true), function (Builder $q): void {
                 $condition = $this->filterCondition;
-                $q->where(function ($condQuery) use ($condition) {
+                $q->where(function (Builder $condQuery) use ($condition): void {
                     $condQuery->where('condition', $condition)
-                        ->orWhereHas('accession', fn ($accQ) => $accQ->where('condition', $condition));
+                        ->orWhereHas('accession', fn (Builder $accQ) => $accQ->where('condition', $condition));
                 });
             })
-            ->when($this->search, function ($q) use ($likeOperator) {
-                $searchTerm = "%{$this->search}%";
-                $q->where(function ($query) use ($likeOperator, $searchTerm) {
-                    $query->where('receipt_number', $likeOperator, $searchTerm)
-                        ->orWhereHas('patron', function ($patronQ) use ($likeOperator, $searchTerm) {
-                            $patronQ->where('school_id', $likeOperator, $searchTerm)
-                                ->orWhere('first_name', $likeOperator, $searchTerm)
-                                ->orWhere('last_name', $likeOperator, $searchTerm);
-                        })->orWhereHas('accession', function ($accQ) use ($likeOperator, $searchTerm) {
-                            $accQ->where('accession_number', $likeOperator, $searchTerm)
-                                ->orWhereHas('catalog', fn ($catQ) => $catQ->where('title', $likeOperator, $searchTerm));
+            ->when(trim($this->search) !== '', function (Builder $q) use ($likeOperator, $term): void {
+                $q->where(function (Builder $query) use ($likeOperator, $term): void {
+                    $query->where('receipt_number', $likeOperator, $term)
+                        ->orWhereHas('patron', function (Builder $patronQ) use ($likeOperator, $term): void {
+                            $patronQ->where('school_id', $likeOperator, $term)
+                                ->orWhere('first_name', $likeOperator, $term)
+                                ->orWhere('last_name', $likeOperator, $term);
+                        })->orWhereHas('accession', function (Builder $accQ) use ($likeOperator, $term): void {
+                            $accQ->where('accession_number', $likeOperator, $term)
+                                ->orWhereHas('catalog', fn (Builder $catQ) => $catQ->where('title', $likeOperator, $term));
                         });
                 });
             })
             ->latest('borrowed_at');
     }
 
-    public function exportExcel(): BinaryFileResponse
+    public function exportExcel(): BinaryFileResponse|StreamedResponse|null
     {
-        $fileName = 'circulation_report_' . now()->format('Y_m_d_His') . '.xlsx';
-        return Excel::download(new CirculationsExport($this->search, $this->filterStatus), $fileName);
+        try {
+            $fileName = 'circulation_report_' . now()->format('Y_m_d_His') . '.xlsx';
+
+            return Excel::download(new CirculationsExport(trim($this->search), $this->filterStatus), $fileName);
+        } catch (Throwable $e) {
+            Log::error('Error exporting circulations Excel: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to export circulation Excel report.', type: 'error');
+
+            return null;
+        }
     }
 
-    public function exportPdf(): StreamedResponse
+    public function exportPdf(): ?StreamedResponse
     {
-        $fileName = 'circulation_report_' . now()->format('Y_m_d_His') . '.pdf';
-
-        return response()->streamDownload(function () {
+        try {
+            $fileName = 'circulation_report_' . now()->format('Y_m_d_His') . '.pdf';
             $loans = $this->getFilteredLoansQuery()->orderBy('borrowed_at', 'desc')->get();
 
             $totalPaidFineSum = $loans->filter(function ($loan) {
-                return $loan->returned_at && $loan->is_paid === true;
+                return $loan->returned_at && (bool) $loan->is_paid === true;
             })->sum('fine_amount');
 
             $pdf = Pdf::loadView('pdf.circulations-report', [
@@ -750,16 +905,31 @@ class Circulations extends Component
                 'totalPaidFineSum' => $totalPaidFineSum,
             ])->setPaper('a4', 'landscape');
 
-            echo $pdf->output();
-        }, $fileName);
+            return response()->streamDownload(function () use ($pdf): void {
+                echo $pdf->output();
+            }, $fileName);
+        } catch (Throwable $e) {
+            Log::error('Error exporting circulations PDF: ' . $e->getMessage());
+            $this->dispatch('toast', message: 'Unable to export circulation PDF report.', type: 'error');
+
+            return null;
+        }
     }
 
     #[Layout('components.layouts.app')]
     #[Title('Circulation Desk')]
     public function render()
     {
+        $activeLoans = new LengthAwarePaginator([], 0, 10);
+
+        try {
+            $activeLoans = $this->getFilteredLoansQuery()->paginate(10);
+        } catch (Throwable $e) {
+            Log::error('Error rendering circulations table: ' . $e->getMessage());
+        }
+
         return view('livewire.circulations', [
-            'activeLoans' => $this->getFilteredLoansQuery()->paginate(10),
+            'activeLoans' => $activeLoans,
         ]);
     }
 }

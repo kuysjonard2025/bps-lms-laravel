@@ -1,4 +1,4 @@
-{{-- resources/views/livewire/inventory-management.blade.php --}}
+<?php // resources/views/livewire/inventory-management.blade.php ?>
 @php
     use Illuminate\Support\Str;
 @endphp
@@ -66,7 +66,7 @@
     </section>
 
     {{-- Stats Row --}}
-    <section aria-label="Inventory overview statistics" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+    <section aria-label="Inventory overview statistics" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4">
         <div class="bg-surface-card p-4 rounded-2xl border border-surface-border shadow-2xs flex items-center justify-between gap-3">
             <div>
                 <span class="text-[11px] font-semibold text-content-muted tracking-wider block">TOTAL ACCESSIONED</span>
@@ -95,6 +95,16 @@
             </div>
             <div class="w-10 h-10 rounded-xl bg-brand-tint text-brand-primary flex items-center justify-center shrink-0">
                 <x-heroicon-o-book-open class="w-5 h-5" aria-hidden="true" />
+            </div>
+        </div>
+
+        <div class="bg-surface-card p-4 rounded-2xl border border-surface-border shadow-2xs flex items-center justify-between gap-3">
+            <div>
+                <span class="text-[11px] font-semibold text-content-muted tracking-wider block">MAINTENANCE</span>
+                <span class="text-xl font-bold font-mono text-brand-secondary">{{ number_format($stats['total_maintenance']) }}</span>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-brand-secondary/10 text-brand-secondary flex items-center justify-center shrink-0">
+                <x-heroicon-o-wrench-screwdriver class="w-5 h-5" aria-hidden="true" />
             </div>
         </div>
 
@@ -160,6 +170,16 @@
                             if (!q || q === 'all asset types') return this.items;
                             return this.items.filter(i => i.name.toLowerCase().includes(q));
                         },
+                        onType(e) {
+                            this.query = e.target.value;
+                            this.open = true;
+                            const exact = this.items.find(i => i.name.toLowerCase() === this.query.trim().toLowerCase());
+                            if (exact) {
+                                $wire.selectAssetType(exact.id);
+                            } else if (this.query.trim() === '' || this.query.trim().toLowerCase() === 'all asset types') {
+                                $wire.selectAssetType('all');
+                            }
+                        },
                         choose(id, name) {
                             this.query = name;
                             this.open = false;
@@ -183,10 +203,9 @@
                             aria-autocomplete="list"
                             aria-controls="inventory-asset-type-listbox"
                             :aria-expanded="open.toString()"
-                            x-model="query"
+                            :value="query"
                             @focus="open = true"
-                            @input="open = true"
-                            wire:model.live.debounce.300ms="assetTypeSearch"
+                            @input="onType($event)"
                             placeholder="All Asset Types"
                             class="w-full py-2 pl-3.5 pr-16 text-xs rounded-xl border border-surface-border bg-surface-canvas text-content-heading placeholder:text-content-muted focus:bg-surface-card focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 transition"
                         >
