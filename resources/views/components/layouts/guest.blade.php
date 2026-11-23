@@ -22,6 +22,7 @@
     @livewireStyles
 </head>
 <body class="min-h-dvh bg-surface-canvas text-content-heading font-sans antialiased selection:bg-brand-primary selection:text-white flex flex-col justify-center relative">
+    <x-global-toast />
 
     {{-- Subtle Dot Background Pattern --}}
     <div

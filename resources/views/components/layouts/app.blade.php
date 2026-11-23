@@ -56,6 +56,7 @@
     :class="{ 'overflow-hidden lg:overflow-auto': sidebarOpen }"
     class="bg-surface-canvas font-sans antialiased text-content-heading min-h-dvh flex flex-col selection:bg-brand-primary selection:text-white"
 >
+    <x-global-toast />
 
     {{-- Sticky Top Header Bar --}}
     <div class="sticky top-0 z-40 w-full">

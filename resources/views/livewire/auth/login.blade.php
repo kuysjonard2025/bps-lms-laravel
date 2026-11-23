@@ -26,12 +26,6 @@
             <p class="text-xs text-content-body mt-0.5">Enter your credentials to access the library workspace</p>
         </div>
 
-        @if (session('status'))
-            <div class="p-3 bg-brand-tint-light border border-brand-tint text-brand-primary text-xs font-medium rounded-xl">
-                {{ session('status') }}
-            </div>
-        @endif
-
         {{-- Alert Banner for Authentication Warning Error --}}
         @error('warning')
             <div class="p-3 bg-brand-secondary/10 border border-brand-secondary/30 text-brand-secondary text-xs rounded-xl flex items-center gap-2.5">

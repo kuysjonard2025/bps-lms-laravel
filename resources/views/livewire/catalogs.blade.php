@@ -12,7 +12,7 @@
             <p class="text-xs text-content-body mt-0.5">Master bibliographic entries linked to authors, publishers, asset types, and references.</p>
         </div>
 
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
             {{-- Search Bar with Instant Loading State --}}
             <div class="relative w-full sm:w-72">
                 <label for="catalog-search" class="sr-only">Search catalogs</label>
@@ -21,7 +21,7 @@
                     type="text"
                     id="catalog-search"
                     placeholder="Search title, ISBN, call #, author..."
-                    class="w-full pl-9 pr-9 py-2 text-xs bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border rounded-xl focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                    class="w-full pl-9 pr-8 py-2 text-xs bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border rounded-xl focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
                 >
                 <x-heroicon-o-magnifying-glass
                     wire:loading.remove
@@ -41,6 +41,39 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
+                @if(!empty($search))
+                    <button
+                        wire:click="$set('search', '')"
+                        type="button"
+                        class="absolute right-2.5 top-2 text-content-muted hover:text-content-heading text-xs cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                        aria-label="Clear search"
+                    >
+                        &times;
+                    </button>
+                @endif
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button
+                    type="button"
+                    wire:click="exportExcel"
+                    wire:target="exportExcel"
+                    wire:loading.attr="disabled"
+                    class="px-3.5 py-2 text-xs font-semibold rounded-xl border border-surface-border bg-surface-canvas hover:bg-brand-tint-light hover:text-brand-primary text-content-heading transition cursor-pointer disabled:opacity-50 shrink-0 whitespace-nowrap focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/15"
+                >
+                    <span wire:loading.remove wire:target="exportExcel">Export Excel</span>
+                    <span wire:loading wire:target="exportExcel">Exporting...</span>
+                </button>
+                <button
+                    type="button"
+                    wire:click="exportPdf"
+                    wire:target="exportPdf"
+                    wire:loading.attr="disabled"
+                    class="px-3.5 py-2 text-xs font-semibold rounded-xl border border-surface-border bg-surface-canvas hover:bg-brand-tint-light hover:text-brand-primary text-content-heading transition cursor-pointer disabled:opacity-50 shrink-0 whitespace-nowrap focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/15"
+                >
+                    <span wire:loading.remove wire:target="exportPdf">Export PDF</span>
+                    <span wire:loading wire:target="exportPdf">Exporting...</span>
+                </button>
             </div>
 
             <button
@@ -48,33 +81,11 @@
                 wire:loading.attr="disabled"
                 wire:target="openCreateModal"
                 type="button"
-                class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-white bg-brand-primary hover:bg-brand-primary-hover rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs shrink-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/20"
+                class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-white bg-brand-primary hover:bg-brand-primary-hover rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs shrink-0 whitespace-nowrap focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/20"
             >
                 <x-heroicon-o-plus class="w-4 h-4" aria-hidden="true" />
                 <span>Add Catalog</span>
             </button>
-
-            <div class="flex flex-wrap items-center gap-2">
-                <button
-                    type="button"
-                    wire:click="exportExcel"
-                    wire:target="exportExcel"
-                    wire:loading.attr="disabled"
-                    class="px-3.5 py-2 text-xs font-medium rounded-xl border border-surface-border bg-surface-card hover:bg-surface-canvas text-content-heading transition cursor-pointer disabled:opacity-50"
-                >
-                    Export Excel
-                </button>
-                <button
-                    type="button"
-                    wire:click="exportPdf"
-                    wire:target="exportPdf"
-                    wire:loading.attr="disabled"
-                    class="px-3.5 py-2 text-xs font-medium rounded-xl border border-surface-border bg-surface-card hover:bg-surface-canvas text-content-heading transition cursor-pointer disabled:opacity-50"
-                >
-                    Export PDF
-                </button>
-                {{-- Existing + Add Catalog button --}}
-            </div>
         </div>
     </section>
 
@@ -208,7 +219,7 @@
                                 type="text"
                                 wire:model="title"
                                 placeholder="e.g. Noli Me Tangere"
-                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('title') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                             @error('title') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                         </div>
@@ -223,7 +234,7 @@
                                 wire:model="call_number"
                                 placeholder="e.g. 823.912 R59"
                                 maxlength="50"
-                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 font-mono uppercase focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 font-mono uppercase focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('call_number') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                             @error('call_number') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                         </div>
@@ -550,7 +561,7 @@
                                 wire:model="isbn_issn"
                                 maxlength="20"
                                 placeholder="Leave blank to auto-generate"
-                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('isbn_issn') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                             @error('isbn_issn') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                         </div>
@@ -563,7 +574,7 @@
                                 wire:model="edition"
                                 maxlength="50"
                                 placeholder="e.g. 1st, Revised"
-                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('edition') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                             @error('edition') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                         </div>
@@ -577,7 +588,7 @@
                                 type="number"
                                 wire:model="publication_year"
                                 placeholder="e.g. 2026"
-                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 font-mono focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 font-mono focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('publication_year') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                             @error('publication_year') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                         </div>
@@ -591,7 +602,7 @@
                             wire:model="description"
                             rows="3"
                             placeholder="Optional summary, notes, or catalog remarks..."
-                            class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                            class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('description') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                         ></textarea>
                         @error('description') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                     </div>

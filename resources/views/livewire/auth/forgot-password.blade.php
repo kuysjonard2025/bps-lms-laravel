@@ -26,14 +26,6 @@
             <p class="text-xs text-content-body mt-0.5">Enter your email address and we'll send you a password reset link.</p>
         </div>
 
-        {{-- Success Banner --}}
-        @if ($status)
-            <div role="status" class="p-3 bg-brand-tint-light border border-brand-tint text-brand-primary text-xs rounded-xl flex items-center gap-2.5">
-                <x-heroicon-o-check-circle class="w-4 h-4 shrink-0 text-brand-primary" aria-hidden="true" />
-                <span class="font-medium">{{ $status }}</span>
-            </div>
-        @endif
-
         @error('warning')
             <div class="p-3 bg-brand-secondary/10 border border-brand-secondary/30 text-brand-secondary text-xs rounded-xl flex items-center gap-2.5">
                 <x-heroicon-o-exclamation-triangle class="w-4 h-4 shrink-0 text-brand-secondary" aria-hidden="true" />

@@ -26,7 +26,7 @@
         sidebarCollapsed: false,
         isScrolling: false,
         scrollTimer: null,
-        defaultSection: @js($activeSectionKey),
+        routeSection: @js($activeSectionKey),
         activeSection: @js($activeSectionKey),
         init() {
             try {
@@ -36,13 +36,16 @@
                 }
 
                 const savedSection = localStorage.getItem('bps_sidebar_active_section');
-                if (savedSection) {
+                if (this.routeSection) {
+                    this.activeSection = this.routeSection;
+                    localStorage.setItem('bps_sidebar_active_section', this.routeSection);
+                } else if (savedSection) {
                     this.activeSection = savedSection;
                 }
-            } catch (e) {}
-
-            if (!this.activeSection && this.defaultSection) {
-                this.activeSection = this.defaultSection;
+            } catch (e) {
+                if (this.routeSection) {
+                    this.activeSection = this.routeSection;
+                }
             }
 
             this.$watch('sidebarCollapsed', (value) => {

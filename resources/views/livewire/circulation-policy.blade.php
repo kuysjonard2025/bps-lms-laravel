@@ -1,4 +1,4 @@
-{{-- resources/views/livewire/circulation-policies.blade.php --}}
+<?php // resources/views/livewire/circulation-policies.blade.php ?>
 @php
     use Illuminate\Support\Str;
 @endphp
@@ -57,13 +57,13 @@
                     {{ $limit ? $limit->loan_duration_days . ' ' . Str::plural('Day', $limit->loan_duration_days) : 'Not Configured' }}
                 </p>
             </div>
-            {{-- <button
+            <button
                 wire:click="editLimit({{ $limit?->id }})"
                 type="button"
                 class="text-xs font-semibold text-brand-primary hover:underline cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
             >
                 Edit
-            </button> --}}
+            </button>
         </div>
     </div>
 
@@ -100,9 +100,17 @@
                             wire:model.live.debounce.300ms="search"
                             type="text"
                             placeholder="Search Asset Type..."
-                            class="w-full pl-9 pr-3 py-1.5 text-xs bg-surface-canvas text-content-heading placeholder:text-content-muted rounded-xl border border-surface-border focus:bg-surface-card focus:outline-none focus:ring-4 focus:ring-brand-primary/15 focus:border-brand-primary transition"
+                            class="w-full pl-9 pr-8 py-1.5 text-xs bg-surface-canvas text-content-heading placeholder:text-content-muted rounded-xl border border-surface-border focus:bg-surface-card focus:outline-none focus:ring-4 focus:ring-brand-primary/15 focus:border-brand-primary transition"
                         >
                         <x-heroicon-o-magnifying-glass class="w-4 h-4 text-content-muted absolute left-3 top-2 pointer-events-none" aria-hidden="true" />
+                        @if ($search !== '')
+                            <button
+                                wire:click="$set('search', '')"
+                                type="button"
+                                aria-label="Clear asset type search"
+                                class="absolute right-2.5 top-1.5 text-content-muted hover:text-content-heading text-xs cursor-pointer"
+                            >&times;</button>
+                        @endif
                     </div>
                 </div>
             @endif

@@ -16,7 +16,7 @@
                     type="button"
                     role="tab"
                     aria-selected="{{ $currentTab === $key ? 'true' : 'false' }}"
-                    class="px-4 py-2 text-xs font-semibold rounded-xl transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary {{ $currentTab === $key ? 'bg-brand-primary text-white shadow-2xs' : 'text-content-body hover:text-content-heading hover:bg-surface-canvas' }}"
+                    class="px-4 py-2 text-xs font-semibold rounded-xl transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 {{ $currentTab === $key ? 'bg-brand-primary text-white shadow-2xs focus-visible:ring-white' : 'text-content-body hover:text-content-heading hover:bg-surface-canvas focus-visible:ring-brand-primary' }}"
                 >
                     {{ $label }}
                 </button>
@@ -28,23 +28,58 @@
     <div class="bg-surface-card rounded-2xl border border-surface-border shadow-2xs p-4 sm:p-6">
         @switch($currentTab)
             @case('authors')
-                <livewire:asset-details.authors-tab wire:key="tab-authors" />
+                <livewire:asset-details.authors-tab wire:key="tab-authors">
+                    @placeholder
+                        <div class="space-y-3 animate-pulse" aria-hidden="true">
+                            <div class="h-8 w-48 bg-surface-canvas rounded-xl"></div>
+                            <div class="h-40 w-full bg-surface-canvas rounded-xl"></div>
+                        </div>
+                    @endplaceholder
+                </livewire:asset-details.authors-tab>
                 @break
 
             @case('publishers')
-                <livewire:asset-details.publishers-tab wire:key="tab-publishers" />
+                <livewire:asset-details.publishers-tab wire:key="tab-publishers">
+                    @placeholder
+                        <div class="space-y-3 animate-pulse" aria-hidden="true">
+                            <div class="h-8 w-48 bg-surface-canvas rounded-xl"></div>
+                            <div class="h-40 w-full bg-surface-canvas rounded-xl"></div>
+                        </div>
+                    @endplaceholder
+                </livewire:asset-details.publishers-tab>
                 @break
 
             @case('general-references')
-                <livewire:asset-details.general-references-tab wire:key="tab-general-references" />
+                <livewire:asset-details.general-references-tab wire:key="tab-general-references">
+                    @placeholder
+                        <div class="space-y-3 animate-pulse" aria-hidden="true">
+                            <div class="h-8 w-48 bg-surface-canvas rounded-xl"></div>
+                            <div class="h-40 w-full bg-surface-canvas rounded-xl"></div>
+                        </div>
+                    @endplaceholder
+                </livewire:asset-details.general-references-tab>
                 @break
 
             @case('asset-types')
-                <livewire:asset-details.asset-types-tab wire:key="tab-asset-types" />
+                <livewire:asset-details.asset-types-tab wire:key="tab-asset-types">
+                    @placeholder
+                        <div class="space-y-3 animate-pulse" aria-hidden="true">
+                            <div class="h-8 w-48 bg-surface-canvas rounded-xl"></div>
+                            <div class="h-40 w-full bg-surface-canvas rounded-xl"></div>
+                        </div>
+                    @endplaceholder
+                </livewire:asset-details.asset-types-tab>
                 @break
 
             @default
-                <livewire:asset-details.authors-tab wire:key="tab-default" />
+                <livewire:asset-details.authors-tab wire:key="tab-default">
+                    @placeholder
+                        <div class="space-y-3 animate-pulse" aria-hidden="true">
+                            <div class="h-8 w-48 bg-surface-canvas rounded-xl"></div>
+                            <div class="h-40 w-full bg-surface-canvas rounded-xl"></div>
+                        </div>
+                    @endplaceholder
+                </livewire:asset-details.authors-tab>
         @endswitch
     </div>
 </div>

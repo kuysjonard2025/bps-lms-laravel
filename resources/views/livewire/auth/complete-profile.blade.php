@@ -9,12 +9,6 @@
             <p class="text-xs text-content-body mt-1">Please complete and verify your account details to continue.</p>
         </div>
 
-        @if (session('status'))
-            <div class="mb-4 text-xs font-medium text-brand-primary bg-brand-tint-light p-3 rounded-xl border border-brand-tint">
-                {{ session('status') }}
-            </div>
-        @endif
-
         @error('warning')
             <div class="mb-4 py-3 px-4 text-xs font-semibold text-brand-secondary bg-brand-secondary/10 rounded-xl border border-brand-secondary/30 flex items-center gap-2">
                 <x-heroicon-o-exclamation-triangle class="w-4 h-4 shrink-0" aria-hidden="true" />

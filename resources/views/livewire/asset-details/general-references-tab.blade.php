@@ -13,9 +13,19 @@
                 type="text"
                 id="general-reference-search"
                 placeholder="Search references..."
-                class="w-full pl-9 pr-4 py-2 text-xs bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border rounded-xl focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                class="w-full pl-9 pr-8 py-2 text-xs bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border rounded-xl focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
             >
             <x-heroicon-o-magnifying-glass class="w-4 h-4 text-content-muted absolute left-3 top-2.5 pointer-events-none" aria-hidden="true" />
+            @if(!empty($search))
+                <button
+                    wire:click="$set('search', '')"
+                    type="button"
+                    class="absolute right-2.5 top-2 text-content-muted hover:text-content-heading text-xs cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                    aria-label="Clear search"
+                >
+                    &times;
+                </button>
+            @endif
         </div>
 
         <button
@@ -115,7 +125,7 @@
                             type="text"
                             wire:model="name"
                             placeholder="e.g. Encyclopedia"
-                            class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                            class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('name') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                         >
                         @error('name') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                     </div>

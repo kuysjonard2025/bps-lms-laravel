@@ -19,16 +19,6 @@
             Please check your inbox and click the verification link inside to activate your account.
         </p>
 
-        @if (session('status') === 'verification-link-sent')
-            <div class="mb-4 text-xs font-medium text-brand-primary bg-brand-tint-light p-3 rounded-xl border border-brand-tint">
-                A new verification link has been sent to your email address.
-            </div>
-        @elseif (session('status'))
-            <div class="mb-4 text-xs font-medium text-brand-primary bg-brand-tint-light p-3 rounded-xl border border-brand-tint">
-                {{ session('status') }}
-            </div>
-        @endif
-
         @error('warning')
             <div class="mb-4 p-3 text-xs font-semibold text-brand-secondary bg-brand-secondary/10 border border-brand-secondary/30 rounded-xl">
                 {{ $message }}

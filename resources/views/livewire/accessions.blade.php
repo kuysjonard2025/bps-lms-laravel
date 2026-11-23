@@ -317,7 +317,7 @@
                             <select
                                 id="accession-acquisition-select"
                                 wire:model.live="acquisition_id"
-                                class="w-full text-xs rounded-xl border border-surface-border p-2.5 bg-surface-canvas text-content-heading shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition"
+                                class="w-full text-xs rounded-xl border p-2.5 bg-surface-canvas text-content-heading shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition @error('acquisition_id') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                                 <option value="">-- Choose Arrived Acquisition Record --</option>
                                 @foreach($acquisitions as $acq)
@@ -363,7 +363,7 @@
                                 id="accession-number-input"
                                 type="text"
                                 wire:model="accession_number"
-                                class="w-full text-xs font-mono rounded-xl border border-surface-border p-2.5 bg-surface-canvas text-content-heading shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 uppercase transition"
+                                class="w-full text-xs font-mono rounded-xl border p-2.5 bg-surface-canvas text-content-heading shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 uppercase transition @error('accession_number') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                             @error('accession_number') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                         </div>
@@ -381,7 +381,7 @@
                             <select
                                 id="accession-condition-select"
                                 wire:model="condition"
-                                class="w-full text-xs rounded-xl border border-surface-border p-2.5 shadow-2xs bg-surface-canvas text-content-heading outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition"
+                                class="w-full text-xs rounded-xl border p-2.5 shadow-2xs bg-surface-canvas text-content-heading outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition @error('condition') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                                 <option value="new">New</option>
                                 <option value="good">Good</option>
@@ -400,7 +400,7 @@
                             <select
                                 id="accession-status-select"
                                 wire:model="status"
-                                class="w-full text-xs rounded-xl border border-surface-border p-2.5 shadow-2xs bg-surface-canvas text-content-heading outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition"
+                                class="w-full text-xs rounded-xl border p-2.5 shadow-2xs bg-surface-canvas text-content-heading outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition @error('status') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                                 <option value="available">Available</option>
                                 <option value="on loan">On Loan</option>
@@ -418,7 +418,7 @@
                             id="accession-remarks-input"
                             wire:model="remarks"
                             rows="2"
-                            class="w-full text-xs rounded-xl border border-surface-border p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition"
+                            class="w-full text-xs rounded-xl border p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition @error('remarks') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             placeholder="Additional notes..."
                         ></textarea>
                         @error('remarks') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
@@ -478,7 +478,7 @@
                         <select
                             id="bulk-acquisition-select"
                             wire:model.live="bulkAcquisitionId"
-                            class="w-full text-xs rounded-xl border border-surface-border p-2.5 bg-surface-canvas text-content-heading shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition"
+                            class="w-full text-xs rounded-xl border p-2.5 bg-surface-canvas text-content-heading shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition @error('bulkAcquisitionId') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                         >
                             <option value="">-- Choose Accessioned Acquisition Batch --</option>
                             @foreach($accessionedAcquisitions as $acq)
@@ -549,7 +549,7 @@
                             <select
                                 id="bulk-condition-select"
                                 wire:model.live="bulkCondition"
-                                class="w-full text-xs rounded-xl border border-surface-border p-2.5 shadow-2xs bg-surface-canvas text-content-heading outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition"
+                                class="w-full text-xs rounded-xl border p-2.5 shadow-2xs bg-surface-canvas text-content-heading outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition @error('bulkCondition') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                                 <option value="new">New</option>
                                 <option value="good">Good</option>
@@ -568,7 +568,7 @@
                             <select
                                 id="bulk-status-select"
                                 wire:model.live="bulkStatus"
-                                class="w-full text-xs rounded-xl border border-surface-border p-2.5 shadow-2xs bg-surface-canvas text-content-heading outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition"
+                                class="w-full text-xs rounded-xl border p-2.5 shadow-2xs bg-surface-canvas text-content-heading outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition @error('bulkStatus') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                                 <option value="available">Available</option>
                                 <option value="on loan">On Loan</option>
@@ -586,7 +586,7 @@
                             id="bulk-remarks-input"
                             wire:model="bulkRemarks"
                             rows="2"
-                            class="w-full text-xs rounded-xl border border-surface-border p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition"
+                            class="w-full text-xs rounded-xl border p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 transition @error('bulkRemarks') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             placeholder="Optional batch update remarks..."
                         ></textarea>
                         @error('bulkRemarks') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
@@ -648,8 +648,9 @@
                             type="text"
                             wire:model="exportStartAccession"
                             placeholder="e.g. ACC-2026-002-01"
-                            class="w-full text-xs font-mono rounded-xl border border-surface-border p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 uppercase transition"
+                            class="w-full text-xs font-mono rounded-xl border p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 uppercase transition @error('exportStartAccession') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                         >
+                        @error('exportStartAccession') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                     </div>
                     <div>
                         <label for="export-end-accession" class="block text-xs font-semibold text-content-heading mb-1">End Accession Number (Optional)</label>
@@ -658,8 +659,9 @@
                             type="text"
                             wire:model="exportEndAccession"
                             placeholder="e.g. ACC-2026-002-12"
-                            class="w-full text-xs font-mono rounded-xl border border-surface-border p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 uppercase transition"
+                            class="w-full text-xs font-mono rounded-xl border p-2.5 bg-surface-canvas text-content-heading placeholder:text-content-muted shadow-2xs outline-none focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 uppercase transition @error('exportEndAccession') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                         >
+                        @error('exportEndAccession') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                     </div>
                 </div>
 
@@ -710,8 +712,8 @@
 
                 <div class="flex flex-col-reverse sm:flex-row justify-center gap-2 sm:gap-3 pt-2">
                     <button
-                        wire:click="$set('showDeleteModal', false)"
                         type="button"
+                        wire:click="$set('showDeleteModal', false)"
                         class="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-content-body bg-surface-canvas border border-surface-border hover:text-content-heading rounded-xl transition cursor-pointer"
                     >
                         Cancel

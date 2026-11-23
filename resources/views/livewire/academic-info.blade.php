@@ -50,6 +50,16 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
+                @if(!empty($search))
+                    <button
+                        wire:click="$set('search', '')"
+                        type="button"
+                        class="absolute right-2.5 top-2 text-content-muted hover:text-content-heading text-xs cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                        aria-label="Clear search"
+                    >
+                        &times;
+                    </button>
+                @endif
             </div>
 
             <button
@@ -262,7 +272,7 @@
                                     'strands'      => 'e.g. STEM, ABM',
                                     default        => 'Enter code...',
                                 } }}"
-                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 font-mono uppercase focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 font-mono uppercase focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('code') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                             @error('code') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                         </div>
@@ -282,7 +292,7 @@
                                     'strands'      => 'e.g. Science, Technology, Engineering, and Mathematics',
                                     default        => 'Enter name...',
                                 } }}"
-                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('name') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                             @error('name') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                         </div>
@@ -300,7 +310,7 @@
                                 wire:model="name"
                                 maxlength="100"
                                 placeholder="e.g. St. Matthew, Einstein"
-                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                                class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('name') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                             >
                             @error('name') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                         </div>
@@ -318,7 +328,7 @@
                                     type="text"
                                     wire:model="first_name"
                                     maxlength="100"
-                                    class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                                    class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('first_name') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                                 >
                                 @error('first_name') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                             </div>
@@ -329,7 +339,7 @@
                                     type="text"
                                     wire:model="middle_name"
                                     maxlength="100"
-                                    class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                                    class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('middle_name') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                                 >
                                 @error('middle_name') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                             </div>
@@ -342,7 +352,7 @@
                                     type="text"
                                     wire:model="last_name"
                                     maxlength="100"
-                                    class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                                    class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('last_name') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                                 >
                                 @error('last_name') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                             </div>
@@ -357,7 +367,7 @@
                                     wire:model="contact_number"
                                     maxlength="20"
                                     placeholder="e.g. 09171234567"
-                                    class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 font-mono focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                                    class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 font-mono focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('contact_number') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                                 >
                                 @error('contact_number') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                             </div>
@@ -369,7 +379,7 @@
                                     wire:model="email"
                                     maxlength="100"
                                     placeholder="adviser@school.edu.ph"
-                                    class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border border-surface-border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition"
+                                    class="w-full text-xs rounded-xl bg-surface-canvas text-content-heading placeholder:text-content-muted border p-2.5 focus:bg-surface-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/15 outline-none transition @error('email') border-brand-secondary bg-brand-secondary/5 @else border-surface-border @enderror"
                                 >
                                 @error('email') <span class="text-[11px] text-brand-secondary mt-1 block font-medium">{{ $message }}</span> @enderror
                             </div>

@@ -8,20 +8,7 @@
         : '';
 @endphp
 
-<div
-    x-data="{
-        toasts: [],
-        add(message, type = 'success') {
-            const id = Date.now() + Math.random();
-            this.toasts.push({ id, message, type });
-            setTimeout(() => this.remove(id), 4000);
-        },
-        remove(id) {
-            this.toasts = this.toasts.filter(t => t.id !== id);
-        }
-    }"
-    @toast.window="add($event.detail.message, $event.detail.type)"
->
+<div>
     <header class="bg-surface-card border-b border-surface-border px-3 sm:px-6 py-3 lg:py-3.5 flex items-center justify-between gap-4 shadow-2xs sticky top-0 z-30">
         {{-- Left Section: Navigation Toggle & Brand --}}
         <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -90,38 +77,6 @@
             </button>
         </div>
     </header>
-
-    {{-- Toast Notification Container --}}
-    <div
-        role="status"
-        aria-live="polite"
-        style="z-index: 1000;"
-        class="fixed top-4 inset-x-4 sm:inset-x-auto sm:right-5 z-[1000] flex flex-col gap-2 max-w-sm w-full pointer-events-none mx-auto sm:mx-0"
-    >
-        <template x-for="toast in toasts" :key="toast.id">
-            <div
-                x-show="true"
-                x-transition:enter="transition ease-out duration-300 transform"
-                x-transition:enter-start="opacity-0 -translate-y-2"
-                x-transition:enter-end="opacity-100 translate-y-0"
-                x-transition:leave="transition ease-in duration-200 transform"
-                x-transition:leave-start="opacity-100 translate-y-0"
-                x-transition:leave-end="opacity-0 -translate-y-2"
-                :class="toast.type === 'error'
-                    ? 'bg-brand-secondary text-white'
-                    : 'bg-brand-primary text-white'"
-                class="pointer-events-auto p-3.5 sm:p-4 rounded-2xl shadow-lg text-xs sm:text-sm font-medium flex items-center justify-between gap-3 border border-white/15"
-            >
-                <span x-text="toast.message" class="leading-snug"></span>
-                <button
-                    type="button"
-                    @click="remove(toast.id)"
-                    aria-label="Dismiss notification"
-                    class="text-white/85 hover:text-white text-lg font-bold p-1 cursor-pointer shrink-0 leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-md"
-                >&times;</button>
-            </div>
-        </template>
-    </div>
 
     {{-- Profile Modal Teleported to Body so Header & Sidebar Sit Behind the Backdrop --}}
     @if ($showProfileModal)
