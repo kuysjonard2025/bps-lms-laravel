@@ -1,22 +1,68 @@
 {{-- resources/views/livewire/components/sidebar.blade.php --}}
 @php
-    $activeSectionKey = null;
+    $currentUser = auth()->user();
+    $isLibrarian = false;
+
+    if ($currentUser) {
+        if (method_exists($currentUser, 'hasRole')) {
+            $isLibrarian = $currentUser->hasRole('librarian');
+        } else {
+            $isLibrarian = mb_strtolower(trim((string) ($currentUser->role ?? ''))) === 'librarian';
+        }
+    }
+
+    $canSeeRoute = function (array $routeItem) use ($isLibrarian): bool {
+        $routeName = $routeItem['route'] ?? '';
+
+        if ($routeName === 'active-sessions' && ! $isLibrarian) {
+            return false;
+        }
+
+        if (! empty($routeItem['librarian_only']) && ! $isLibrarian) {
+            return false;
+        }
+
+        if (! empty($routeItem['roles']) && is_array($routeItem['roles'])) {
+            $allowedRoles = array_map(
+                fn ($role) => mb_strtolower(trim((string) $role)),
+                $routeItem['roles']
+            );
+
+            if (! $isLibrarian || ! in_array('librarian', $allowedRoles, true)) {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    $visibleSections = [];
     foreach ($sections as $sectionTitle => $sectionRoutes) {
-        if (!empty($sectionRoutes)) {
-            foreach ($sectionRoutes as $routeItem) {
-                if (request()->routeIs($routeItem['route'])) {
-                    $activeSectionKey = \Illuminate\Support\Str::slug($sectionTitle);
-                    break 2;
-                }
+        if (! empty($sectionRoutes) && is_array($sectionRoutes)) {
+            $filteredRoutes = array_values(array_filter(
+                $sectionRoutes,
+                fn ($item) => is_array($item) && $canSeeRoute($item)
+            ));
+
+            if ($filteredRoutes !== []) {
+                $visibleSections[$sectionTitle] = $filteredRoutes;
+            }
+        }
+    }
+
+    $activeSectionKey = null;
+    foreach ($visibleSections as $sectionTitle => $sectionRoutes) {
+        foreach ($sectionRoutes as $routeItem) {
+            if (request()->routeIs($routeItem['route'])) {
+                $activeSectionKey = \Illuminate\Support\Str::slug($sectionTitle);
+                break 2;
             }
         }
     }
     if (! $activeSectionKey) {
-        foreach ($sections as $sectionTitle => $sectionRoutes) {
-            if (!empty($sectionRoutes)) {
-                $activeSectionKey = \Illuminate\Support\Str::slug($sectionTitle);
-                break;
-            }
+        foreach ($visibleSections as $sectionTitle => $sectionRoutes) {
+            $activeSectionKey = \Illuminate\Support\Str::slug($sectionTitle);
+            break;
         }
     }
 @endphp
@@ -156,72 +202,70 @@
             </div>
 
             <nav aria-label="Primary navigation" class="space-y-3">
-                @foreach($sections as $title => $routes)
-                    @if(!empty($routes))
-                        @php
-                            $sectionKey = \Illuminate\Support\Str::slug($title);
-                        @endphp
-                        <div class="space-y-1">
-                            {{-- Always-1-Active Collapsible Section Header --}}
-                            <button
-                                type="button"
-                                x-show="!sidebarCollapsed"
-                                x-cloak
-                                @click="toggleSection('{{ $sectionKey }}')"
-                                :aria-expanded="(activeSection === '{{ $sectionKey }}').toString()"
-                                class="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-                                :class="activeSection === '{{ $sectionKey }}' ? 'text-content-heading bg-surface-canvas/80' : 'text-content-muted hover:text-content-heading hover:bg-surface-canvas/50'"
-                            >
-                                <span class="truncate">{{ $title }}</span>
-                                <svg
-                                    class="w-3.5 h-3.5 shrink-0 transition-transform duration-150"
-                                    :class="activeSection === '{{ $sectionKey }}' ? 'rotate-0' : '-rotate-90'"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke-width="2"
-                                    stroke="currentColor"
-                                    aria-hidden="true"
-                                >
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                                </svg>
-                            </button>
-
-                            {{-- Divider when Rail is Icon-Only Collapsed --}}
-                            <div
-                                x-show="sidebarCollapsed"
-                                x-cloak
-                                class="my-2 border-t border-surface-border/70"
+                @foreach($visibleSections as $title => $routes)
+                    @php
+                        $sectionKey = \Illuminate\Support\Str::slug($title);
+                    @endphp
+                    <div class="space-y-1">
+                        {{-- Always-1-Active Collapsible Section Header --}}
+                        <button
+                            type="button"
+                            x-show="!sidebarCollapsed"
+                            x-cloak
+                            @click="toggleSection('{{ $sectionKey }}')"
+                            :aria-expanded="(activeSection === '{{ $sectionKey }}').toString()"
+                            class="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                            :class="activeSection === '{{ $sectionKey }}' ? 'text-content-heading bg-surface-canvas/80' : 'text-content-muted hover:text-content-heading hover:bg-surface-canvas/50'"
+                        >
+                            <span class="truncate">{{ $title }}</span>
+                            <svg
+                                class="w-3.5 h-3.5 shrink-0 transition-transform duration-150"
+                                :class="activeSection === '{{ $sectionKey }}' ? 'rotate-0' : '-rotate-90'"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="2"
+                                stroke="currentColor"
                                 aria-hidden="true"
-                            ></div>
-
-                            {{-- Nav Links inside Active Section (or all icons when Rail is Collapsed) --}}
-                            <div
-                                x-show="sidebarCollapsed || activeSection === '{{ $sectionKey }}'"
-                                x-cloak
-                                class="space-y-1"
                             >
-                                @foreach($routes as $route)
-                                    @php
-                                        $isActive = request()->routeIs($route['route']);
-                                    @endphp
-                                    <a
-                                        href="{{ Route::has($route['route']) ? route($route['route']) : '#' }}"
-                                        wire:navigate
-                                        @click="sidebarOpen = false"
-                                        title="{{ $route['name'] }}"
-                                        aria-label="{{ $route['name'] }}"
-                                        @if($isActive) aria-current="page" @endif
-                                        :class="sidebarCollapsed ? 'justify-center px-2.5' : 'gap-3 px-3'"
-                                        class="flex items-center py-2 rounded-xl text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary {{ $isActive ? 'bg-brand-tint-light text-brand-primary font-semibold' : 'text-content-body hover:bg-surface-canvas hover:text-content-heading' }}"
-                                    >
-                                        <x-dynamic-component :component="'heroicon-o-' . $route['icon']" class="w-4 h-4 shrink-0" aria-hidden="true" />
-                                        <span x-show="!sidebarCollapsed" x-cloak class="truncate">{{ $route['name'] }}</span>
-                                    </a>
-                                @endforeach
-                            </div>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                            </svg>
+                        </button>
+
+                        {{-- Divider when Rail is Icon-Only Collapsed --}}
+                        <div
+                            x-show="sidebarCollapsed"
+                            x-cloak
+                            class="my-2 border-t border-surface-border/70"
+                            aria-hidden="true"
+                        ></div>
+
+                        {{-- Nav Links inside Active Section (or all icons when Rail is Collapsed) --}}
+                        <div
+                            x-show="sidebarCollapsed || activeSection === '{{ $sectionKey }}'"
+                            x-cloak
+                            class="space-y-1"
+                        >
+                            @foreach($routes as $route)
+                                @php
+                                    $isActive = request()->routeIs($route['route']);
+                                @endphp
+                                <a
+                                    href="{{ Route::has($route['route']) ? route($route['route']) : '#' }}"
+                                    wire:navigate
+                                    @click="sidebarOpen = false"
+                                    title="{{ $route['name'] }}"
+                                    aria-label="{{ $route['name'] }}"
+                                    @if($isActive) aria-current="page" @endif
+                                    :class="sidebarCollapsed ? 'justify-center px-2.5' : 'gap-3 px-3'"
+                                    class="flex items-center py-2 rounded-xl text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary {{ $isActive ? 'bg-brand-tint-light text-brand-primary font-semibold' : 'text-content-body hover:bg-surface-canvas hover:text-content-heading' }}"
+                                >
+                                    <x-dynamic-component :component="'heroicon-o-' . $route['icon']" class="w-4 h-4 shrink-0" aria-hidden="true" />
+                                    <span x-show="!sidebarCollapsed" x-cloak class="truncate">{{ $route['name'] }}</span>
+                                </a>
+                            @endforeach
                         </div>
-                    @endif
+                    </div>
                 @endforeach
             </nav>
         </div>

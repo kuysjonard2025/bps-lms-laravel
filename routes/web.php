@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureKioskAuthenticated;
 use App\Livewire\AcademicInfo;
 use App\Livewire\Accessions;
 use App\Livewire\Acquisitions;
+use App\Livewire\ActiveSessions;
 use App\Livewire\AssetDetails\Index as AssetDetails;
 use App\Livewire\Auth\CompleteProfile;
 use App\Livewire\Auth\ForgotPassword;
@@ -28,7 +29,6 @@ use App\Livewire\PatronRecords;
 use App\Livewire\Registrations;
 use App\Livewire\UserActivityLogs;
 use App\Livewire\Vendors;
-use App\Livewire\ActiveSessions;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -83,7 +83,6 @@ Route::middleware('auth')->group(function () {
             Route::get('/circulations', Circulations::class)->name('circulations');
             Route::get('/patron-records', PatronRecords::class)->name('patron-records');
             Route::get('/inventory-management', InventoryManagement::class)->name('inventory-management');
-            Route::get('/active-sessions', ActiveSessions::class)->name('active-sessions');
         });
 
         // Maintenance & System Reports (Strictly for full Librarians)
@@ -98,6 +97,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/registrations', Registrations::class)->name('registrations');
             Route::get('/circulation-policy', CirculationPolicy::class)->name('circulation-policy');
             Route::get('/kiosk-settings', KioskSettingsManager::class)->name('kiosk.settings');
+            Route::get('/active-sessions', ActiveSessions::class)->name('active-sessions');
 
             // System Logs
             Route::get('/authentication-logs', AuthenticationLogs::class)->name('authentication-logs');
