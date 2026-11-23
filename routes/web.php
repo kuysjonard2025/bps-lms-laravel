@@ -28,6 +28,7 @@ use App\Livewire\PatronRecords;
 use App\Livewire\Registrations;
 use App\Livewire\UserActivityLogs;
 use App\Livewire\Vendors;
+use App\Livewire\ActiveSessions;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -82,6 +83,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/circulations', Circulations::class)->name('circulations');
             Route::get('/patron-records', PatronRecords::class)->name('patron-records');
             Route::get('/inventory-management', InventoryManagement::class)->name('inventory-management');
+            Route::get('/active-sessions', ActiveSessions::class)->name('active-sessions');
         });
 
         // Maintenance & System Reports (Strictly for full Librarians)

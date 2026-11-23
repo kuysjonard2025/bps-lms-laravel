@@ -5,15 +5,15 @@
 
 <div class="space-y-4">
     {{-- Header Container --}}
-    <section aria-label="Accessions header" class="bg-surface-card p-4 sm:p-5 rounded-2xl border border-surface-border shadow-2xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <section aria-label="Accessions header" class="bg-surface-card p-4 sm:p-5 rounded-2xl border border-surface-border shadow-2xs flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
         <div>
             <h2 class="text-base sm:text-lg font-bold text-content-heading tracking-tight">Accessions</h2>
             <p class="text-xs text-content-body mt-0.5">Manage individual item barcodes, physical condition, and asset status.</p>
         </div>
 
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full xl:w-auto">
             <!-- Search Input -->
-            <div class="relative w-full sm:w-56 lg:w-64">
+            <div class="relative w-full sm:w-56">
                 <label for="accession-search" class="sr-only">Search accessions</label>
                 <input
                     id="accession-search"
@@ -54,6 +54,75 @@
 
             <!-- Action Buttons -->
             <div class="flex items-center gap-2 shrink-0 flex-wrap">
+                <!-- Export Dropdown -->
+                <div
+                    x-data="{ open: false }"
+                    @click.outside="open = false"
+                    @keydown.escape.window="open = false"
+                    class="relative"
+                >
+                    <button
+                        type="button"
+                        @click="open = !open"
+                        :aria-expanded="open.toString()"
+                        wire:loading.attr="disabled"
+                        wire:target="exportExcel,exportPdf,exportAccessionNumbers"
+                        class="px-3 py-2 text-xs font-semibold text-content-heading bg-surface-card border border-surface-border rounded-xl hover:bg-surface-canvas transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary disabled:opacity-50"
+                    >
+                        <x-heroicon-o-arrow-down-tray class="w-4 h-4 text-content-muted" aria-hidden="true" />
+                        <span>Export</span>
+                        <x-heroicon-m-chevron-down class="w-3.5 h-3.5 text-content-muted" aria-hidden="true" />
+                    </button>
+
+                    <div
+                        x-show="open"
+                        x-cloak
+                        x-transition:enter="transition ease-out duration-100"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-75"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-95"
+                        role="menu"
+                        class="absolute right-0 mt-1.5 w-48 rounded-xl border border-surface-border bg-surface-card shadow-lg py-1 z-30 text-xs"
+                    >
+                        <button
+                            type="button"
+                            role="menuitem"
+                            wire:click="exportExcel"
+                            @click="open = false"
+                            class="w-full px-3.5 py-2 text-left text-content-heading hover:bg-surface-canvas flex items-center gap-2 transition cursor-pointer"
+                        >
+                            <x-heroicon-o-table-cells class="w-4 h-4 text-content-muted shrink-0" aria-hidden="true" />
+                            <span>Export Excel (.xlsx)</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            role="menuitem"
+                            wire:click="exportPdf"
+                            @click="open = false"
+                            class="w-full px-3.5 py-2 text-left text-content-heading hover:bg-surface-canvas flex items-center gap-2 transition cursor-pointer"
+                        >
+                            <x-heroicon-o-document-arrow-down class="w-4 h-4 text-content-muted shrink-0" aria-hidden="true" />
+                            <span>Export PDF (.pdf)</span>
+                        </button>
+
+                        <div class="my-1 border-t border-surface-border/70"></div>
+
+                        <button
+                            type="button"
+                            role="menuitem"
+                            wire:click="openExportModal"
+                            @click="open = false"
+                            class="w-full px-3.5 py-2 text-left text-content-heading hover:bg-surface-canvas flex items-center gap-2 transition cursor-pointer"
+                        >
+                            <x-heroicon-o-qr-code class="w-4 h-4 text-brand-primary shrink-0" aria-hidden="true" />
+                            <span>Export Niimbot Labels</span>
+                        </button>
+                    </div>
+                </div>
+
                 <button
                     wire:click="openBulkUpdateModal"
                     wire:loading.attr="disabled"
@@ -62,18 +131,7 @@
                     class="px-3 py-2 text-xs font-semibold text-brand-primary bg-brand-tint-light border border-brand-primary/25 rounded-xl hover:bg-brand-primary/15 transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
                 >
                     <x-heroicon-o-arrow-path class="w-4 h-4 text-brand-primary" aria-hidden="true" />
-                    <span>Bulk Update Status</span>
-                </button>
-
-                <button
-                    wire:click="openExportModal"
-                    wire:loading.attr="disabled"
-                    wire:target="openExportModal"
-                    type="button"
-                    class="px-3 py-2 text-xs font-semibold text-content-heading bg-surface-card border border-surface-border rounded-xl hover:bg-surface-canvas transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-                >
-                    <x-heroicon-o-arrow-down-tray class="w-4 h-4 text-content-muted" aria-hidden="true" />
-                    <span>Export Labels</span>
+                    <span>Bulk Update</span>
                 </button>
 
                 <button

@@ -18,6 +18,11 @@ class Sidebar extends Component
                     'route' => 'dashboard',
                     'icon' => 'home',
                 ],
+                [
+                    'name' => 'Active Sessions',
+                    'route' => 'active-sessions',
+                    'icon' => 'computer-desktop',
+                ],
             ],
 
             'Process' => [

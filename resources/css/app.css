@@ -39,6 +39,39 @@
 	}
 }
 
+.sidebar-scroll-autohide {
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+
+.sidebar-scroll-autohide::-webkit-scrollbar {
+	width: 0px;
+	height: 0px;
+}
+
+.sidebar-scroll-autohide:hover,
+.sidebar-scroll-autohide.is-scrolling {
+	scrollbar-width: thin;
+	scrollbar-color: color-mix(in srgb, var(--color-content-muted) 45%, transparent) transparent;
+}
+
+.sidebar-scroll-autohide:hover::-webkit-scrollbar,
+.sidebar-scroll-autohide.is-scrolling::-webkit-scrollbar {
+	width: 5px;
+	height: 5px;
+}
+
+.sidebar-scroll-autohide:hover::-webkit-scrollbar-track,
+.sidebar-scroll-autohide.is-scrolling::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.sidebar-scroll-autohide:hover::-webkit-scrollbar-thumb,
+.sidebar-scroll-autohide.is-scrolling::-webkit-scrollbar-thumb {
+	background-color: color-mix(in srgb, var(--color-content-muted) 45%, transparent);
+	border-radius: 9999px;
+}
+
 .overflow-x-auto::-webkit-scrollbar {
 	height: 8px;
 	width: 8px;

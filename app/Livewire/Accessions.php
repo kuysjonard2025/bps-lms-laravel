@@ -2,12 +2,14 @@
 
 namespace App\Livewire;
 
-use App\Exports\AccessionsExport;
-use App\Exports\AccessionNumberExport;
+use App\Exports\AccessionNumberExcelExport;
+use App\Exports\AccessionsExcelExport;
 use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\Accession;
 use App\Models\Acquisition;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +24,6 @@ use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Exception;
 
 class Accessions extends Component
 {
@@ -53,12 +54,29 @@ class Accessions extends Component
     public string $bulkStatus = 'stored';
     public ?string $bulkRemarks = null;
 
+    private const ALLOWED_CONDITIONS = [
+        'new',
+        'good',
+        'minor damaged',
+        'severe damaged',
+        'lost',
+        'missing',
+    ];
+
+    private const ALLOWED_STATUSES = [
+        'available',
+        'on loan',
+        'stored',
+        'under maintenance',
+        'dumped',
+    ];
+
     protected function rules(): array
     {
         $rules = [
             'acquisition_id' => 'required|exists:acquisitions,id',
-            'condition'      => 'required|string|in:new,good,minor damaged,severe damaged,lost,missing',
-            'status'         => ['required', 'string', 'in:available,on loan,stored,under maintenance,dumped'],
+            'condition'      => ['required', 'string', Rule::in(self::ALLOWED_CONDITIONS)],
+            'status'         => ['required', 'string', Rule::in(self::ALLOWED_STATUSES)],
             'remarks'        => 'nullable|string|max:1000',
         ];
 
@@ -86,7 +104,7 @@ class Accessions extends Component
         }
 
         $existingCount = Accession::where('acquisition_id', $this->acquisition_id)
-            ->when($this->accessionIdBeingEdited, fn($q) => $q->where('id', '!=', $this->accessionIdBeingEdited))
+            ->when($this->accessionIdBeingEdited, fn ($q) => $q->where('id', '!=', $this->accessionIdBeingEdited))
             ->count();
 
         return max(0, $acquisition->quantity_received - $existingCount);
@@ -127,7 +145,7 @@ class Accessions extends Component
             $this->selectedAccessionIds = Accession::where('acquisition_id', $value)
                 ->where('status', '!=', 'on loan')
                 ->pluck('id')
-                ->map(fn($id) => (string) $id)
+                ->map(fn ($id) => (string) $id)
                 ->toArray();
         }
     }
@@ -141,7 +159,7 @@ class Accessions extends Component
         $this->selectedAccessionIds = Accession::where('acquisition_id', $this->bulkAcquisitionId)
             ->where('status', '!=', 'on loan')
             ->pluck('id')
-            ->map(fn($id) => (string) $id)
+            ->map(fn ($id) => (string) $id)
             ->toArray();
     }
 
@@ -161,6 +179,7 @@ class Accessions extends Component
                 ->get()
                 ->map(function ($item) {
                     preg_match('/-(\d+)$/', $item->accession_number, $matches);
+
                     return isset($matches[1]) ? (int) $matches[1] : 0;
                 })
                 ->max() ?? 0;
@@ -183,8 +202,12 @@ class Accessions extends Component
     {
         $this->resetValidation();
         $this->reset([
-            'acquisition_id', 'accession_number',
-            'condition', 'status', 'remarks', 'accessionIdBeingEdited',
+            'acquisition_id',
+            'accession_number',
+            'condition',
+            'status',
+            'remarks',
+            'accessionIdBeingEdited',
         ]);
 
         $this->condition = 'new';
@@ -265,6 +288,7 @@ class Accessions extends Component
                         ->get()
                         ->map(function ($item) {
                             preg_match('/-(\d+)$/', $item->accession_number, $matches);
+
                             return isset($matches[1]) ? (int) $matches[1] : 0;
                         })
                         ->max() ?? 0;
@@ -312,29 +336,36 @@ class Accessions extends Component
     public function bulkUpdateAccessions(): void
     {
         $this->validate([
-            'bulkAcquisitionId'    => 'required|exists:acquisitions,id',
-            'selectedAccessionIds' => 'required|array|min:1',
+            'bulkAcquisitionId'      => 'required|exists:acquisitions,id',
+            'selectedAccessionIds'   => 'required|array|min:1',
             'selectedAccessionIds.*' => 'exists:accessions,id',
-            'bulkCondition'        => 'required|string|in:new,good,minor damage,severe damaged,lost,missing',
-            'bulkStatus'           => ['required', 'string', 'in:available,on loan,stored,under maintenance,dumped'],
-            'bulkRemarks'          => 'nullable|string|max:1000',
+            'bulkCondition'          => ['required', 'string', Rule::in(self::ALLOWED_CONDITIONS)],
+            'bulkStatus'             => ['required', 'string', Rule::in(self::ALLOWED_STATUSES)],
+            'bulkRemarks'            => 'nullable|string|max:1000',
         ]);
 
         try {
             DB::transaction(function () {
-                $query = Accession::whereIn('id', $this->selectedAccessionIds)
-                    ->where('status', '!=', 'on loan');
+                $appendedRemark = trim((string) $this->bulkRemarks);
 
-                $updateData = [
-                    'condition' => $this->bulkCondition,
-                    'status'    => $this->bulkStatus,
-                ];
+                Accession::whereIn('id', $this->selectedAccessionIds)
+                    ->where('status', '!=', 'on loan')
+                    ->get()
+                    ->each(function (Accession $accession) use ($appendedRemark) {
+                        $remarks = $accession->remarks;
 
-                if (!empty($this->bulkRemarks)) {
-                    $updateData['remarks'] = DB::raw("COALESCE(remarks, '') || ' | " . addslashes($this->bulkRemarks) . "'");
-                }
+                        if ($appendedRemark !== '') {
+                            $remarks = $remarks
+                                ? $remarks . ' | ' . $appendedRemark
+                                : $appendedRemark;
+                        }
 
-                $query->update($updateData);
+                        $accession->update([
+                            'condition' => $this->bulkCondition,
+                            'status'    => $this->bulkStatus,
+                            'remarks'   => $remarks,
+                        ]);
+                    });
             });
 
             $this->showBulkUpdateModal = false;
@@ -351,6 +382,7 @@ class Accessions extends Component
         $accession = Accession::find($id);
         if ($accession && $accession->status === 'on loan') {
             $this->dispatch('toast', message: 'Cannot delete an item that is currently on loan.', type: 'error');
+
             return;
         }
         $this->accessionIdBeingDeleted = $id;
@@ -367,12 +399,13 @@ class Accessions extends Component
                         $this->dispatch('toast', message: 'Deletion blocked: Item is currently checked out.', type: 'error');
                         $this->showDeleteModal = false;
                         $this->accessionIdBeingDeleted = null;
+
                         return;
                     }
                     $accession->delete();
                     $this->dispatch('toast', message: 'Accession item deleted successfully.', type: 'success');
                 }
-            } catch (Exception $e) {
+            } catch (QueryException|Exception $e) {
                 Log::error('Error deleting accession: ' . $e->getMessage());
                 $this->dispatch('toast', message: 'Cannot delete: Item is referenced by circulation records.', type: 'error');
             }
@@ -381,30 +414,35 @@ class Accessions extends Component
         $this->accessionIdBeingDeleted = null;
     }
 
-    private function getFilteredAccessionsQuery(string $orderBy = 'asc')
+    private function getFilteredAccessionsQuery(string $orderBy = 'asc'): Builder
     {
         $likeOperator = config('database.default') === 'pgsql' ? 'ilike' : 'like';
+        $searchTerm = trim($this->search);
 
-        return Accession::with([
-            'acquisition.vendor',
-            'acquisition.catalog.author',
-            'acquisition.catalog.publisher',
-            'acquisition.catalog.generalReference',
-            'acquisition.catalog.assetType'
-        ])
-            ->when($this->search, function ($query) use ($likeOperator) {
-                $query->where(function ($q) use ($likeOperator) {
-                    $q->where('accession_number', $likeOperator, "%{$this->search}%")
-                        ->orWhereHas('acquisition.catalog', fn ($sub) => $sub->where('title', $likeOperator, "%{$this->search}%"));
+        return Accession::query()
+            ->with([
+                'acquisition.vendor',
+                'acquisition.catalog.author',
+                'acquisition.catalog.publisher',
+                'acquisition.catalog.generalReference',
+                'acquisition.catalog.assetType',
+            ])
+            ->when($searchTerm !== '', function (Builder $query) use ($likeOperator, $searchTerm) {
+                $query->where(function (Builder $q) use ($likeOperator, $searchTerm) {
+                    $q->where('accession_number', $likeOperator, "%{$searchTerm}%")
+                        ->orWhereHas('acquisition.catalog', fn (Builder $sub) => $sub->where('title', $likeOperator, "%{$searchTerm}%"));
                 });
             })
-            ->when($this->statusFilter, fn ($q) => $q->where('status', $this->statusFilter))
+            ->when($this->statusFilter !== '', fn (Builder $q) => $q->where('status', $this->statusFilter))
             ->orderBy('accession_number', $orderBy);
     }
 
     public function exportExcel(): ?BinaryFileResponse
     {
-        return Excel::download(new AccessionsExport($this->search, $this->statusFilter), 'accessions-report-' . now()->format('Y-m-d_His') . '.xlsx');
+        return Excel::download(
+            new AccessionsExcelExport(trim($this->search), $this->statusFilter),
+            'accessions-report-' . now()->format('Y-m-d_His') . '.xlsx'
+        );
     }
 
     public function openExportModal(): void
@@ -417,20 +455,41 @@ class Accessions extends Component
 
     public function exportAccessionNumbers(): ?BinaryFileResponse
     {
+        $this->validate([
+            'exportStartAccession' => 'nullable|string|max:100',
+            'exportEndAccession'   => 'nullable|string|max:100',
+        ]);
+
         $this->showExportModal = false;
-        return Excel::download(new AccessionNumberExport($this->search, $this->statusFilter, $this->exportStartAccession, $this->exportEndAccession), 'niimbot-accessions-' . now()->format('Y-m-d_His') . '.xlsx');
+
+        return Excel::download(
+            new AccessionNumberExcelExport(
+                trim($this->search),
+                $this->statusFilter,
+                $this->exportStartAccession ? trim($this->exportStartAccession) : null,
+                $this->exportEndAccession ? trim($this->exportEndAccession) : null,
+            ),
+            'niimbot-accessions-' . now()->format('Y-m-d_His') . '.xlsx'
+        );
     }
 
     public function exportPdf(): ?StreamedResponse
     {
         $accessions = $this->getFilteredAccessionsQuery('asc')->get();
+
         $pdf = Pdf::loadView('pdf.accessions-report', [
             'accessions' => $accessions,
-            'filters'    => ['search' => $this->search, 'status' => $this->statusFilter],
-            'date' => now()->format('F j, Y g:i A'),
+            'filters'    => [
+                'search' => trim($this->search),
+                'status' => $this->statusFilter,
+            ],
+            'date'       => now()->format('F j, Y g:i A'),
         ])->setPaper('a4', 'landscape');
 
-        return response()->streamDownload(fn () => print($pdf->output()), 'accessions-report-' . now()->format('Y-m-d_His') . '.pdf');
+        return response()->streamDownload(
+            static fn () => print($pdf->output()),
+            'accessions-report-' . now()->format('Y-m-d_His') . '.pdf'
+        );
     }
 
     #[Layout('components.layouts.app')]
@@ -438,13 +497,13 @@ class Accessions extends Component
     public function render()
     {
         return view('livewire.accessions', [
-            'accessions'   => $this->getFilteredAccessionsQuery()->paginate(10),
-            'acquisitions' => Acquisition::with([
+            'accessions'                => $this->getFilteredAccessionsQuery()->paginate(10),
+            'acquisitions'              => Acquisition::with([
                 'vendor',
                 'catalog.author',
                 'catalog.publisher',
                 'catalog.generalReference',
-                'catalog.assetType'
+                'catalog.assetType',
             ])->whereIn('status', ['partial', 'delivered'])->latest()->get(),
             'accessionedAcquisitions' => Acquisition::has('accessions')
                 ->with(['catalog.author', 'accessions'])

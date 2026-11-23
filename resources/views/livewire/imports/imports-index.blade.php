@@ -46,9 +46,10 @@
             <livewire:imports.catalogs.catalogs-import-preview />
         </div>
     @elseif ($activeTab === 'accessions')
-        <div class="rounded-2xl border border-surface-border bg-surface-card p-6 text-xs text-content-body">
-            <p class="font-semibold text-content-heading">Accessions Import</p>
-            <p class="mt-1">Not configured yet. Ready to build when you specify the Accessions import columns and rules.</p>
+        <div class="space-y-5">
+            <livewire:imports.accessions.accessions-import-template-action />
+            <livewire:imports.accessions.accessions-import-upload-form />
+            <livewire:imports.accessions.accessions-import-validation-preview />
         </div>
     @elseif ($activeTab === 'acquisitions')
         <div class="rounded-2xl border border-surface-border bg-surface-card p-6 text-xs text-content-body">

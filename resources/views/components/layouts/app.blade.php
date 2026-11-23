@@ -40,7 +40,19 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 </head>
 <body
-    x-data="{ sidebarOpen: false }"
+    x-data="{
+        sidebarOpen: false,
+        sidebarCollapsed: false,
+        initLayout() {
+            try {
+                this.sidebarCollapsed = localStorage.getItem('bps_sidebar_collapsed') === 'true';
+            } catch (e) {}
+            window.addEventListener('sidebar-collapsed', (event) => {
+                this.sidebarCollapsed = Boolean(event.detail?.collapsed);
+            });
+        }
+    }"
+    x-init="initLayout()"
     :class="{ 'overflow-hidden lg:overflow-auto': sidebarOpen }"
     class="bg-surface-canvas font-sans antialiased text-content-heading min-h-dvh flex flex-col selection:bg-brand-primary selection:text-white"
 >
@@ -54,7 +66,11 @@
     <div class="flex flex-1 w-full min-w-0 relative">
 
         {{-- Desktop Layout Spacer for Fixed Sidebar (>= 1024px only) --}}
-        <div class="hidden lg:block lg:w-64 shrink-0" aria-hidden="true"></div>
+        <div
+            :class="sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'"
+            class="hidden lg:block shrink-0 transition-all duration-200 ease-out"
+            aria-hidden="true"
+        ></div>
 
         {{-- Navigation Sidebar --}}
         <livewire:components.sidebar />
