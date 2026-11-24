@@ -1,7 +1,10 @@
-<?php // app/Livewire/Registrations/PatronsTab.php
+<?php
+
+// app/Livewire/Registrations/PatronsTab.php
 
 namespace App\Livewire\Registrations;
 
+use App\Exports\PatronsExcelExport;
 use App\Livewire\Helpers\SanitizesInputs;
 use App\Models\Adviser;
 use App\Models\Department;
@@ -10,7 +13,9 @@ use App\Models\Patron;
 use App\Models\PatronType;
 use App\Models\Section;
 use App\Models\Strand;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -21,32 +26,55 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class PatronsTab extends Component
 {
-    use WithPagination, SanitizesInputs;
+    use SanitizesInputs, WithPagination;
 
     public string $search = '';
+
     public bool $showPatronModal = false;
+
     public bool $showDeleteModal = false;
+
     public ?int $idBeingDeleted = null;
 
     public ?int $patronIdBeingEdited = null;
+
     public string $p_school_id = '';
+
     public string $p_rfid_tag = '';
+
     public string $p_first_name = '';
+
     public ?string $p_middle_name = null;
+
     public string $p_last_name = '';
+
     public ?string $p_suffix = null;
+
     public ?int $p_patron_type_id = null;
+
     public ?int $p_grade_level_id = null;
+
     public ?int $p_section_id = null;
+
     public ?int $p_department_id = null;
+
     public ?int $p_strand_id = null;
+
     public ?int $p_adviser_id = null;
+
     public string $p_email = '';
+
     public string $p_contact_number = '';
+
     public string $p_address = '';
+
     public string $p_status = 'active';
 
     private function toTitle(string $value): string
@@ -65,7 +93,7 @@ class PatronsTab extends Component
             return false;
         }
 
-        $deptHaystack = strtolower(trim($dept->name . ' ' . $dept->code));
+        $deptHaystack = strtolower(trim($dept->name.' '.$dept->code));
 
         return str_contains($deptHaystack, 'senior high') || str_contains($deptHaystack, 'shs');
     }
@@ -81,13 +109,13 @@ class PatronsTab extends Component
             return $allGradeLevels;
         }
 
-        $deptHaystack = strtolower(trim($dept->name . ' ' . $dept->code));
+        $deptHaystack = strtolower(trim($dept->name.' '.$dept->code));
         $isShsDept = str_contains($deptHaystack, 'senior high') || str_contains($deptHaystack, 'shs');
         $isJhsDept = str_contains($deptHaystack, 'junior high') || str_contains($deptHaystack, 'jhs');
 
         if ($isShsDept) {
             $filtered = $allGradeLevels->filter(function ($grade) {
-                $g = strtolower($grade->name . ' ' . $grade->code);
+                $g = strtolower($grade->name.' '.$grade->code);
 
                 return str_contains($g, '11') || str_contains($g, '12') || str_contains($g, 'senior high') || str_contains($g, 'shs');
             })->values();
@@ -97,7 +125,7 @@ class PatronsTab extends Component
 
         if ($isJhsDept) {
             $filtered = $allGradeLevels->filter(function ($grade) {
-                $g = strtolower($grade->name . ' ' . $grade->code);
+                $g = strtolower($grade->name.' '.$grade->code);
 
                 return str_contains($g, '7')
                     || str_contains($g, '8')
@@ -210,7 +238,7 @@ class PatronsTab extends Component
             }
             $this->showPatronModal = true;
         } catch (Exception $e) {
-            Log::error('Error opening create patron modal: ' . $e->getMessage());
+            Log::error('Error opening create patron modal: '.$e->getMessage());
             $this->dispatch('toast', message: 'Could Not Open The Patron Form.', type: 'error');
         }
     }
@@ -241,7 +269,7 @@ class PatronsTab extends Component
 
             $this->showPatronModal = true;
         } catch (Exception $e) {
-            Log::error('Error opening edit patron modal: ' . $e->getMessage());
+            Log::error('Error opening edit patron modal: '.$e->getMessage());
             $this->dispatch('toast', message: 'Could Not Load Patron Details.', type: 'error');
         }
     }
@@ -285,62 +313,62 @@ class PatronsTab extends Component
             ->ignore($this->patronIdBeingEdited);
 
         $rules = [
-            'p_school_id'      => ['required', 'string', 'max:255', Rule::unique('patrons', 'school_id')->ignore($this->patronIdBeingEdited)],
-            'p_rfid_tag'       => ['required', 'string', 'max:255', Rule::unique('patrons', 'rfid_tag')->ignore($this->patronIdBeingEdited)],
-            'p_first_name'     => ['required', 'string', 'max:50', $fullNameUniqueRule],
-            'p_middle_name'    => ['nullable', 'string', 'max:50'],
-            'p_last_name'      => ['required', 'string', 'max:50'],
-            'p_suffix'         => ['nullable', 'string', 'max:10'],
+            'p_school_id' => ['required', 'string', 'max:255', Rule::unique('patrons', 'school_id')->ignore($this->patronIdBeingEdited)],
+            'p_rfid_tag' => ['required', 'string', 'max:255', Rule::unique('patrons', 'rfid_tag')->ignore($this->patronIdBeingEdited)],
+            'p_first_name' => ['required', 'string', 'max:50', $fullNameUniqueRule],
+            'p_middle_name' => ['nullable', 'string', 'max:50'],
+            'p_last_name' => ['required', 'string', 'max:50'],
+            'p_suffix' => ['nullable', 'string', 'max:10'],
             'p_patron_type_id' => ['required', 'exists:patron_types,id'],
-            'p_department_id'  => ['required', 'exists:departments,id'],
+            'p_department_id' => ['required', 'exists:departments,id'],
             'p_grade_level_id' => [$isStudent ? 'required' : 'nullable', 'exists:grade_levels,id'],
-            'p_section_id'     => [$isStudent ? 'required' : 'nullable', 'exists:sections,id'],
-            'p_strand_id'      => [$isSeniorHigh ? 'required' : 'nullable', 'exists:strands,id'],
-            'p_adviser_id'     => [$isStudent ? 'required' : 'nullable', 'exists:advisers,id'],
-            'p_email'          => ['required', 'email', 'max:100', Rule::unique('patrons', 'email')->ignore($this->patronIdBeingEdited)],
+            'p_section_id' => [$isStudent ? 'required' : 'nullable', 'exists:sections,id'],
+            'p_strand_id' => [$isSeniorHigh ? 'required' : 'nullable', 'exists:strands,id'],
+            'p_adviser_id' => [$isStudent ? 'required' : 'nullable', 'exists:advisers,id'],
+            'p_email' => ['required', 'email', 'max:100', Rule::unique('patrons', 'email')->ignore($this->patronIdBeingEdited)],
             'p_contact_number' => ['required', 'string', 'max:20', Rule::unique('patrons', 'contact_number')->ignore($this->patronIdBeingEdited)],
-            'p_address'        => ['required', 'string', 'max:255'],
-            'p_status'         => ['required', 'in:active,inactive,suspended'],
+            'p_address' => ['required', 'string', 'max:255'],
+            'p_status' => ['required', 'in:active,inactive,suspended'],
         ];
 
         $attributes = [
-            'p_first_name'     => 'First Name',
-            'p_middle_name'    => 'Middle Name',
-            'p_last_name'      => 'Last Name',
-            'p_suffix'         => 'Suffix',
-            'p_school_id'      => 'Student/Employee #',
-            'p_rfid_tag'       => 'RFID Tag',
+            'p_first_name' => 'First Name',
+            'p_middle_name' => 'Middle Name',
+            'p_last_name' => 'Last Name',
+            'p_suffix' => 'Suffix',
+            'p_school_id' => 'Student/Employee #',
+            'p_rfid_tag' => 'RFID Tag',
             'p_patron_type_id' => 'Patron Type',
             'p_grade_level_id' => 'Grade Level',
-            'p_section_id'     => 'Section',
-            'p_department_id'  => 'Department',
-            'p_strand_id'      => 'Strand',
-            'p_adviser_id'     => 'Adviser',
-            'p_email'          => 'Email Address',
+            'p_section_id' => 'Section',
+            'p_department_id' => 'Department',
+            'p_strand_id' => 'Strand',
+            'p_adviser_id' => 'Adviser',
+            'p_email' => 'Email Address',
             'p_contact_number' => 'Contact Number',
-            'p_address'        => 'Address',
-            'p_status'         => 'Status',
+            'p_address' => 'Address',
+            'p_status' => 'Status',
         ];
 
         $this->validate($rules, [], $attributes);
 
         $payload = [
-            'school_id'      => $schoolId,
-            'rfid_tag'       => $rfidTag,
-            'first_name'     => $firstName,
-            'middle_name'    => $middleName,
-            'last_name'      => $lastName,
-            'suffix'         => $suffix,
+            'school_id' => $schoolId,
+            'rfid_tag' => $rfidTag,
+            'first_name' => $firstName,
+            'middle_name' => $middleName,
+            'last_name' => $lastName,
+            'suffix' => $suffix,
             'patron_type_id' => $this->p_patron_type_id,
-            'department_id'  => $this->p_department_id,
+            'department_id' => $this->p_department_id,
             'grade_level_id' => $gradeLevelId,
-            'section_id'     => $sectionId,
-            'strand_id'      => $strandId,
-            'adviser_id'     => $adviserId,
-            'email'          => $email,
+            'section_id' => $sectionId,
+            'strand_id' => $strandId,
+            'adviser_id' => $adviserId,
+            'email' => $email,
             'contact_number' => $contactNumber,
-            'address'        => $address,
-            'status'         => $this->p_status,
+            'address' => $address,
+            'status' => $this->p_status,
         ];
 
         try {
@@ -355,12 +383,14 @@ class PatronsTab extends Component
         } catch (UniqueConstraintViolationException $e) {
             $this->throwPatronUniqueValidation($e);
         } catch (QueryException $e) {
-            Log::error('Query error saving patron: ' . $e->getMessage());
+            Log::error('Query error saving patron: '.$e->getMessage());
             $this->dispatch('toast', message: 'Database Error Saving Patron. Check Required Fields Or Duplicate Values.', type: 'error');
+
             return;
         } catch (Exception $e) {
-            Log::error('Error saving patron: ' . $e->getMessage());
+            Log::error('Error saving patron: '.$e->getMessage());
             $this->dispatch('toast', message: 'An Unexpected Error Occurred While Saving The Patron.', type: 'error');
+
             return;
         }
 
@@ -399,10 +429,10 @@ class PatronsTab extends Component
 
             $this->dispatch('toast', message: 'Patron Record Deleted Successfully.', type: 'success');
         } catch (QueryException $e) {
-            Log::error('Query error deleting patron: ' . $e->getMessage());
+            Log::error('Query error deleting patron: '.$e->getMessage());
             $this->dispatch('toast', message: 'Cannot Delete Record: It Is Referenced By Active Transactions Or Patron Logs.', type: 'error');
         } catch (Exception $e) {
-            Log::error('Unexpected error deleting patron: ' . $e->getMessage());
+            Log::error('Unexpected error deleting patron: '.$e->getMessage());
             $this->dispatch('toast', message: 'An Unexpected Error Occurred While Deleting The Record.', type: 'error');
         }
 
@@ -410,30 +440,93 @@ class PatronsTab extends Component
         $this->reset(['idBeingDeleted']);
     }
 
+    private function validateExportFilters(): void
+    {
+        $rules = [
+            'search' => ['nullable', 'string', 'max:100'],
+        ];
+
+        $attributes = [
+            'search' => 'Search Keyword',
+        ];
+
+        $this->validate($rules, [], $attributes);
+    }
+
+    // ------------------------------------------------------------------
+    // EXPORT ACTIONS
+    // ------------------------------------------------------------------
+    public function exportExcel(): ?BinaryFileResponse
+    {
+        $this->validateExportFilters();
+
+        try {
+            $filename = 'patrons-export-'.now()->format('Y-m-d-His').'.xlsx';
+
+            return Excel::download(
+                new PatronsExcelExport(trim($this->search)),
+                $filename
+            );
+        } catch (Throwable $e) {
+            Log::error('Patrons Excel export error: '.$e->getMessage());
+            $this->dispatch('toast', message: 'Failed To Export Excel File.', type: 'error');
+
+            return null;
+        }
+    }
+
+    public function exportPdf(): ?StreamedResponse
+    {
+        $this->validateExportFilters();
+
+        try {
+            $patrons = $this->patronsQuery()->get();
+
+            $pdf = Pdf::loadView('pdf.patrons-report', [
+                'patrons' => $patrons,
+                'search' => trim($this->search),
+            ])->setPaper('a4', 'landscape');
+
+            $filename = 'patrons-report-'.now()->format('Y-m-d-His').'.pdf';
+
+            return response()->streamDownload(fn () => print ($pdf->output()), $filename);
+        } catch (Throwable $e) {
+            Log::error('Patrons PDF export error: '.$e->getMessage());
+            $this->dispatch('toast', message: 'Failed To Export PDF File.', type: 'error');
+
+            return null;
+        }
+    }
+
+    private function patronsQuery(): Builder
+    {
+        $operator = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+        $term = trim($this->search);
+
+        return Patron::with(['patronType', 'gradeLevel', 'section', 'department', 'strand', 'adviser'])
+            ->when($term !== '', function ($query) use ($operator, $term) {
+                $query->where(function ($q) use ($operator, $term) {
+                    $q->where('school_id', $operator, "%{$term}%")
+                        ->orWhere('rfid_tag', $operator, "%{$term}%")
+                        ->orWhere('first_name', $operator, "%{$term}%")
+                        ->orWhere('middle_name', $operator, "%{$term}%")
+                        ->orWhere('last_name', $operator, "%{$term}%")
+                        ->orWhere('email', $operator, "%{$term}%")
+                        ->orWhere('address', $operator, "%{$term}%")
+                        ->orWhereHas('gradeLevel', fn ($g) => $g->where('name', $operator, "%{$term}%")->orWhere('code', $operator, "%{$term}%"))
+                        ->orWhereHas('section', fn ($s) => $s->where('name', $operator, "%{$term}%"))
+                        ->orWhereHas('department', fn ($d) => $d->where('name', $operator, "%{$term}%")->orWhere('code', $operator, "%{$term}%"))
+                        ->orWhereHas('strand', fn ($st) => $st->where('name', $operator, "%{$term}%")->orWhere('code', $operator, "%{$term}%"))
+                        ->orWhereHas('adviser', fn ($a) => $a->where('first_name', $operator, "%{$term}%")->orWhere('last_name', $operator, "%{$term}%"));
+                });
+            })
+            ->latest();
+    }
+
     public function render()
     {
         try {
-            $operator = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
-            $term = trim($this->search);
-
-            $patrons = Patron::with(['patronType', 'gradeLevel', 'section', 'department', 'strand', 'adviser'])
-                ->when($term !== '', function ($query) use ($operator, $term) {
-                    $query->where(function ($q) use ($operator, $term) {
-                        $q->where('school_id', $operator, "%{$term}%")
-                            ->orWhere('rfid_tag', $operator, "%{$term}%")
-                            ->orWhere('first_name', $operator, "%{$term}%")
-                            ->orWhere('middle_name', $operator, "%{$term}%")
-                            ->orWhere('last_name', $operator, "%{$term}%")
-                            ->orWhere('email', $operator, "%{$term}%")
-                            ->orWhere('address', $operator, "%{$term}%")
-                            ->orWhereHas('gradeLevel', fn ($g) => $g->where('name', $operator, "%{$term}%")->orWhere('code', $operator, "%{$term}%"))
-                            ->orWhereHas('section', fn ($s) => $s->where('name', $operator, "%{$term}%"))
-                            ->orWhereHas('department', fn ($d) => $d->where('name', $operator, "%{$term}%")->orWhere('code', $operator, "%{$term}%"))
-                            ->orWhereHas('strand', fn ($st) => $st->where('name', $operator, "%{$term}%")->orWhere('code', $operator, "%{$term}%"))
-                            ->orWhereHas('adviser', fn ($a) => $a->where('first_name', $operator, "%{$term}%")->orWhere('last_name', $operator, "%{$term}%"));
-                    });
-                })
-                ->latest()
+            $patrons = $this->patronsQuery()
                 ->paginate(10, ['*'], 'patronsPage');
 
             $patronTypes = PatronType::orderBy('name')->get(['id', 'name']);
@@ -454,7 +547,7 @@ class PatronsTab extends Component
             $isStudentType = $selectedPatronType && strtolower($selectedPatronType->name) === 'student';
             $isSeniorHighType = $isStudentType && $this->isSeniorHighSelection($this->p_grade_level_id, $this->p_department_id);
         } catch (Exception $e) {
-            Log::error('Error rendering patrons tab: ' . $e->getMessage());
+            Log::error('Error rendering patrons tab: '.$e->getMessage());
             $patrons = new LengthAwarePaginator([], 0, 10);
             $patronTypes = collect();
             $availableGradeLevels = collect();
@@ -467,15 +560,15 @@ class PatronsTab extends Component
         }
 
         return view('livewire.registrations.patrons-tab', [
-            'patrons'              => $patrons,
-            'patronTypes'          => $patronTypes,
+            'patrons' => $patrons,
+            'patronTypes' => $patronTypes,
             'availableGradeLevels' => $availableGradeLevels,
-            'allDepartments'       => $allDepartments,
-            'allStrands'           => $allStrands,
-            'availableSections'    => $availableSections,
-            'availableAdvisers'    => $availableAdvisers,
-            'isStudentType'        => $isStudentType,
-            'isSeniorHighType'     => $isSeniorHighType,
+            'allDepartments' => $allDepartments,
+            'allStrands' => $allStrands,
+            'availableSections' => $availableSections,
+            'availableAdvisers' => $availableAdvisers,
+            'isStudentType' => $isStudentType,
+            'isSeniorHighType' => $isSeniorHighType,
         ]);
     }
 }

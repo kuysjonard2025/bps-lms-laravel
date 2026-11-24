@@ -25,16 +25,39 @@
             @endif
         </div>
 
-        <button
-            type="button"
-            wire:click="openCreatePatronModal"
-            wire:loading.attr="disabled"
-            wire:target="openCreatePatronModal"
-            class="w-full sm:w-auto px-4 py-2 bg-brand-primary hover:bg-brand-primary-hover text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer shrink-0"
-        >
-            <x-heroicon-o-plus class="w-4 h-4" aria-hidden="true" />
-            <span>Register Patron</span>
-        </button>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+            <button
+                type="button"
+                wire:click="exportExcel"
+                wire:target="exportExcel"
+                wire:loading.attr="disabled"
+                class="flex-1 sm:flex-none px-3.5 py-2 text-xs font-semibold rounded-xl border border-surface-border bg-surface-card hover:bg-brand-tint-light hover:text-brand-primary text-content-heading transition cursor-pointer disabled:opacity-50 whitespace-nowrap focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/15"
+            >
+                <span wire:loading.remove wire:target="exportExcel">Export Excel</span>
+                <span wire:loading wire:target="exportExcel">Exporting...</span>
+            </button>
+            <button
+                type="button"
+                wire:click="exportPdf"
+                wire:target="exportPdf"
+                wire:loading.attr="disabled"
+                class="flex-1 sm:flex-none px-3.5 py-2 text-xs font-semibold rounded-xl border border-surface-border bg-surface-card hover:bg-brand-tint-light hover:text-brand-primary text-content-heading transition cursor-pointer disabled:opacity-50 whitespace-nowrap focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-primary/15"
+            >
+                <span wire:loading.remove wire:target="exportPdf">Export PDF</span>
+                <span wire:loading wire:target="exportPdf">Exporting...</span>
+            </button>
+
+            <button
+                type="button"
+                wire:click="openCreatePatronModal"
+                wire:loading.attr="disabled"
+                wire:target="openCreatePatronModal"
+                class="flex-1 sm:flex-none px-4 py-2 bg-brand-primary hover:bg-brand-primary-hover text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
+            >
+                <x-heroicon-o-plus class="w-4 h-4" aria-hidden="true" />
+                <span>Register Patron</span>
+            </button>
+        </div>
     </div>
 
     <div class="bg-surface-card shadow-2xs rounded-2xl border border-surface-border overflow-hidden">
